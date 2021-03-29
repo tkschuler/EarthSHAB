@@ -72,7 +72,7 @@ flight data.*
 
 <img src = "img/rainbow_trajectories_altitude.png" />
 
-<img src = "img/rainbow_trajectories_map.png" />
+<img src = "img/rainbow_trajectories_map.PNG" />
 
 **trapezoid.py** demonstrates how to use the GFS functionality with manual trajectories, independent of the solar balloon model.  Update *GNC.float* to predict trajectories at various altitudes. 
 
