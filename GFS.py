@@ -1,6 +1,6 @@
 import numpy as np
 import netCDF4
-from termcolor import colored, cprint
+from termcolor import colored
 import math
 from geographiclib.geodesic import Geodesic
 import sys
@@ -11,7 +11,6 @@ import config_earth
 
 """ GFS.py extracts meteorological data from a NOAA netcdf (.nc file) data set.  To speed up predicting trajectories,
 saveNETCDF.py should be run before main.py. This way, the large data set doesn't need to be redownloaded each time the trajectory is run.
-
 For now, only wind velocity is used for the simulation prediction.  Atmposheric properties such as temperarature and pressure are based off of
 the U.S. Standard Atmosphere tables from 1976, and the fluids library is used for these, which can be seen in radiation3.py
 """
@@ -20,16 +19,15 @@ class GFS:
     def __init__(self, centered_coord):
         # import variables from configuration file
         self.centered_coord = centered_coord
-        self.min_alt = config_earth.GNC['min_alt']
-        self.start_time = config_earth.GNC['start_time']
-        self.gfs_time = config_earth.gfs_time
-        self.res = config_earth.GFS['res']
-        self.file = netCDF4.Dataset(config_earth.GFS["file"]) #Only accepting manual uploads for now
+        self.min_alt = config_earth.simulation['min_alt']
+        self.start_time = config_earth.simulation['start_time']
+        self.hours3 = config_earth.netcdf['hours3']
+
+        self.file = netCDF4.Dataset(config_earth.netcdf["nc_file"])  # Only accepting manual uploads for now
+        self.gfs_time = config_earth.netcdf['nc_start']
+        self.res = config_earth.netcdf['res']
 
         self.geod = Geodesic.WGS84
-
-        lat_i = self.getNearestLat(centered_coord["lat"],-90,90.01) # Latitude index for starting coordinate
-        lon_i = self.getNearestLon(centered_coord["lon"],0,360) # Longitude index for starting coordinate
 
         # Initialize min/max lat/lon index values from netcdf4 subset
         self.lat_low = None
@@ -59,23 +57,21 @@ class GFS:
 
         # Import the netcdf4 subset to speed up table lookup in this script
         self.levels = self.file.variables['lev'][:]
-        self.ugdrps0 = self.file.variables['ugrdprs'][hour_index:hour_index+48,:,self.lat_low:self.lat_high,self.lon_low:self.lon_high]
-        self.vgdrps0 = self.file.variables['vgrdprs'][hour_index:hour_index+48,:,self.lat_low:self.lat_high,self.lon_low:self.lon_high]
-        self.hgtprs  = self.file.variables['hgtprs'][hour_index:hour_index+48,:,self.lat_low:self.lat_high,self.lon_low:self.lon_high]
+        self.ugdrps0 = self.file.variables['ugrdprs'][hour_index:hour_index+self.hours3,:,self.lat_low:self.lat_high,self.lon_low:self.lon_high]
+        self.vgdrps0 = self.file.variables['vgrdprs'][hour_index:hour_index+self.hours3,:,self.lat_low:self.lat_high,self.lon_low:self.lon_high]
+        self.hgtprs  = self.file.variables['hgtprs'][hour_index:hour_index+self.hours3,:,self.lat_low:self.lat_high,self.lon_low:self.lon_high]
 
         print("Data downloaded.\n\n")
-
-    def downloadGFS(self,start_time):
-        print(colored("MANUAL UPLOAD","red"))
 
     def latlonrange(self,lla):
         """
         Determine the lat/lon min/max index values from netcdf4 forecast subset.
         """
         print("Scraping given netcdf4 forecast file for subset size")
+        print(colored('...', 'white', attrs=['blink']))
+
 
         for i in range (0,len(lla)):
-            #print(i)
             for j in range (0,len(lla[i])):
                 if type(lla[i][j]) is np.float32 and self.lon_low is None:
                     self.lon_low = j
@@ -91,10 +87,10 @@ class GFS:
                 break
 
 
+
     def closest(self, arr, k):
         """ Given an ordered array and a value, determines the index of the closest item contained in the array.
         """
-        #print(arr)
         return min(range(len(arr)), key = lambda i: abs(arr[i]-k))
 
     def getNearestLat(self,lat,min,max):
@@ -125,7 +121,6 @@ class GFS:
     def wind_alt_Interpolate(self, coord):
         """Performs a 2 step linear interpolation to determine horizontal wind velocity.  First the altitude is interpolated between the two nearest
         .25 degree lat/lon areas.  Once altitude is matched, a second linear interpolation is performed with respect to time.
-
         :param coord: Coordinate of balloon
         :type coord: dict
         :returns: [x_wind_vel, y_wind_vel]
@@ -134,7 +129,6 @@ class GFS:
 
         diff = coord["timestamp"] - self.gfs_time
         hour_index = (diff.days*24 + diff.seconds / 3600.)/3
-        hour_index_mod = int(hour_index)
 
         lat_i = self.getNearestLat(coord["lat"],self.LAT_LOW,self.LAT_HIGH)
         lon_i = self.getNearestLon(coord["lon"],self.LON_LOW,self.LON_HIGH)
@@ -173,9 +167,8 @@ class GFS:
         data[nans]= np.interp(x(nans), x(~nans), data[~nans])
         return data
 
-    def getNewCoord(self, coord):
+    def getNewCoord(self, coord, dt):
         """ Determines the new coordinates every second due to wind velocity
-
         :param coord: Coordinate of balloon
         :type coord: dict
         :returns: [lat_new, lon_new, x_wind_vel, y_wind_vel, bearing, closest_lat, closest_lon, closest alt]
@@ -195,7 +188,7 @@ class GFS:
             sys.exit(1)
         bearing = math.degrees(math.atan2(y_wind_vel,x_wind_vel))
         bearing = 90 - bearing # perform 90 degree rotation for bearing from wind data
-        d = math.pow((math.pow(y_wind_vel,2)+math.pow(x_wind_vel,2)),.5)
+        d = math.pow((math.pow(y_wind_vel,2)+math.pow(x_wind_vel,2)),.5) * dt #dt multiplier
         g = self.geod.Direct(coord["lat"], coord["lon"], bearing, d)
 
         if coord["alt"] <= self.min_alt:

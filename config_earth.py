@@ -1,34 +1,45 @@
 from datetime import datetime
 from backports.datetime_fromisoformat import MonkeyPatch
-MonkeyPatch.patch_fromisoformat()   # Hacky solution for Python 3.6 to use ISO format Strings
+MonkeyPatch.patch_fromisoformat()     # Hacky solution for Python 3.6 to use ISO format Strings
 
 balloon_properties = dict(
     shape = 'sphere',
-    d = 6.0,                          # (m) Diameter of Sphere Balloon
+    d = 5.8,                          # (m) Diameter of Sphere Balloon
     mp = 1.15,                        # (kg) Mass of Payload
     areaDensityEnv = 939.*7.87E-6,    # (Kg/m^2) rhoEnv*envThickness
-    mEnv = 1.25,                      # (kg) Mass of Envelope - SHAB1
-    cp = 2000.,                       #(J/(kg K)) Specific heat of envelope material
-    absEnv = 0.93,                    # Absorbiviy of envelope material
-    absEnvIR = 0.9,                   # Absorbiviy of envelope material
-    emissEnv = 0.9,                   # Emisivity of enevelope material
-    Beta = 4,                         # Additional Drag coefficient for upward velocity.
+    mEnv = 1.3,                       # (kg) Mass of Envelope - SHAB1
+    cp = 2000.,                       # (J/(kg K)) Specific heat of envelope material
+    absEnv = .93,                     # Absorbiviy of envelope material
+    emissEnv = .92,                   # Emisivity of enevelope material
+    Upsilon = 2.5,                    # Ascent Resistance coefficient
 )
 
-# Make sure nc_date and gfs_time match
-nc_date = "gfs_0p25_20210223_12.nc"                         # file structure for downloading .25 resolution NOAA forecast data.
-gfs_time = datetime.fromisoformat("2021-02-23 12:00:00")    # Start time of the downloaded netCDF file
-start_time = datetime.fromisoformat("2021-02-23 15:00:00")  # UTC
-sim = 12                                                    # Simulation time in hours (for trajectory.py)
+gfs = "2021-03-29 12:00:00" # Forecast start time, should match a downloaded forecast
+start_time = datetime.fromisoformat("2021-03-29 11:32:00") # Simulation start time. The end time needs to be within the downloaded forecast
 
-GNC = dict(
+#These parameters are for both downloading new forecasts, and running simulations with downloaded forecasts.
+netcdf = dict(
+    nc_file = ("forecasts/gfs_0p25_" + gfs[0:4] + gfs[5:7] + gfs[8:10] + "_" + gfs[11:13] + ".nc"),  # file structure for downloading .25 resolution NOAA forecast data.
+    nc_start = datetime.fromisoformat(gfs),    # Start time of the downloaded netCDF file
+    hourstamp = gfs[11:13],  # parsed from gfs timestamp
+
+    res = 0.25,       # (deg) Do not change
+    lat_range = 40,  # (.25 deg)
+    lon_range= 60,   # (.25 deg)
+    hours3 = 8,      # (1-80) In intervals of 3 hours.  hour_index of 8 is 8*3=24 hours
+)
+
+
+simulation = dict(
+    start_time = start_time,    # (UTC) Simulation Start Time, updated above
+    sim_time = 16,              # (hours) Simulation time in hours (for trapezoid.py)
+
     vent = 0.0,                 # (kg/s) Vent Mass Flow Rate  (Do not have an accurate model of the vent yet, this is innacurate)
     alt_sp = 15000.0,           # (m) Altitude Setpoint
     v_sp = 0.,                  # (m/s) Altitude Setpoint, Not Implemented right now
-    start_time = start_time,    # Start Time
     start_coord =	{
-                      "lat": 32.2226,          # (deg) Latitude
-                      "lon": -110.9747,        # (deg) Longitude
+                      "lat": 39.828,           # (deg) Latitude
+                      "lon": -98.5795,         # (deg) Longitude
                       "alt": 408.,             # (m) Elevation
                       "timestamp": start_time, # timestamp
                     },
@@ -37,11 +48,7 @@ GNC = dict(
 )
 
 GFS = dict(
-    res = .25,                  # (deg) Do not change
-    lat_range = 25,             # (.25 deg)
-    lon_range = 50,             # (.25 deg)
-    hour_index = 8,             # (1-80) In intervals of 3 hours.  hour_index of 8 is 8*3=24 hours
-    file = nc_date,             # forecast file specified above
+    GFSrate = 60,               # (s) How often New Wind speeds are looked up
 )
 
 earth_properties = dict(
@@ -53,4 +60,6 @@ earth_properties = dict(
     albedo = 0.17,              # assumption
 )
 
-dt = 1.0 # (s) Time Step for integrating (If error's occur, use a lower step size, However may not work with GFS trajectories)
+dt = 3.0 # (s) Time Step for integrating (If error's occur, use a lower step size)
+
+

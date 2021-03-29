@@ -23,14 +23,14 @@ class SolveStates:
         self.mp = config_earth.balloon_properties['mp']
         self.mdot = 0
         self.massEnv = config_earth.balloon_properties['mEnv']
-        self.Beta = config_earth.balloon_properties['Beta']
+        self.Upsilon = config_earth.balloon_properties['Upsilon']
 
-        self.vent = config_earth.GNC['vent']
-        self.coord = config_earth.GNC['start_coord']
-        self.t = config_earth.GNC['start_time']
+        self.vent = config_earth.simulation['vent']
+        self.coord = config_earth.simulation['start_coord']
+        self.t = config_earth.simulation['start_time']
         self.lat = math.radians(self.coord['lat'])
         self.Ls = self.t.timetuple().tm_yday
-        self.min_alt = config_earth.GNC['min_alt']
+        self.min_alt = config_earth.simulation['min_alt']
 
         self.vm_coeff = .1 #virtual mass coefficient
         self.k = self.massEnv*config_earth.balloon_properties['cp'] #thermal mass coefficient
@@ -67,7 +67,7 @@ class SolveStates:
         F_d =  Cd*(0.5*rho_atm*math.fabs(v)*v)*self.cs_area# Force due to Drag
 
         if F_d > 0:
-            F_d = F_d * self.Beta #beta coefficient
+            F_d = F_d * self.Upsilon
         vm = (self.massEnv + self.mp) + rho_atm*self.vol + self.vm_coeff*rho_atm*self.vol #Virtual Mass
         accel = ((F_b  - F_d - (self.massEnv + self.mp)*g)/vm)
 

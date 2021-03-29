@@ -24,18 +24,17 @@ backports.datetime_fromisoformat
 
 ## Overview
 
-This model is used to predict the trajectory of a solar high altitude balloon (SHAB) on Earth.
+**config_earth.py** includes adjustable parameters and default parameters for running any of the files discussed below. These parameters include balloon size, 
+envelope material properties, deployment location, date and time, etc.
 
-Parameters such as balloon size, envelope material properties, deployment location, date and time, etc. can all be adjusted in **config_earth.py** to perform simulations.  Update this file first. *Note: GFS time steps must be in 6 hour increments for downlading NOAA forecast data and can be run up to 10 days in the future.  Historical forecast data can be downloaded upto 5 days in the past using the DODS server.*  
+**saveNETCDF.py** downloads subsets of NOAA weather forecasts for offline simulation
 
-Run **saveNETCDF.py** to download a more recent forecast from NOAA, or a different area.
-
-Finally run **main.py** for an example of how to produce relevant plots as well as html-based trajectory maps using the Google maps API.
+**main.py**, **predict.py**, and **trapezoid.py** show examples of how to produce relevant and html-based trajectory maps using the Google maps API.
 
 
 ## Downloading Weather Forecasts
 
-Current NOAA weather forecasts are downloaded from the [GrADS Data Server](https://nomads.ncep.noaa.gov/dods/) and saved locally in a [netcdf file format](https://www.unidata.ucar.edu/software/netcdf/docs/netcdf_introduction.html) to save computation time and have the ability to run trajectories offline.  At this time, archived weather forecasts are not supported.  
+NOAA weather forecasts are downloaded from the [GrADS Data Server](https://nomads.ncep.noaa.gov/dods/) and saved locally in a [netcdf file format](https://www.unidata.ucar.edu/software/netcdf/docs/netcdf_introduction.html) to save computation time and have the ability to run trajectories offline.  At this time, archived weather forecasts are not supported.  
 
 Forecasts are uploaded in 6 hour increments (starting with 00 UTC) and typically have a 4 hour upload delay. From the current date, forecasts can be downloaded up to 5 days in the past, and each forecast predicts up to 240 hours (10 days) in the future.
 
@@ -44,27 +43,40 @@ Forecasts are uploaded in 6 hour increments (starting with 00 UTC) and typically
 Before running the script, update the following parameters **config_earth.py**:
 
 ```
-nc_date - follow the example format and update for the current datetime
-gfs_time - this datetime should match the filename
-GFS.lat_range - Subset of latitudes to download   (+/- .25 degrees increments)
-GFS.lon_range - Subset of longitudes to download  (+/- .25 degrees increments)
-GFS.hour_index - Subset of timesteps to download  (+3 hour increments)
+gfs - Forecast start datetime and file name to be downloaded 
+netcdf.lat_range - Subset of latitudes to download      (+/- .25 degrees increments)
+netcdf.lon_range - Subset of longitudes to download     (+/- .25 degrees increments)
+netcdf.hours3 - Number of 3 hour intervals to download  (+3 hour increments)
 ```
 
-## Running a Trajectory
+## Running Trajectory Predictions
 
-**main.py** reads in parameters from the configuration file to predict solar balloon flight paths and produces a 2D trajectory as well as altitude and temperature profiles.
+Before running any predictions, make sure a forecast is downloaded and the proper *netcdf*, *simulation*, and *gfs* parameters are set in **config_earth.py**
 
-*start_time* should be contained within the downloaded forecast, otherwise the program should throw an error message.
+*gfs.GFSRate* adjusts how often wind speeds are looked up (default is once per 60 seconds).  The maximum rate is 1 lookup per second, which provides the highest fidelity 
+predictions, but also take significantly longer to process. Same with *dt* which is default to 3.0s for fastest simulation time but creates some
+large osicillations in the altitude profile.  Most values above 3.0s cause the numerical integration to breakdown.  Reduce *dt* to 1s or lower to remove these 
+oscillations, which will increase simulation time, but produce prettier plots.
 
-Additionally, **trajectory.py** is included as an example for predicting trajectories much faster.  This script uses a simple trapezoidal altitude profile based on historical 6m solar balloons flights (ascent speed: 2m/s, descent speed -3m/s).  Update *GNC.float* to predict trajectories at various altitudes. Both scripts produce a 2D trajectory using the google API, viewable in a browser.  The plot also highlights the forecast subset downloaded, as shown below; ensure that the trajectory stays within these bounds for accurate predictions, or adjust *GFS.lat_range* and *GFS.lon_range*.
+**main.py** predict a solar balloon flight path given the parameters in the configuration file produces altitude and temperature plots as well as a flight prediction map.
 
-<img src = "img/EarthShab-Trajectory.png" />
+Similarly, **predict.py** creates a heat map of possible trajectories at various float altitudes, shown in the two images below. It is difficult to manually adjust the float altitude 
+with the current solar balloons model so this is done by adjusting the payload masses to get the right shape.  This script also generates a 3D wind rose and temperature profile
+for the starting coordinate and timestamp
 
+These scripts produce flight path maps using the Google Maps API, viewable in a browser via an HTML file.  The plot also highlights the forecast subset downloaded, as shown in the map
+below; ensure that the trajectory stays within these bounds for accurate predictions. Otherwise adjust *netcdf.lat_range* and *netcdf.lon_range* and redownload the forecast.
 
-*Note: At this time, trajectories that cross the international date line or the North or South poles are unsupported.  The vent dynamics are also unreliable; need more vented flight data.*
+*Note: At this time, trajectories that cross the international date line or the north or south poles are unsupported.  The vent dynamics are also unreliable; we need more vented 
+flight data.*
 
-Both scripts can be run with the example forecast included, *gfs_0p25_20210223_12.nc*, and the configuration_file does not need to be adjusted.
+<img src = "img/rainbow_trajectories_altitude.png" />
+
+<img src = "img/rainbow_trajectories_map.png" />
+
+**trapezoid.py** demonstrates how to use the GFS functionality with manual trajectories, independent of the solar balloon model.  Update *GNC.float* to predict trajectories at various altitudes. 
+
+The scripts can be run with the default configuration file parameters and the included example forecast, *forecasts/gfs_0p25_20210329_12.nc*.
 
 ## Author
 

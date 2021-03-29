@@ -24,28 +24,20 @@ class Radiation:
     radRef= .1              # [0,1] Balloon Reflectivity
     radTrans = .1           # [0,1] Balloon Transmitivity
 
-
-    start_coord = config_earth.GNC['start_coord']
-    t = config_earth.GNC['start_time']
+    start_coord = config_earth.simulation['start_coord']
+    t = config_earth.simulation['start_time']
     lat = math.radians(start_coord['lat'])
     Ls = t.timetuple().tm_yday
     d = config_earth.balloon_properties['d']
-    #emissEnv = config_earth.balloon_properties['emissEnv']
-    absEnvIR = config_earth.balloon_properties['absEnvIR']
+    emissEnv = config_earth.balloon_properties['emissEnv']
     absEnv = config_earth.balloon_properties['absEnv']
 
     projArea = 0.25*math.pi*d*d
     surfArea = math.pi*d*d
 
-    def setAbs(self,abs):
-        absEnv = abs
-
-    def setAbsIR(self,absIR):
-        absEnv = absIR
-
     def getTemp(self, el):
         atm = fluids.atmosphere.ATMOSPHERE_1976(el)
-        return atm.T #+ 20
+        return atm.T
 
     def getPressure(self, el):
         atm = fluids.atmosphere.ATMOSPHERE_1976(el)
@@ -230,7 +222,7 @@ class Radiation:
         zen = self.get_zenith(datetime, coord)
         el = coord["alt"]
 
-        radRef = Radiation.radRef + Radiation.radRef*Radiation.radRef +  Radiation.radRef*Radiation.radRef*Radiation.radRef
+        #radRef = Radiation.radRef + Radiation.radRef*Radiation.radRef +  Radiation.radRef*Radiation.radRef*Radiation.radRef
         totAbs = Radiation.absEnv # + Radiation.absEnv*Radiation.radTrans + Radiation.absEnv*Radiation.radTrans*radRef
 
         hca = math.asin(Radiation.RE/(Radiation.RE+el)) #half cone angle
@@ -246,10 +238,10 @@ class Radiation:
         power_reflected = reflected_I*totAbs*vf*Radiation.surfArea
 
         earth_IR = self.get_earth_IR(el)
-        power_earth_IR = earth_IR*Radiation.absEnvIR*vf*Radiation.surfArea
+        power_earth_IR = earth_IR*Radiation.emissEnv*vf*Radiation.surfArea
 
         sky_IR = self.get_sky_IR(el)
-        power_sky_IR = sky_IR*Radiation.absEnvIR*(1.-vf)*Radiation.surfArea
+        power_sky_IR = sky_IR*Radiation.emissEnv*(1.-vf)*Radiation.surfArea
 
         rad_tot_bal = power_direct + power_diffuse + power_reflected + power_earth_IR + power_sky_IR
 

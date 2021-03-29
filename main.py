@@ -3,12 +3,15 @@ import solve_states
 import GFS
 from termcolor import colored
 import matplotlib.pyplot as plt
-import radiation
 import fluids
 import gmplot
 import time as tm
-import config_earth
 import pandas as pd
+import os
+import windmap
+
+import radiation
+import config_earth
 
 """ This file shows an example of how to predict solar balloon trajectories and produces several plots
 as well as an html trajectory map that uses Google maps and can be opened in an internet browser.
@@ -16,17 +19,28 @@ as well as an html trajectory map that uses Google maps and can be opened in an 
 run saveNETCDF.py before running this file to download a forecast from NOAA.
 """
 
+if not os.path.exists('trajectories'):
+    os.makedirs('trajectories')
+
+scriptstartTime = tm.time()
+
 
 GMT = 7 # MST
-coord = config_earth.GNC['start_coord']
-t = config_earth.GNC['start_time']
-start = config_earth.GNC['start_time']
-lat = math.radians(coord['lat'])
-Ls = t.timetuple().tm_yday
-min_alt = config_earth.GNC['min_alt']
-alt_sp = config_earth.GNC['alt_sp']
-v_sp = config_earth.GNC['v_sp']
 dt = config_earth.dt
+coord = config_earth.simulation['start_coord']
+t = config_earth.simulation['start_time']
+start = t
+nc_start = config_earth.netcdf["nc_start"]
+min_alt = config_earth.simulation['min_alt']
+alt_sp = config_earth.simulation['alt_sp']
+v_sp = config_earth.simulation['v_sp']
+sim_time = config_earth.simulation['sim_time'] * int(3600*(1/dt))
+lat = [coord["lat"]]
+lon = [coord["lon"]]
+GFSrate = config_earth.GFS['GFSrate']
+hourstamp = config_earth.netcdf['hourstamp']
+
+
 atm = fluids.atmosphere.ATMOSPHERE_1976(min_alt)
 
 # Variables for Simulation and Plotting
@@ -36,19 +50,17 @@ T_atm = [atm.T]
 el = [min_alt]
 v= [0.]
 coords = [coord]
-lat = [coord["lat"]]
-lon = [coord["lon"]]
+
 ttt = [t - pd.Timedelta(hours=GMT)] #Just for visualizing plot better]
 data_loss = False
-simulation_time = 14*int(3600*(1/dt)) #seconds
-e = solve_states.SolveStates()
-gfs = GFS.GFS(coord)
 burst = False
 gmap1 = gmplot.GoogleMapPlotter(coord["lat"],coord["lon"], 10)
 
-for i in range(0,simulation_time):
-    T_s_new,T_i_new,T_atm_new,el_new,v_new, q_rad, q_surf, q_int = e.solveVerticalTrajectory(t,T_s[i],T_i[i],el[i],v[i],coord,alt_sp,v_sp)
+e = solve_states.SolveStates()
+gfs = GFS.GFS(coord)
 
+for i in range(0,sim_time):
+    T_s_new,T_i_new,T_atm_new,el_new,v_new, q_rad, q_surf, q_int = e.solveVerticalTrajectory(t,T_s[i],T_i[i],el[i],v[i],coord,alt_sp,v_sp)
 
     T_s.append(T_s_new)
     T_i.append(T_i_new)
@@ -58,7 +70,9 @@ for i in range(0,simulation_time):
     t = t + pd.Timedelta(hours=(1/3600*dt))
     ttt.append(t - pd.Timedelta(hours=GMT)) #Just for visualizing plot better
 
-    lat_new,lon_new,x_wind_vel,y_wind_vel,bearing,nearest_lat, nearest_lon, nearest_alt = gfs.getNewCoord(coords[i])
+
+    if i % GFSrate == 0:
+        lat_new,lon_new,x_wind_vel,y_wind_vel,bearing,nearest_lat, nearest_lon, nearest_alt = gfs.getNewCoord(coords[i],dt*GFSrate)  #(coord["lat"],coord["lon"],0,0,0,0,0,0)
 
     coord_new  =	{
                       "lat": lat_new,                # (deg) Latitude
@@ -106,14 +120,8 @@ plt.ylabel('Temperature (K)')
 plt.legend(loc='upper right')
 plt.title('Solar Balloon Temperature - Earth')
 
-fig3, ax3 = plt.subplots()
-ax3.plot(ttt,T_atm, label="Temperature model")
-plt.xlabel('Datetime (MST)')
-plt.ylabel('Atmospheric Temperature (K)')
-plt.title('Atmospheric Air Comparison (model vs. Sensor Data)')
-plt.legend(loc='upper right')
-
 # Outline Downloaded NOAA forecast subset:
+
 region= zip(*[
     (gfs.LAT_LOW, gfs.LON_LOW),
     (gfs.LAT_HIGH, gfs.LON_LOW),
@@ -128,6 +136,14 @@ gmap1.polygon(*region, color='cornflowerblue', edge_width=1, alpha= .2)
 year = str(tm.localtime()[0])
 month = str(tm.localtime()[1]).zfill(2)
 day = str(tm.localtime()[2]).zfill(2)
-gmap1.draw("SHAB_" + str(t.year) + "_" + str(t.month) + "_" + str(start.day) + "_.html" )
+gmap1.draw("trajectories/SHAB_" + str(t.year) + "_" + str(t.month) + "_" + str(start.day) + ".html" )
 
+executionTime = (tm.time() - scriptstartTime)
+print('\nSimulation executed in ' + str(executionTime) + ' seconds.')
+
+
+plt.style.use('default')
+hour_index, new_timestamp = windmap.getHourIndex(start, nc_start)
+windmap.plotWindVelocity(hour_index,coord["lat"],coord["lon"])
+windmap.plotTempAlt(hour_index,coord["lat"],coord["lon"])
 plt.show()

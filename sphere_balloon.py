@@ -38,7 +38,8 @@ class Sphere_Balloon:
         :returns: mu, Kinematic Viscocity of Air
         :rtype: float
         """
-        return 1.458E-6*np.power(T,1.5)/(T+110.4)
+        #print("viscocity",T)
+        return 1.458E-6*(np.sign(T) * (np.abs(T)) ** (1.5))/(T+110.4) #numpy power does not allow fractional powers of negative numbers. This is the workaround
 
     def get_conduction(self,T):
         """Calculates Thermal Diffusivity of Air at Temperature, T using Sutherland's Law of Thermal Diffusivity
@@ -49,7 +50,11 @@ class Sphere_Balloon:
         :rtype: float
         """
 
-        return 0.0241*np.power((T/273.15),0.9)
+        #print("conduction",T)
+
+
+
+        return 0.0241*(np.sign(T) * (np.abs(T/273.15)) ** (0.9))
 
     def get_Pr(self,T):
         """Calculates Prantl Number
@@ -122,7 +127,7 @@ class Sphere_Balloon:
         kin_visc = self.get_viscocity(T_avg)/rho_avg
 
         #Not sure if Raleighs number is the right equation here:
-        Ra = Pr_avg*g*math.fabs(T_s-T_atm)*math.pow(self.d,3)*exp_coeff/(kin_visc*kin_visc)
+        Ra = Pr_avg*g*math.fabs(T_s-T_atm)*np.power(self.d,3)*exp_coeff/(kin_visc*kin_visc)
         Re = rho_atm*v*self.d/self.get_viscocity(T_atm)
         Nu = self.get_Nu_ext(Ra, Re, Pr_atm)
         k = self.get_conduction(T_avg)
@@ -145,7 +150,7 @@ class Sphere_Balloon:
         """
 
         q_conv_loss = -self.get_q_ext(T_s, el, v)
-        q_rad_lost = -self.emissEnv*Sphere_Balloon.SB*pow(T_s,4)*self.surfArea
+        q_rad_lost = -self.emissEnv*Sphere_Balloon.SB*np.power(T_s,4)*self.surfArea
         return q_rad + q_conv_loss + q_rad_lost
 
     #--------------------------------------------SOLVE FOR T INT-------------------------------------------------------------
@@ -201,7 +206,9 @@ class Sphere_Balloon:
         rho_avg = p_atm/(Sphere_Balloon.Rsp_air*T_avg)
         mu = self.get_viscocity(T_avg)/rho_avg
         k = self.get_conduction(T_avg)
-        h = 0.13*k*pow((pow(rho_atm,2)*g*math.fabs(T_s-T_i)*Pr)/(T_i*pow(mu,2)),(1/3.))
+
+        inside = (np.power(rho_atm,2)*g*math.fabs(T_s-T_i)*Pr)/(T_i*np.power(mu,2))
+        h = 0.13*k * np.sign(inside) * np.abs(inside) ** (1/3.)
         q_int = h*self.surfArea*(T_s-T_i)
 
         return q_int
