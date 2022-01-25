@@ -69,13 +69,13 @@ for i in range(0,simulation_time):
     # Trapezoidal Trajectories for faster simulation
 
     if el_new < float and zen < math.radians(90):
-        el_new += 2
+        el_new += 2*dt
 
     if el_new >= float and zen < math.radians(90):
         el_new = float
 
     if zen > math.radians(90):
-        el_new -= 3
+        el_new -= 3 *dtt
 
 
     if el_new < min_alt:
