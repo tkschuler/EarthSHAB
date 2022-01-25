@@ -48,7 +48,7 @@ simulation = dict(
 )
 
 GFS = dict(
-    GFSrate = 60,               # (s) How often New Wind speeds are looked up
+    GFSrate = 60,               # (#) After how many iterated dt steps are new wind speeds are looked up
 )
 
 earth_properties = dict(
