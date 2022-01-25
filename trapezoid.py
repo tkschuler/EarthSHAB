@@ -54,7 +54,7 @@ for i in range(0,simulation_time):
     t = t + pd.Timedelta(hours=(1/3600*dt))
 
     if i % GFSrate == 0:
-        lat_new,lon_new,x_wind_vel,y_wind_vel,bearing,nearest_lat, nearest_lon, nearest_alt = gfs.getNewCoord(coords[i], dt)
+        lat_new,lon_new,x_wind_vel,y_wind_vel,bearing,nearest_lat, nearest_lon, nearest_alt = gfs.getNewCoord(coords[i], dt*GFSrate)
 
     coord_new  =	{
                       "lat": lat_new,                # (deg) Latitude
