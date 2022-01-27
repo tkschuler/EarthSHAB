@@ -109,13 +109,13 @@ class GFS:
         i = self.closest(arr, lon)
         return i
 
-    def getNearestAlt(self,lat,lon,alt):
+    def getNearestAlt(self,hour_index,lat,lon,alt):
         """ Determines the nearest altitude based off of geo potential height of a .25 degree lat/lon area.
         """
 
         lat_i = self.getNearestLat(lat,self.LAT_LOW,self.LAT_HIGH)
         lon_i = self.getNearestLon(lon,self.LON_LOW,self.LON_HIGH)
-        i = self.closest(self.hgtprs[0,:,lat_i,lon_i], alt)
+        i = self.closest(self.hgtprs[int(hour_index),:,lat_i,lon_i], alt)
         return i
 
     def wind_alt_Interpolate(self, coord):
@@ -132,7 +132,7 @@ class GFS:
 
         lat_i = self.getNearestLat(coord["lat"],self.LAT_LOW,self.LAT_HIGH)
         lon_i = self.getNearestLon(coord["lon"],self.LON_LOW,self.LON_HIGH)
-        z_low = self.getNearestAlt(coord["lat"],coord["lon"],coord["alt"]) #fix this for lower and Upper
+        z_low = self.getNearestAlt(hour_index,coord["lat"],coord["lon"],coord["alt"]) #fix this for lower and Upper
 
 
         # First interpolate wind speeds between 2 closest time steps to match altitude estimates (hgtprs), which can change with time
@@ -175,9 +175,12 @@ class GFS:
         :rtype: array
         """
 
+        diff = coord["timestamp"] - self.gfs_time
+        hour_index = (diff.days*24 + diff.seconds / 3600.)/3
+
         i = self.getNearestLat(coord["lat"],self.LAT_LOW,self.LAT_HIGH)
         j = self.getNearestLon(coord["lon"],self.LON_LOW,self.LON_HIGH)
-        z = self.getNearestAlt(coord["lat"],coord["lon"],coord["alt"])
+        z = self.getNearestAlt(int(hour_index),coord["lat"],coord["lon"],coord["alt"])
 
         try:
             x_wind_vel,y_wind_vel = self.wind_alt_Interpolate(coord) #for now hour index is 0
