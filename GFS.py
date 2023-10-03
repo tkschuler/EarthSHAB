@@ -21,11 +21,11 @@ class GFS:
         self.centered_coord = centered_coord
         self.min_alt = config_earth.simulation['min_alt']
         self.start_time = config_earth.simulation['start_time']
-        self.hours3 = config_earth.netcdf['hours3']
+        self.hours3 = config_earth.netcdf_gfs['hours3']
 
-        self.file = netCDF4.Dataset(config_earth.netcdf["nc_file"])  # Only accepting manual uploads for now
-        self.gfs_time = config_earth.netcdf['nc_start']
-        self.res = config_earth.netcdf['res']
+        self.file = netCDF4.Dataset(config_earth.netcdf_gfs["nc_file"])  # Only accepting manual uploads for now
+        self.gfs_time = config_earth.netcdf_gfs['nc_start']
+        self.res = config_earth.netcdf_gfs['res']
 
         self.geod = Geodesic.WGS84
 

@@ -1,0 +1,71 @@
+2022-06-13 12:31 | ERROR | Simulation Timestamp:    , 2022-04-09 18:14:00
+2022-06-13 12:31 | ERROR | Model Forecast Start time: 2022-04-09 18:00:00
+2022-06-13 12:31 | ERROR | Last valid difference: 0:14:00
+2022-06-13 12:31 | ERROR | Last valid hour index 0
+2022-06-13 12:31 | ERROR | [31mMismatch with simulation and forecast timstamps. Check simulation start time and/or download a new forecast.[0m
+2022-06-13 12:37 | ERROR | Simulation Timestamp:    , 2022-04-09 18:14:00
+2022-06-13 12:37 | ERROR | Model Forecast Start time: 2022-04-09 18:00:00
+2022-06-13 12:37 | ERROR | Last valid difference: 0:14:00
+2022-06-13 12:37 | ERROR | Last valid hour index 0
+2022-06-13 12:37 | ERROR | [31mMismatch with simulation and forecast timstamps. Check simulation start time and/or download a new forecast.[0m
+2022-06-13 12:38 | ERROR | Simulation Timestamp:    , 2022-04-09 18:14:00
+2022-06-13 12:38 | ERROR | Model Forecast Start time: 2022-04-09 18:00:00
+2022-06-13 12:38 | ERROR | Last valid difference: 0:14:00
+2022-06-13 12:38 | ERROR | Last valid hour index 0
+2022-06-13 12:38 | ERROR | [31mMismatch with simulation and forecast timstamps. Check simulation start time and/or download a new forecast.[0m
+2022-06-13 12:38 | ERROR | Simulation Timestamp:    , 2022-04-09 18:14:00
+2022-06-13 12:38 | ERROR | Model Forecast Start time: 2022-04-09 18:00:00
+2022-06-13 12:38 | ERROR | Last valid difference: 0:14:00
+2022-06-13 12:38 | ERROR | Last valid hour index 0
+2022-06-13 12:38 | ERROR | [31mMismatch with simulation and forecast timstamps. Check simulation start time and/or download a new forecast.[0m
+2022-06-13 12:39 | ERROR | Simulation Timestamp:    , 2022-04-09 18:14:00
+2022-06-13 12:39 | ERROR | Model Forecast Start time: 2022-04-09 18:00:00
+2022-06-13 12:39 | ERROR | Last valid difference: 0:14:00
+2022-06-13 12:39 | ERROR | Last valid hour index 0
+2022-06-13 12:39 | ERROR | [31mMismatch with simulation and forecast timstamps. Check simulation start time and/or download a new forecast.[0m
+2022-06-13 12:39 | ERROR | Simulation Timestamp:    , 2022-04-09 18:14:00
+2022-06-13 12:39 | ERROR | Model Forecast Start time: 2022-04-09 18:00:00
+2022-06-13 12:39 | ERROR | Last valid difference: 0:14:00
+2022-06-13 12:39 | ERROR | Last valid hour index 0
+2022-06-13 12:39 | ERROR | [31mMismatch with simulation and forecast timstamps. Check simulation start time and/or download a new forecast.[0m
+2022-06-13 12:39 | ERROR | Simulation Timestamp:    , 2022-04-09 18:14:00
+2022-06-13 12:39 | ERROR | Model Forecast Start time: 2022-04-09 18:00:00
+2022-06-13 12:39 | ERROR | Last valid difference: 0:14:00
+2022-06-13 12:39 | ERROR | Last valid hour index 0
+2022-06-13 12:39 | ERROR | [31mMismatch with simulation and forecast timstamps. Check simulation start time and/or download a new forecast.[0m
+2022-06-13 12:40 | ERROR | Simulation Timestamp:    , 2022-04-09 18:14:00
+2022-06-13 12:40 | ERROR | Model Forecast Start time: 2022-04-09 18:00:00
+2022-06-13 12:40 | ERROR | Last valid difference: 0:14:00
+2022-06-13 12:40 | ERROR | Last valid hour index 0
+2022-06-13 12:40 | ERROR | [31mMismatch with simulation and forecast timstamps. Check simulation start time and/or download a new forecast.[0m
+2022-06-13 12:40 | ERROR | Simulation Timestamp:    , 2022-04-09 18:14:00
+2022-06-13 12:40 | ERROR | Model Forecast Start time: 2022-04-09 18:00:00
+2022-06-13 12:40 | ERROR | Last valid difference: 0:14:00
+2022-06-13 12:40 | ERROR | Last valid hour index 0
+2022-06-13 12:40 | ERROR | [31mMismatch with simulation and forecast timstamps. Check simulation start time and/or download a new forecast.[0m
+2022-06-13 12:41 | ERROR | Simulation Timestamp:    , 2022-04-09 18:14:00
+2022-06-13 12:41 | ERROR | Model Forecast Start time: 2022-04-09 18:00:00
+2022-06-13 12:41 | ERROR | Last valid difference: 0:14:00
+2022-06-13 12:41 | ERROR | Last valid hour index 0
+2022-06-13 12:41 | ERROR | [31mMismatch with simulation and forecast timstamps. Check simulation start time and/or download a new forecast.[0m
+2022-06-13 12:41 | ERROR | Simulation Timestamp:    , 2022-04-09 18:14:00
+2022-06-13 12:41 | ERROR | Model Forecast Start time: 2022-04-09 18:00:00
+2022-06-13 12:41 | ERROR | Last valid difference: 0:14:00
+2022-06-13 12:41 | ERROR | Last valid hour index 0
+2022-06-13 12:41 | ERROR | [31mMismatch with simulation and forecast timstamps. Check simulation start time and/or download a new forecast.[0m
+2023-10-03 14:09 | ERROR | Unable to locate netcdf file forecasts/SHAB15V_ERA5_20220822_20220823.nc, terminating program
+2023-10-03 14:09 | ERROR | Unable to locate netcdf file forecasts/SHAB15V_ERA5_20220822_20220823.nc, terminating program
+2023-10-03 14:10 | ERROR | Unable to locate netcdf file forecasts/SHAB15V_ERA5_20220822_20220823.nc, terminating program
+2023-10-03 14:11 | ERROR | Unable to locate netcdf file forecasts/SHAB15V_ERA5_20220822_20220823.nc, terminating program
+2023-10-03 14:11 | ERROR | Unable to locate netcdf file forecasts/SHAB15V_ERA5_20220822_20220823.nc, terminating program
+2023-10-03 14:12 | ERROR | Unable to locate netcdf file forecasts/SHAB15V_ERA5_20220822_20220823.nc, terminating program
+2023-10-03 14:12 | ERROR | Unable to locate netcdf file forecasts/SHAB15V_ERA5_20220822_20220823.nc, terminating program
+2023-10-03 14:12 | ERROR | Unable to locate netcdf file forecasts/SHAB15V_ERA5_20220822_20220823.nc, terminating program
+2023-10-03 14:13 | ERROR | Unable to locate netcdf file forecasts/SHAB15V_ERA5_20220822_20220823.nc, terminating program
+2023-10-03 14:13 | ERROR | Unable to locate netcdf file forecasts/SHAB15V_ERA5_20220822_20220823.nc, terminating program
+2023-10-03 14:13 | ERROR | Unable to locate netcdf file forecasts/SHAB15V_ERA5_20220822_20220823.nc, terminating program
+2023-10-03 14:15 | ERROR | Unable to locate netcdf file forecasts/SHAB15V_ERA5_20220822_20220823.nc, terminating program
+2023-10-03 14:15 | ERROR | Unable to locate netcdf file forecasts/SHAB15V_ERA5_20220822_20220823.nc, terminating program
+2023-10-03 14:16 | ERROR | Unable to locate netcdf file forecasts/SHAB15V_ERA5_20220822_20220823.nc, terminating program
+2023-10-03 14:17 | ERROR | Unable to locate netcdf file forecasts/SHAB15V_ERA5_20220822_20220823.nc, terminating program
+2023-10-03 14:18 | ERROR | Unable to locate netcdf file forecasts/SHAB15V_ERA5_20220822_20220823.nc, terminating program

@@ -5,20 +5,44 @@ MonkeyPatch.patch_fromisoformat()     # Hacky solution for Python 3.6 to use ISO
 balloon_properties = dict(
     shape = 'sphere',
     d = 5.8,                          # (m) Diameter of Sphere Balloon
-    mp = 1.15,                        # (kg) Mass of Payload
+    mp = 1.7,                        # (kg) Mass of Payload
     areaDensityEnv = 939.*7.87E-6,    # (Kg/m^2) rhoEnv*envThickness
     mEnv = 1.3,                       # (kg) Mass of Envelope - SHAB1
     cp = 2000.,                       # (J/(kg K)) Specific heat of envelope material
-    absEnv = .93,                     # Absorbiviy of envelope material
-    emissEnv = .92,                   # Emisivity of enevelope material
-    Upsilon = 2.5,                    # Ascent Resistance coefficient
+    absEnv = .98,                     # Absorbiviy of envelope material
+    emissEnv = .95,                   # Emisivity of enevelope material
+    Upsilon = 4.5,                    # Ascent Resistance coefficient
 )
 
-gfs = "2021-03-29 12:00:00" # Forecast start time, should match a downloaded forecast
-start_time = datetime.fromisoformat("2021-03-29 11:32:00") # Simulation start time. The end time needs to be within the downloaded forecast
+# Original GitHub EarthShab Test Data
+#gfs = "2021-03-29 12:00:00" # Forecast start time, should match a downloaded forecast
+#start_time = datetime.fromisoformat("2021-03-29 11:32:00") # Simulation start time. The end time needs to be within the downloaded forecast
+#balloon_trajectory = None
+
+#SHAB10
+gfs = "2022-04-09 12:00:00" # Forecast start time, should match a downloaded forecast
+start_time = datetime.fromisoformat("2022-04-09 18:14:00") # Simulation start time. The end time needs to be within the downloaded forecast
+balloon_trajectory = "balloon_data/SHAB10V-APRS.csv"  # Only Accepting Files in the Standard APRS.fi format for now
+
+#SHAB3
+#gfs = "2020-11-20 06:00:00" # Forecast start time, should match a downloaded forecast in the forecasts directory
+#start_time = datetime.fromisoformat("2020-11-20 15:47:00") # Simulation start time. The end time needs to be within the downloaded forecast
+#balloon_trajectory = "balloon_data/SHAB3V-APRS.csv"  # Only Accepting Files in the Standard APRS.fi format for now
+
+#SHAB5
+#gfs = "2021-05-12 12:00:00" # Forecast start time, should match a downloaded forecast in the forecasts directory
+#start_time = datetime.fromisoformat("2021-05-12 14:01:00") # Simulation start time. The end time needs to be within the downloaded forecast
+#balloon_trajectory = "balloon_data/SHAB5V_APRS_Processed.csv"  # Only Accepting Files in the Standard APRS.fi format for now
+
+#SHAB12/15
+#gfs =  "2022-08-22 12:00:00" # Forecast start time, should match a downloaded forecast in the forecasts directory
+#start_time = datetime.fromisoformat("2022-08-22 14:21:00") # Simulation start time. The end time needs to be within the downloaded forecast
+#balloon_trajectory = "balloon_data/SHAB15V-APRS.csv"  # Only Accepting Files in the Standard APRS.fi format for now
+
+forecast_type = "ERA5" # GFS or ERA5
 
 #These parameters are for both downloading new forecasts, and running simulations with downloaded forecasts.
-netcdf = dict(
+netcdf_gfs = dict(
     nc_file = ("forecasts/gfs_0p25_" + gfs[0:4] + gfs[5:7] + gfs[8:10] + "_" + gfs[11:13] + ".nc"),  # file structure for downloading .25 resolution NOAA forecast data.
     nc_start = datetime.fromisoformat(gfs),    # Start time of the downloaded netCDF file
     hourstamp = gfs[11:13],  # parsed from gfs timestamp
@@ -27,24 +51,33 @@ netcdf = dict(
     lat_range = 40,  # (.25 deg)
     lon_range= 60,   # (.25 deg)
     hours3 = 8,      # (1-80) In intervals of 3 hours.  hour_index of 8 is 8*3=24 hours
+
 )
+
+netcdf_era5 = dict(
+    #filename = "SHAB3V_era_20201120_20201121.nc", #SHAB3
+    #filename = "SHAB5V-ERA5_20210512_20210513.nc", #SHAB15V
+    filename = "shab10_era_2022-04-09to2022-04-10.nc", #SHAB10V
+    #filename = "SHAB12V_ERA5_20220822_20220823.nc", #SHAB12V
+    #filename = "SHAB15V_ERA5_20220822_20220823.nc", #SHAB15V
+    resolution_hr = 1
+    )
 
 
 simulation = dict(
     start_time = start_time,    # (UTC) Simulation Start Time, updated above
-    sim_time = 16,              # (hours) Simulation time in hours (for trapezoid.py)
+    sim_time = 14, #8,              # (hours) Simulation time in hours (for trapezoid.py)
 
     vent = 0.0,                 # (kg/s) Vent Mass Flow Rate  (Do not have an accurate model of the vent yet, this is innacurate)
     alt_sp = 15000.0,           # (m) Altitude Setpoint
     v_sp = 0.,                  # (m/s) Altitude Setpoint, Not Implemented right now
     start_coord =	{
-                      "lat": 39.828,           # (deg) Latitude
-                      "lon": -98.5795,         # (deg) Longitude
-                      "alt": 408.,             # (m) Elevation
+                      "lat": 32.43633, #32.421, #34.6, #32.43633,  #        # (deg) Latitude
+                      "lon": -111.06417, #-111.061, #-106.8, #-111.06417,   #-111.061771      # (deg) Longitude
+                      "alt": 480., #720.,             # (m) Elevation
                       "timestamp": start_time, # timestamp
                     },
-    min_alt = 408.,             # starting altitude. Generally the same as initial coordinate
-    float = 11500.              # Maximum float altitude for simple trapezoidal trajectories
+    min_alt = 480, #720.,             # starting altitude. Generally the same as initial coordinate
 )
 
 GFS = dict(
@@ -60,6 +93,4 @@ earth_properties = dict(
     albedo = 0.17,              # assumption
 )
 
-dt = 3.0 # (s) Time Step for integrating (If error's occur, use a lower step size)
-
-
+dt = 1.0 # (s) Time Step for integrating (If error's occur, use a lower step size)
