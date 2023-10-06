@@ -372,6 +372,7 @@ class ERA5:
 
         g = 9.80665 # gravitation constant used to convert geopotential height to height
         logging.debug(f"Original model wind shape:  {self.file.variables['u'].shape}")
+        #these are typos, fix later.  Should be ugrdprs0
         self.ugdrps0 = self.file.variables['u'][start_time_idx:end_time_idx+1, :, self.lat_top_idx:self.lat_bot_idx,
                        self.lon_left_idx:self.lon_right_idx]
         logging.debug(f"Reduced or final model wind shape:  {self.ugdrps0.shape}")

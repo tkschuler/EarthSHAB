@@ -57,9 +57,9 @@ netcdf_gfs = dict(
 netcdf_era5 = dict(
     #Need to add in start time stuff for ERA5 forecasts
 
-    
+
     #filename = "SHAB3V_era_20201120_20201121.nc", #SHAB3
-    #filename = "SHAB5V-ERA5_20210512_20210513.nc", #SHAB15V
+    #filename = "SHAB5V-ERA5_20210512_20210513.nc", #SHAB5V
     #filename = "shab10_era_2022-04-09to2022-04-10.nc", #SHAB10V
     #filename = "SHAB12V_ERA5_20220822_20220823.nc", #SHAB12V
     filename = "SHAB15V_ERA5_20220822_20220823.nc", #SHAB15V
@@ -75,8 +75,8 @@ simulation = dict(
     alt_sp = 15000.0,           # (m) Altitude Setpoint
     v_sp = 0.,                  # (m/s) Altitude Setpoint, Not Implemented right now
     start_coord =	{
-                      "lat": 34.6, #32.43633, #32.421, #34.6, #32.43633,  #        # (deg) Latitude
-                      "lon": -106.8, #-111.06417, #-111.061, #-106.8, #-111.06417,   #-111.061771      # (deg) Longitude
+                      "lat": 32.43633, #34.6, #32.43633, #32.421, #34.6, #32.43633,  #        # (deg) Latitude
+                      "lon": -111.061, #-106.8, #-111.06417, #-111.061, #-106.8, #-111.06417,   #-111.061771      # (deg) Longitude
                       "alt": 480., #720.,             # (m) Elevation
                       "timestamp": start_time, # timestamp
                     },

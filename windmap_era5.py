@@ -7,11 +7,14 @@ import fluids
 import config_earth
 from datetime import datetime, timedelta
 
+import GFS
+import ERA5
+
 
 '''
 This is a rough update of windmap to include ERA5 support.  However hour indecies are hardcoded
 right now.  I think I should be able to make object instances of ERA5.py and GFS.py an call the
-variables from those objects instead of what I'm doing here.  That's tomorow's project. 
+variables from those objects instead of what I'm doing here.  That's tomorow's project.
 
 '''
 
@@ -20,16 +23,14 @@ class Windmap:
 
         if config_earth.forecast_type == "GFS":
             self.file = netCDF4.Dataset(config_earth.netcdf_gfs["nc_file"])
+            self.gfs = GFS.GFS(config_earth.simulation['start_coord'])
         else:
             self.file = netCDF4.Dataset("forecasts/" + config_earth.netcdf_era5["filename"])
             lla = self.file.variables['u'][0, 0, :, :]
             self.latlon_index_range(lla)
             self.lat = self.file.variables['latitude'][self.lat_top_idx:self.lat_bot_idx]
             self.lon = self.file.variables['longitude'][self.lon_left_idx:self.lon_right_idx]
-
-
-        print(self.file)
-        print("hey")
+            self.era5 = ERA5.ERA5(config_earth.simulation['start_coord'])
 
 
         #FIX THE DEFINING OF THESE Variables
@@ -66,7 +67,7 @@ class Windmap:
             self.vgrdprs = self.file.variables['v']
             self.ugrdprs = self.file.variables['u']
             self.hgtprs = self.file.variables['z']
-            self.tmpprs = self.file.variables['t']
+            self.tmpprs = self.file.variables['time'] #are t and time the same?
 
             self.hour_index = 0 #WILL THIS MESS THINGS UP FOR GFS?
 
@@ -169,7 +170,7 @@ class Windmap:
 
     #--------------------------------------
 
-
+    #This function will get deleted
     def getWindPlotData(self,hour_index,lat_i,lon_i):
         # Extract relevant u/v wind velocity, and altitude
 
@@ -210,18 +211,55 @@ class Windmap:
             u = cs_u(h_new)
             v = cs_v(h_new)
 
+            print(u)
+        return self.windVectorToBearing(u, v, h_new)
 
 
+    def windVectorToBearing(self, u, v, h):
         # Calculate altitude
         bearing = np.arctan2(v,u)
         bearing = np.unwrap(bearing)
         r = np.power((np.power(u,2)+np.power(v,2)),.5)
 
         # Set up Color Bar
-        colors = h_new
+        colors = h
         cmap=mpl.colors.ListedColormap(colors)
 
         return [bearing, r , colors, cmap]
+
+
+    def getWind(self,hour_index,lat_i,lon_i):
+
+        #hard coded hour index to 0 for now?  Update this later.
+        u = self.ugrdprs[hour_index,:,lat_i,lon_i]
+        v = self.vgrdprs[hour_index,:,lat_i,lon_i]
+        h = self.hgtprs[hour_index,:,lat_i,lon_i]
+
+        # Remove missing data
+        u = u.filled(np.nan)
+        v = v.filled(np.nan)
+        nans = ~np.isnan(u)
+        u= u[nans]
+        v= v[nans]
+        h = h[nans]
+
+        #for ERA5, need to reverse all array so h is increasing.
+        if config_earth.forecast_type == "ERA5":
+            u = np.flip(u)
+            v = np.flip(v)
+            h = np.flip(h)
+
+        cs_u = CubicSpline(h, u)
+        cs_v = CubicSpline(h, v)
+        if config_earth.forecast_type == "GFS":
+            h_new = np.arange(0, 50000, 10) # New altitude range
+        elif config_earth.forecast_type == "ERA5":
+            h_new = np.arange(0, 50000, 10) # New altitude range
+        u = cs_u(h_new)
+        v = cs_v(h_new)
+
+        return self.windVectorToBearing(u, v, h_new)
+
 
     def plotWindVelocity(self,hour_index,lat,lon):
 
@@ -233,26 +271,31 @@ class Windmap:
         if config_earth.forecast_type == "GFS":
             lat_i = self.getNearestLat(lat)
             lon_i = self.getNearestLon(lon)
+            bearing1, r1 , colors1, cmap1 = self.getWind(self.hour_index,lat_i,lon_i)
         elif config_earth.forecast_type == "ERA5":
             lat_i = self.getNearestLatIdx(lat, self.lat_top_idx, self.lat_bot_idx)
             lon_i = self.getNearestLonIdx(lon, self.lon_left_idx, self.lon_right_idx)
+            bearing1, r1 , colors1, cmap1 = self.getWind(hour_index,lat_i,lon_i)
+            print("lat_i" , lat_i,"lon_i" , lon_i)
 
         bearing0, r0 , colors0, cmap0 = self.getWindPlotData(hour_index,lat_i,lon_i)
-        bearing1, r1 , colors1, cmap1 = self.getWindPlotData(1,lat_i,lon_i)
-        bearing2, r2 , colors2, cmap2 = self.getWindPlotData(2,lat_i,lon_i)
-        bearing3, r3 , colors3, cmap3 = self.getWindPlotData(3,lat_i,lon_i)
+        #bearing1, r1 , colors1, cmap1 = self.getWindPlotData(1,lat_i,lon_i)
+        #bearing2, r2 , colors2, cmap2 = self.getWindPlotData(2,lat_i,lon_i)
+        #bearing3, r3 , colors3, cmap3 = self.getWindPlotData(3,lat_i,lon_i)
 
         # Plot figure and legend
         fig = plt.figure(figsize=(10, 8))
         ax1 = fig.add_subplot(111, projection='polar')
         if config_earth.forecast_type == "GFS":
             sc1 = ax1.scatter(bearing0, colors0, c=r0, cmap='rainbow', alpha=0.75, s = 2)
+            sc2 = ax1.scatter(bearing1, colors1, c=r1, cmap='winter', alpha=0.75, s = 2)
             ax1.title.set_text("GFS 3D Windrose for (" + str(self.LAT) + ", " + str(self.LON) + ") on " + str(self.new_timestamp))
 
 
         elif config_earth.forecast_type == "ERA5":
             #This is hardcoded for now
             sc1 = ax1.scatter(bearing0[0:50000], colors0[0:50000], c=r0[0:50000], cmap='rainbow', alpha=0.75, s = 2)
+            sc2 = ax1.scatter(bearing1[0:50000], colors1[0:50000], c=r1[0:50000], cmap='winter', alpha=0.75, s = 2)
             ax1.title.set_text("ERA5 3D Windrose for (" + str(self.LAT) + ", " + str(self.LON) + ") on " + str(self.new_timestamp))
 
         ax1.set_xticklabels(['E', '', 'N', '', 'W', '', 'S', ''])
@@ -324,6 +367,7 @@ class Windmap:
 
     def makePlots(self):
         self.plotWindVelocity(self.hour_index,self.LAT,self.LON)
+        #self.getWind_ERA5(self.hour_index,self.LAT,self.LON)
         #self.plotTempAlt(self.hour_index,self.LAT,self.LON)
         wind.file.close()
         plt.show()
