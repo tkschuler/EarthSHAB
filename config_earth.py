@@ -37,9 +37,13 @@ balloon_properties = dict(
 #SHAB12/15
 gfs =  "2022-08-22 12:00:00" # Forecast start time, should match a downloaded forecast in the forecasts directory
 start_time = datetime.fromisoformat("2022-08-22 14:21:00") # Simulation start time. The end time needs to be within the downloaded forecast
-balloon_trajectory = "balloon_data/SHAB15V-APRS.csv"  # Only Accepting Files in the Standard APRS.fi format for now
+balloon_trajectory = None #"balloon_data/SHAB15V-APRS.csv"  # Only Accepting Files in the Standard APRS.fi format for now
 
-forecast_type = "ERA5" # GFS or ERA5
+
+#GFS AND ERA5 CAN BE DIFFERENT START TIMES???
+
+
+forecast_type = "GFS" # GFS or ERA5
 
 #These parameters are for both downloading new forecasts, and running simulations with downloaded forecasts.
 netcdf_gfs = dict(
@@ -75,8 +79,8 @@ simulation = dict(
     alt_sp = 15000.0,           # (m) Altitude Setpoint
     v_sp = 0.,                  # (m/s) Altitude Setpoint, Not Implemented right now
     start_coord =	{
-                      "lat": 32.43633, #34.6, #32.43633, #32.421, #34.6, #32.43633,  #        # (deg) Latitude
-                      "lon": -111.061, #-106.8, #-111.06417, #-111.061, #-106.8, #-111.06417,   #-111.061771      # (deg) Longitude
+                      "lat": 34.60,    #34.60,   32.44,    33.66,    # (deg) Latitude
+                      "lon": -106.80,    #-106.80, -111.61, -114.22    # (deg) Longitude
                       "alt": 480., #720.,             # (m) Elevation
                       "timestamp": start_time, # timestamp
                     },

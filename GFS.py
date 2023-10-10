@@ -3,6 +3,7 @@ import netCDF4
 from termcolor import colored
 import math
 from geographiclib.geodesic import Geodesic
+import datetime
 import sys
 from backports.datetime_fromisoformat import MonkeyPatch
 MonkeyPatch.patch_fromisoformat()   #Hacky solution for Python 3.6 to use ISO format Strings
@@ -42,6 +43,11 @@ class GFS:
         # smaller array of downloaded forecast subset
         self.lat  = self.file.variables['lat'][self.lat_low:self.lat_high]
         self.lon  = self.file.variables['lon'][self.lon_low:self.lon_high]
+        time_arr = self.file.variables['time']
+
+        #Manually add time units, not imported with units formatted in saveNETCDF.py
+        self.time_convert = netCDF4.num2date(time_arr[:], units="days since 0001-01-01", has_year_zero=True)
+
 
         # min/max lat/lon degree values from netcdf4 subset
         self.LAT_LOW  = self.file.variables['lat'][self.lat_low]
@@ -50,8 +56,8 @@ class GFS:
         self.LON_HIGH = self.file.variables['lon'][self.lon_high]
 
 
-        print("LAT RANGE - min:" + str(self.LAT_LOW), " max: " + str(self.LAT_HIGH) + " size: " + str(self.lat_high-self.lat_low+1))
-        print("LON RANGE - min:" + str(self.LON_LOW), " max: " + str(self.LON_HIGH) + " size: " + str(self.lon_high-self.lon_low+1))
+        print("LAT RANGE: min:" + str(self.LAT_LOW), " max: " + str(self.LAT_HIGH) + " size: " + str(self.lat_high-self.lat_low+1))
+        print("LON RANGE: min:" + str(self.LON_LOW), " max: " + str(self.LON_HIGH) + " size: " + str(self.lon_high-self.lon_low+1))
 
         hour_index = 0  # start simulating at GFS file start time
 

@@ -231,14 +231,14 @@ class ERA5:
 
         try:
             time_arr = self.file.variables['time']  # do not cast to numpy array yet, time units are different than in GFS
-            print(time_arr)
         except:
             time_arr = [0.00, 0.01]
-        time_convert = netCDF4.num2date(time_arr[:], time_arr.units, time_arr.calendar)
+        self.time_convert = netCDF4.num2date(time_arr[:], time_arr.units, time_arr.calendar)
+
         time_model = []
 
-        self.model_start_datetime = time_convert[0]
-        self.model_end_datetime = time_convert[-1]
+        self.model_start_datetime = self.time_convert[0]
+        self.model_end_datetime = self.time_convert[-1]
 
         balloon_launch_time = self.start_coord['timestamp']
         #balloon_last_time = end_coord['timestamp']
@@ -247,41 +247,41 @@ class ERA5:
         #CHANGES
         logging.debug(f"Original model start and times are {self.model_start_datetime} to {self.model_end_datetime}")
         logging.debug(f"Balloon flight times are from {balloon_launch_time} to {balloon_last_time}")
-        logging.info(f"Model data spans the time from {time_convert[0]} to {time_convert[-1]}")
+        logging.info(f"Model data spans the time from {self.time_convert[0]} to {self.time_convert[-1]}")
         logging.info(f"Balloon flight times are from {balloon_launch_time} to {balloon_last_time}")
-        print(f"Model data spans the time from {time_convert[0]} to {time_convert[-1]}")
+        print(f"Model data spans the time from {self.time_convert[0]} to {self.time_convert[-1]}")
         print(f"Balloon flight times are from {balloon_launch_time} to {balloon_last_time}")
 
         # Depending on the dates chosen, we can sometimes remove unused model data the is prior or after
         # our simulation run as performed below
 
         original = self.model_start_datetime
-        for i in range(0, len(time_convert)):
-            logging.debug(f"Check if can remove model start times not used #{i}: model={time_convert[i]}, balloon start time: {balloon_launch_time}")
-            if time_convert[i] > balloon_launch_time:
+        for i in range(0, len(self.time_convert)):
+            logging.debug(f"Check if can remove model start times not used #{i}: model={self.time_convert[i]}, balloon start time: {balloon_launch_time}")
+            if self.time_convert[i] > balloon_launch_time:
                 start_time_idx = i-1
-                logging.debug(f"Set model time index start to {start_time_idx} with model time of {time_convert[start_time_idx]}")
+                logging.debug(f"Set model time index start to {start_time_idx} with model time of {self.time_convert[start_time_idx]}")
 
                 if start_time_idx < 0:
                     start_time_idx = 0  # just make sure that your model data start isn't negative
                     logging.debug("Resetting model start time to first instance of model data, did you get the right model data?")
 
-                self.model_start_datetime = time_convert[start_time_idx]
+                self.model_start_datetime = self.time_convert[start_time_idx]
                 if original != self.model_start_datetime:
                     logging.debug(f"Changed model start time to {self.model_start_datetime} from {original}")
                 break
 
         if balloon_last_time == None:
             logging.debug("Because you did not specify a balloon last time, run until hits ground or out of model data...")
-            end_time_idx = len(time_convert) - 1
+            end_time_idx = len(self.time_convert) - 1
         else:
-            end_time_idx = len(time_convert) - 1
+            end_time_idx = len(self.time_convert) - 1
             original = end_time_idx
-            for i in range(start_time_idx, len(time_convert)):
-                logging.debug(f"Check if can remove model times not used #{i}: {time_convert[i]}, end time: {balloon_last_time}")
-                if time_convert[i] > balloon_last_time:
+            for i in range(start_time_idx, len(self.time_convert)):
+                logging.debug(f"Check if can remove model times not used #{i}: {self.time_convert[i]}, end time: {balloon_last_time}")
+                if self.time_convert[i] > balloon_last_time:
                     end_time_idx = i
-                    self.model_end_datetime = time_convert[end_time_idx]
+                    self.model_end_datetime = self.time_convert[end_time_idx]
 
                     logging.debug(f"Set model time index end to {end_time_idx}, original was set to {original}")
                     logging.debug(f"Model end time set to: {self.model_end_datetime}")
@@ -291,10 +291,10 @@ class ERA5:
         if ok is False:
             sys.exit(2)
         '''
-        end_time_idx = len(time_convert) - 1 #Only need this variable from above?
+        end_time_idx = len(self.time_convert) - 1 #Only need this variable from above?
 
         for i in range(start_time_idx, end_time_idx+1):
-            t = time_convert[i]
+            t = self.time_convert[i]
             dt = t.strftime("%Y-%m-%d %H:%M:%S")
             time_model.append(dt)
             #epoch_time = time.mktime(t.timetuple()) will give an answer dependent on your time zone
@@ -328,10 +328,17 @@ class ERA5:
         logging.debug(f"By default will use the following longitude index boundaries: {self.lon_left_idx}, {self.lon_right_idx} degrees")
         logging.debug(f"In degrees this covers : {self.file.variables['longitude'][self.lon_left_idx]} to  {self.file.variables['longitude'][self.lon_right_idx-1]}")
 
+        '''
         print(f"By default will use the following latitude index boundaries: {self.lat_top_idx}, {self.lat_bot_idx}")
         print(f"In degrees this covers : {self.file.variables['latitude'][self.lat_top_idx]} to  {self.file.variables['latitude'][self.lat_bot_idx-1]} degrees")
         print(f"By default will use the following longitude index boundaries: {self.lon_left_idx}, {self.lon_right_idx} degrees")
         print(f"In degrees this covers : {self.file.variables['longitude'][self.lon_left_idx]} to  {self.file.variables['longitude'][self.lon_right_idx-1]}")
+        '''
+
+        print("LAT RANGE: min:" + str(self.file.variables['latitude'][self.lat_bot_idx-1]), " max: " + str(self.file.variables['latitude'][self.lat_top_idx]) + " size: " + str(self.lat_bot_idx-self.lat_top_idx))
+        print("LON RANGE: min:" + str(self.file.variables['longitude'][self.lon_left_idx]), " max: " + str(self.file.variables['longitude'][self.lon_right_idx-1]) + " size: " + str(self.lon_right_idx-self.lon_left_idx))
+
+
 
         # smaller array of downloaded forecast subset
         self.test = self.file.variables['latitude']
@@ -379,7 +386,8 @@ class ERA5:
         self.vgdrps0 = self.file.variables['v'][start_time_idx:end_time_idx+1, :, self.lat_top_idx:self.lat_bot_idx,
                        self.lon_left_idx:self.lon_right_idx]
         self.hgtprs = self.file.variables['z'][start_time_idx:end_time_idx+1, :, self.lat_top_idx:self.lat_bot_idx,
-                      self.lon_left_idx:self.lon_right_idx] / g
+                      self.lon_left_idx:self.lon_right_idx] / g #what is this divide by g???
+
 
         #self.temp0 = self.file.variables['t'][start_time_idx:end_time_idx+1, :, self.lat_top_idx:self.lat_bot_idx,
         #             self.lon_left_idx:self.lon_right_idx]
