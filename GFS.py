@@ -31,18 +31,18 @@ class GFS:
         self.geod = Geodesic.WGS84
 
         # Initialize min/max lat/lon index values from netcdf4 subset
-        self.lat_low = None
-        self.lon_low = None
-        self.lat_high = None
-        self.lon_high = None
+        self.lat_min_idx = None
+        self.lon_min_idx = None
+        self.lat_max_idx = None
+        self.lon_max_idx = None
 
         #Determine Index values from netcdf4 subset
         lla = self.file.variables['ugrdprs'][0,0,:,:]
         self.latlonrange(lla)
 
         # smaller array of downloaded forecast subset
-        self.lat  = self.file.variables['lat'][self.lat_low:self.lat_high]
-        self.lon  = self.file.variables['lon'][self.lon_low:self.lon_high]
+        self.lat  = self.file.variables['lat'][self.lat_min_idx:self.lat_max_idx]
+        self.lon  = self.file.variables['lon'][self.lon_min_idx:self.lon_max_idx]
         time_arr = self.file.variables['time']
 
         #Manually add time units, not imported with units formatted in saveNETCDF.py
@@ -50,22 +50,22 @@ class GFS:
 
 
         # min/max lat/lon degree values from netcdf4 subset
-        self.LAT_LOW  = self.file.variables['lat'][self.lat_low]
-        self.LON_LOW  = self.file.variables['lon'][self.lon_low]
-        self.LAT_HIGH = self.file.variables['lat'][self.lat_high]
-        self.LON_HIGH = self.file.variables['lon'][self.lon_high]
+        self.LAT_LOW  = self.file.variables['lat'][self.lat_min_idx]
+        self.LON_LOW  = self.file.variables['lon'][self.lon_min_idx]
+        self.LAT_HIGH = self.file.variables['lat'][self.lat_max_idx]
+        self.LON_HIGH = self.file.variables['lon'][self.lon_max_idx]
 
 
-        print("LAT RANGE: min:" + str(self.LAT_LOW), " max: " + str(self.LAT_HIGH) + " size: " + str(self.lat_high-self.lat_low+1))
-        print("LON RANGE: min:" + str(self.LON_LOW), " max: " + str(self.LON_HIGH) + " size: " + str(self.lon_high-self.lon_low+1))
+        print("LAT RANGE: min:" + str(self.LAT_LOW), " max: " + str(self.LAT_HIGH) + " size: " + str(self.lat_max_idx-self.lat_min_idx+1))
+        print("LON RANGE: min:" + str(self.LON_LOW), " max: " + str(self.LON_HIGH) + " size: " + str(self.lon_max_idx-self.lon_min_idx+1))
 
         hour_index = 0  # start simulating at GFS file start time
 
         # Import the netcdf4 subset to speed up table lookup in this script
         self.levels = self.file.variables['lev'][:]
-        self.ugdrps0 = self.file.variables['ugrdprs'][hour_index:hour_index+self.hours3,:,self.lat_low:self.lat_high,self.lon_low:self.lon_high]
-        self.vgdrps0 = self.file.variables['vgrdprs'][hour_index:hour_index+self.hours3,:,self.lat_low:self.lat_high,self.lon_low:self.lon_high]
-        self.hgtprs  = self.file.variables['hgtprs'][hour_index:hour_index+self.hours3,:,self.lat_low:self.lat_high,self.lon_low:self.lon_high]
+        self.ugdrps0 = self.file.variables['ugrdprs'][hour_index:hour_index+self.hours3,:,self.lat_min_idx:self.lat_max_idx,self.lon_min_idx:self.lon_max_idx]
+        self.vgdrps0 = self.file.variables['vgrdprs'][hour_index:hour_index+self.hours3,:,self.lat_min_idx:self.lat_max_idx,self.lon_min_idx:self.lon_max_idx]
+        self.hgtprs  = self.file.variables['hgtprs'][hour_index:hour_index+self.hours3,:,self.lat_min_idx:self.lat_max_idx,self.lon_min_idx:self.lon_max_idx]
 
         print("Data downloaded.\n\n")
 
@@ -74,25 +74,24 @@ class GFS:
         Determine the lat/lon min/max index values from netcdf4 forecast subset.
         """
         print("Scraping given netcdf4 forecast file for subset size")
-        print(colored('...', 'white', attrs=['blink']))
 
-
-        for i in range (0,len(lla)):
-            for j in range (0,len(lla[i])):
-                if type(lla[i][j]) is np.float32 and self.lon_low is None:
-                    self.lon_low = j
-
-                if type(lla[i][j]) is np.float32 and type(lla[i][j+1]) is not np.float32 and self.lon_high is None:
-                    self.lon_high = j
-
-            if self.lon_low is not None and self.lat_low is None:
-                self.lat_low = i
-
-            if type(lla[i][self.lon_low]) is np.float32 and type(lla[i+1][self.lon_low]) is not np.float32 and self.lat_high is None:
-                self.lat_high = i
-                break
-
-
+        results = np.all(~lla.mask)
+        #Results will almost always be false,  unless an entire netcdf of the world is downloaded. Or if the netcdf is downloaded via another method with lat/lon bounds
+        if results == False:
+            print("Found missing data inside the latitude, longitude, grid will determine range and set new latitude, longitude boundary indexes.")
+            rows, columns = np.nonzero(~lla.mask)
+            print('Row values :', (rows.min(), rows.max()))  # print the min and max rows
+            print('Column values :', (columns.min(), columns.max()))  # print the min and max columns
+            self.lat_min_idx = rows.min() #Min/Max are switched compared to with ERA5
+            self.lat_max_idx = rows.max()
+            self.lon_min_idx = columns.min()
+            self.lon_max_idx = columns.max()
+        else:
+            lati, loni = lla.shape
+            self.lat_min_idx = lati
+            self.lat_max_idx = 0
+            self.lon_max_idx = loni
+            self.lon_min_idx = 0
 
     def closest(self, arr, k):
         """ Given an ordered array and a value, determines the index of the closest item contained in the array.
