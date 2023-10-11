@@ -69,3 +69,10 @@
 2023-10-03 14:16 | ERROR | Unable to locate netcdf file forecasts/SHAB15V_ERA5_20220822_20220823.nc, terminating program
 2023-10-03 14:17 | ERROR | Unable to locate netcdf file forecasts/SHAB15V_ERA5_20220822_20220823.nc, terminating program
 2023-10-03 14:18 | ERROR | Unable to locate netcdf file forecasts/SHAB15V_ERA5_20220822_20220823.nc, terminating program
+2023-10-11 14:45 | WARNING | Warning: Number of hours to simulate are set at 51 but your model data only contains 48 hours. Will reduce to hours to match available model data
+2023-10-11 14:47 | WARNING | Warning: Number of hours to simulate are set at 51 but your model data only contains 48 hours. Will reduce to hours to match available model data
+2023-10-11 14:47 | WARNING | Warning: Number of hours to simulate are set at 51 but your model data only contains 48 hours. Will reduce to hours to match available model data
+2023-10-11 14:48 | WARNING | Warning: Number of hours to simulate are set at 51 but your model data only contains 48 hours. Will reduce to hours to match available model data
+2023-10-11 14:50 | WARNING | Warning: Number of hours to simulate are set at 51 but your model data only contains 48 hours. Will reduce to hours to match available model data
+2023-10-11 14:52 | WARNING | Warning: Number of hours to simulate are set at 141 but your model data only contains 48 hours. Will reduce to hours to match available model data
+2023-10-11 14:52 | WARNING | Warning: Number of hours to simulate are set at 141 but your model data only contains 48 hours. Will reduce to hours to match available model data

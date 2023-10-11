@@ -4,6 +4,7 @@ from termcolor import colored
 import math
 from geographiclib.geodesic import Geodesic
 import datetime
+from datetime import timedelta
 import sys
 from backports.datetime_fromisoformat import MonkeyPatch
 MonkeyPatch.patch_fromisoformat()   #Hacky solution for Python 3.6 to use ISO format Strings
@@ -22,7 +23,8 @@ class GFS:
         self.centered_coord = centered_coord
         self.min_alt = config_earth.simulation['min_alt']
         self.start_time = config_earth.simulation['start_time']
-        self.hours3 = config_earth.netcdf_gfs['hours3']
+        self.sim_time = config_earth.simulation['sim_time']
+        #self.hours3 = config_earth.netcdf_gfs['hours3']
 
         self.file = netCDF4.Dataset(config_earth.netcdf_gfs["nc_file"])  # Only accepting manual uploads for now
         self.gfs_time = config_earth.netcdf_gfs['nc_start']
@@ -37,7 +39,7 @@ class GFS:
         self.lon_max_idx = None
 
         #Determine Index values from netcdf4 subset
-        lla = self.file.variables['ugrdprs'][0,0,:,:]
+        lla = self.file.variables['ugrdprs'][:,0,:,:]
         self.latlonrange(lla)
 
         # smaller array of downloaded forecast subset
@@ -56,36 +58,55 @@ class GFS:
         self.LON_HIGH = self.file.variables['lon'][self.lon_max_idx]
 
 
-        print("LAT RANGE: min:" + str(self.LAT_LOW), " max: " + str(self.LAT_HIGH) + " size: " + str(self.lat_max_idx-self.lat_min_idx+1))
-        print("LON RANGE: min:" + str(self.LON_LOW), " max: " + str(self.LON_HIGH) + " size: " + str(self.lon_max_idx-self.lon_min_idx+1))
-
-        hour_index = 0  # start simulating at GFS file start time
+        print("LAT RANGE: min: " + str(self.LAT_LOW), " (deg) max: " + str(self.LAT_HIGH) + " (deg) array size: " + str(self.lat_max_idx-self.lat_min_idx+1))
+        print("LON RANGE: min: " + str(self.LON_LOW), " (deg) max: " + str(self.LON_HIGH) + " (deg) array size: " + str(self.lon_max_idx-self.lon_min_idx+1))
 
         # Import the netcdf4 subset to speed up table lookup in this script
         self.levels = self.file.variables['lev'][:]
-        self.ugdrps0 = self.file.variables['ugrdprs'][hour_index:hour_index+self.hours3,:,self.lat_min_idx:self.lat_max_idx,self.lon_min_idx:self.lon_max_idx]
-        self.vgdrps0 = self.file.variables['vgrdprs'][hour_index:hour_index+self.hours3,:,self.lat_min_idx:self.lat_max_idx,self.lon_min_idx:self.lon_max_idx]
-        self.hgtprs  = self.file.variables['hgtprs'][hour_index:hour_index+self.hours3,:,self.lat_min_idx:self.lat_max_idx,self.lon_min_idx:self.lon_max_idx]
+        self.ugdrps0 = self.file.variables['ugrdprs'][self.start_time_idx:self.end_time_idx+1,:,self.lat_min_idx:self.lat_max_idx,self.lon_min_idx:self.lon_max_idx]
+        self.vgdrps0 = self.file.variables['vgrdprs'][self.start_time_idx:self.end_time_idx+1,:,self.lat_min_idx:self.lat_max_idx,self.lon_min_idx:self.lon_max_idx]
+        self.hgtprs  = self.file.variables['hgtprs'][self.start_time_idx:self.end_time_idx+1,:,self.lat_min_idx:self.lat_max_idx,self.lon_min_idx:self.lon_max_idx]
 
-        print("Data downloaded.\n\n")
+        #print("Data downloaded.\n\n")
+        print()
+
+        #Check if number of hours will fit in simulation time
+        desired_simulation_end_time = self.start_time + timedelta(hours=self.sim_time)
+        diff_time = (self.time_convert[self.end_time_idx] - self.start_time).total_seconds() #total number of seconds between 2 timestamps
+
+        print("Sim start time: ", self.start_time)
+        print("NetCDF end time:", self.time_convert[self.end_time_idx])
+        print("Max sim runtime:", diff_time//3600, "hours")
+        print("Des sim runtime:", self.sim_time, "hours")
+        print()
+
+        if not desired_simulation_end_time < self.time_convert[self.end_time_idx]:
+            print(colored("Desired simulation run time of " + str(self.sim_time)  +
+            " hours is out of bounds of downloaded forecast. " +
+            "Check simulation start time and/or download a new forecast.", "red"))
+            sys.exit()
+
 
     def latlonrange(self,lla):
         """
         Determine the lat/lon min/max index values from netcdf4 forecast subset.
         """
-        print("Scraping given netcdf4 forecast file for subset size")
+
+
+        print(colored("Forecast Information (Parsed from netcdf file):", "blue", attrs=['bold']))
 
         results = np.all(~lla.mask)
+        print(results)
         #Results will almost always be false,  unless an entire netcdf of the world is downloaded. Or if the netcdf is downloaded via another method with lat/lon bounds
         if results == False:
-            print("Found missing data inside the latitude, longitude, grid will determine range and set new latitude, longitude boundary indexes.")
-            rows, columns = np.nonzero(~lla.mask)
-            print('Row values :', (rows.min(), rows.max()))  # print the min and max rows
-            print('Column values :', (columns.min(), columns.max()))  # print the min and max columns
-            self.lat_min_idx = rows.min() #Min/Max are switched compared to with ERA5
-            self.lat_max_idx = rows.max()
-            self.lon_min_idx = columns.min()
-            self.lon_max_idx = columns.max()
+            timerange, latrange, lonrange = np.nonzero(~lla.mask)
+
+            self.start_time_idx = timerange.min()
+            self.end_time_idx = timerange.max()
+            self.lat_min_idx = latrange.min() #Min/Max are switched compared to with ERA5
+            self.lat_max_idx = latrange.max()
+            self.lon_min_idx = lonrange.min()
+            self.lon_max_idx = lonrange.max()
         else:
             lati, loni = lla.shape
             self.lat_min_idx = lati
@@ -152,6 +173,7 @@ class GFS:
         # Next interpolate the wind velocities with respect to time.
         v_1 = self.vgdrps0[int(hour_index)+1,:,lat_i,lon_i]
         v_1 = self.fill_missing_data(v_1)
+
         u_1 = self.ugdrps0[int(hour_index)+1,:,lat_i,lon_i]
         u_1 = self.fill_missing_data(u_1)
 
@@ -187,13 +209,11 @@ class GFS:
         j = self.getNearestLon(coord["lon"],self.LON_LOW,self.LON_HIGH)
         z = self.getNearestAlt(int(hour_index),coord["lat"],coord["lon"],coord["alt"])
 
-        try:
-            x_wind_vel,y_wind_vel = self.wind_alt_Interpolate(coord) #for now hour index is 0
-        except:
-            print("Simulation Timestamp:    ", coord["timestamp"])
-            print("GFS Forecast Start time: ", self.gfs_time)
-            print(colored("Mismatch with simulation and forecast timstamps. Check simulation start time and/or download a new forecast.", "red"))
-            sys.exit(1)
+        #Get wind estimate for current coordiante
+
+        #add some error handling here?
+        x_wind_vel,y_wind_vel = self.wind_alt_Interpolate(coord)
+
         bearing = math.degrees(math.atan2(y_wind_vel,x_wind_vel))
         bearing = 90 - bearing # perform 90 degree rotation for bearing from wind data
         d = math.pow((math.pow(y_wind_vel,2)+math.pow(x_wind_vel,2)),.5) * dt #dt multiplier

@@ -15,7 +15,7 @@ import sys
 import os
 from scipy import interpolate
 from pytz import timezone
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import config_earth #integrate with EARTHSAHB
 
@@ -79,7 +79,7 @@ class ERA5:
 
         self.geod = Geodesic.WGS84
         self.resolution_hr = config_earth.netcdf_era5['resolution_hr']
-        self.num_model_hrs = sim_time_hours = config_earth.simulation["sim_time"]
+        self.num_model_hrs = sim_time_hours = self.sim_time = config_earth.simulation["sim_time"]
         self.start_coord = config_earth.simulation["start_coord"]
 
         '''
@@ -93,6 +93,14 @@ class ERA5:
         self.dt = config_earth.dt
 
         self.init_with_time()
+
+        '''
+        #For Later updating with saveNETCDF4.py
+        print(self.file.data_model)
+        print(self.file)
+        for name in self.file.ncattrs():
+            print("Global attr {} = {}".format(name, getattr(self.file, name)))
+        '''
 
 
     '''THIS FUNCTION IS UNCESCCARY FOR EarthSHAB?'''
@@ -241,6 +249,8 @@ class ERA5:
         self.model_end_datetime = self.time_convert[-1]
 
         balloon_launch_time = self.start_coord['timestamp']
+
+        self.start_time = config_earth.simulation['start_time']
         #balloon_last_time = end_coord['timestamp']
         start_time_idx = 0
         '''
@@ -337,7 +347,7 @@ class ERA5:
 
         print("LAT RANGE: min:" + str(self.file.variables['latitude'][self.lat_bot_idx-1]), " max: " + str(self.file.variables['latitude'][self.lat_top_idx]) + " size: " + str(self.lat_bot_idx-self.lat_top_idx))
         print("LON RANGE: min:" + str(self.file.variables['longitude'][self.lon_left_idx]), " max: " + str(self.file.variables['longitude'][self.lon_right_idx-1]) + " size: " + str(self.lon_right_idx-self.lon_left_idx))
-
+        print()
 
 
         # smaller array of downloaded forecast subset
@@ -393,6 +403,25 @@ class ERA5:
         #             self.lon_left_idx:self.lon_right_idx]
 
         logging.info("ERA5 Data Finished downloading.\n\n")
+
+
+        #Check if number of hours will fit in simulation time
+        desired_simulation_end_time = self.start_time + timedelta(hours=self.sim_time)
+        diff_time = (self.time_convert[end_time_idx] - self.start_time).total_seconds() #total number of seconds between 2 timestamps
+
+        print("Sim start time: ", self.start_time)
+        print("NetCDF end time:", self.time_convert[end_time_idx])
+        print("Max sim runtime:", diff_time//3600, "hours")
+        print("Des sim runtime:", self.sim_time, "hours")
+        print()
+
+        if not desired_simulation_end_time < self.time_convert[end_time_idx]:
+            print(colored("Desired simulation run time of " + str(self.sim_time)  +
+            " hours is out of bounds of downloaded forecast. " +
+            "Check simulation start time and/or download a new forecast.", "red"))
+            sys.exit()
+
+
     """
     #REMOVED THIS FUNCTION
     def ok_model_balloon_times(self, balloon_launch_time, model_start_datetime):

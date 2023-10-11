@@ -25,19 +25,19 @@ balloon_properties = dict(
 #balloon_trajectory = "balloon_data/SHAB10V-APRS.csv"  # Only Accepting Files in the Standard APRS.fi format for now
 
 #SHAB3
-gfs = "2020-11-20 06:00:00" # Forecast start time, should match a downloaded forecast in the forecasts directory
-start_time = datetime.fromisoformat("2020-11-20 15:47:00") # Simulation start time. The end time needs to be within the downloaded forecast
-balloon_trajectory = "balloon_data/SHAB3V-APRS.csv"  # Only Accepting Files in the Standard APRS.fi format for now
+#gfs = "2020-11-20 06:00:00" # Forecast start time, should match a downloaded forecast in the forecasts directory
+#start_time = datetime.fromisoformat("2020-11-20 15:47:00") # Simulation start time. The end time needs to be within the downloaded forecast
+#balloon_trajectory = "balloon_data/SHAB3V-APRS.csv"  # Only Accepting Files in the Standard APRS.fi format for now
 
 #SHAB5
 #gfs = "2021-05-12 12:00:00" # Forecast start time, should match a downloaded forecast in the forecasts directory
-#start_time = datetime.fromisoformat("2021-05-12 14:01:00") # Simulation start time. The end time needs to be within the downloaded forecast
+#tart_time = datetime.fromisoformat("2021-05-12 14:01:00") # Simulation start time. The end time needs to be within the downloaded forecast
 #balloon_trajectory = "balloon_data/SHAB5V_APRS_Processed.csv"  # Only Accepting Files in the Standard APRS.fi format for now
 
 #SHAB12/15
-#gfs =  "2022-08-22 12:00:00" # Forecast start time, should match a downloaded forecast in the forecasts directory
-#start_time = datetime.fromisoformat("2022-08-22 14:21:00") # Simulation start time. The end time needs to be within the downloaded forecast
-#balloon_trajectory = "balloon_data/SHAB12V-APRS.csv"  # Only Accepting Files in the Standard APRS.fi format for now
+gfs =  "2022-08-22 12:00:00" # Forecast start time, should match a downloaded forecast in the forecasts directory
+start_time = datetime.fromisoformat("2022-08-22 14:21:00") # Simulation start time. The end time needs to be within the downloaded forecast
+balloon_trajectory = "balloon_data/SHAB12V-APRS.csv"  # Only Accepting Files in the Standard APRS.fi format for now
 
 
 #GFS AND ERA5 CAN BE DIFFERENT START TIMES???
@@ -54,7 +54,7 @@ netcdf_gfs = dict(
     res = 0.25,       # (deg) Do not change
     lat_range = 40,  # (.25 deg)
     lon_range= 60,   # (.25 deg)
-    hours3 = 8,      # (1-80) In intervals of 3 hours.  hour_index of 8 is 8*3=24 hours
+    hours3 = 8,      # (1-80) In intervals of 3 hours.  hour_index of 8 is 8*3=24 hours. This value is only used in saveNETCDF.py
 
 )
 
@@ -62,25 +62,25 @@ netcdf_era5 = dict(
     #Need to add in start time stuff for ERA5 forecasts
 
 
-    filename = "SHAB3V_era_20201120_20201121.nc", #SHAB3
+    #filename = "SHAB3V_era_20201120_20201121.nc", #SHAB3
     #filename = "SHAB5V-ERA5_20210512_20210513.nc", #SHAB5V
     #filename = "shab10_era_2022-04-09to2022-04-10.nc", #SHAB10V
     #filename = "SHAB12V_ERA5_20220822_20220823.nc", #SHAB12V
-    #filename = "SHAB15V_ERA5_20220822_20220823.nc", #SHAB15V
+    filename = "SHAB15V_ERA5_20220822_20220823.nc", #SHAB15V
     resolution_hr = 1
     )
 
 
 simulation = dict(
     start_time = start_time,    # (UTC) Simulation Start Time, updated above
-    sim_time = 10, #8,              # (hours) Simulation time in hours (for trapezoid.py)
+    sim_time = 15, #8,              # (hours) Simulation time in hours (for trapezoid.py)
 
     vent = 0.0,                 # (kg/s) Vent Mass Flow Rate  (Do not have an accurate model of the vent yet, this is innacurate)
     alt_sp = 15000.0,           # (m) Altitude Setpoint
     v_sp = 0.,                  # (m/s) Altitude Setpoint, Not Implemented right now
     start_coord =	{
-                      "lat": 33.66,    #34.60,   32.44,    33.66,    # (deg) Latitude
-                      "lon": -114.22,    #-106.80, -111.06, -114.22    # (deg) Longitude
+                      "lat": 34.60,    #34.60,   32.44,    33.66,    # (deg) Latitude
+                      "lon": -106.80,    #-106.80, -111.06, -114.22    # (deg) Longitude
                       "alt": 480., #720.,             # (m) Elevation
                       "timestamp": start_time, # timestamp
                     },
