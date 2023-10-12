@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GFS &mdash; EarthSHAB 1.1.0 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=fc837d61"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            EarthSHAB
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../usage/installation.html">Installation Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../API/index.html">EarthSHAB API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../citing.html">Citing EarthSHAB</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">EarthSHAB</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Module code</a></li>
+      <li class="breadcrumb-item active">GFS</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for GFS</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">netCDF4</span>
+<span class="kn">from</span> <span class="nn">termcolor</span> <span class="kn">import</span> <span class="n">colored</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">from</span> <span class="nn">geographiclib.geodesic</span> <span class="kn">import</span> <span class="n">Geodesic</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">timedelta</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">backports.datetime_fromisoformat</span> <span class="kn">import</span> <span class="n">MonkeyPatch</span>
+<span class="n">MonkeyPatch</span><span class="o">.</span><span class="n">patch_fromisoformat</span><span class="p">()</span>   <span class="c1">#Hacky solution for Python 3.6 to use ISO format Strings</span>
+
+<span class="kn">import</span> <span class="nn">config_earth</span>
+
+<span class="sd">&quot;&quot;&quot; GFS.py extracts meteorological data from a NOAA netcdf (.nc file) data set.  To speed up predicting trajectories,</span>
+<span class="sd">saveNETCDF.py should be run before main.py. This way, the large data set doesn&#39;t need to be redownloaded each time the trajectory is run.</span>
+<span class="sd">For now, only wind velocity is used for the simulation prediction.  Atmposheric properties such as temperarature and pressure are based off of</span>
+<span class="sd">the U.S. Standard Atmosphere tables from 1976, and the fluids library is used for these, which can be seen in radiation3.py</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="GFS">
+<a class="viewcode-back" href="../API/GFS.html#GFS.GFS">[docs]</a>
+<span class="k">class</span> <span class="nc">GFS</span><span class="p">:</span>
+<div class="viewcode-block" id="GFS.__init__">
+<a class="viewcode-back" href="../API/GFS.html#GFS.GFS.__init__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">centered_coord</span><span class="p">):</span>
+        <span class="c1"># import variables from configuration file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">centered_coord</span> <span class="o">=</span> <span class="n">centered_coord</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_alt</span> <span class="o">=</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">simulation</span><span class="p">[</span><span class="s1">&#39;min_alt&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start_time</span> <span class="o">=</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">simulation</span><span class="p">[</span><span class="s1">&#39;start_time&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sim_time</span> <span class="o">=</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">simulation</span><span class="p">[</span><span class="s1">&#39;sim_time&#39;</span><span class="p">]</span>
+        <span class="c1">#self.hours3 = config_earth.netcdf_gfs[&#39;hours3&#39;]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">file</span> <span class="o">=</span> <span class="n">netCDF4</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="n">config_earth</span><span class="o">.</span><span class="n">netcdf_gfs</span><span class="p">[</span><span class="s2">&quot;nc_file&quot;</span><span class="p">])</span>  <span class="c1"># Only accepting manual uploads for now</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gfs_time</span> <span class="o">=</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">netcdf_gfs</span><span class="p">[</span><span class="s1">&#39;nc_start&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">res</span> <span class="o">=</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">netcdf_gfs</span><span class="p">[</span><span class="s1">&#39;res&#39;</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">geod</span> <span class="o">=</span> <span class="n">Geodesic</span><span class="o">.</span><span class="n">WGS84</span>
+
+        <span class="c1"># Initialize min/max lat/lon index values from netcdf4 subset</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lon_min_idx</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1">#Determine Index values from netcdf4 subset</span>
+        <span class="n">lla</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;ugrdprs&#39;</span><span class="p">][:,</span><span class="mi">0</span><span class="p">,:,:]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">latlonrange</span><span class="p">(</span><span class="n">lla</span><span class="p">)</span>
+
+        <span class="c1"># smaller array of downloaded forecast subset</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lat</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;lat&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lon</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;lon&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_min_idx</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span><span class="p">]</span>
+        <span class="n">time_arr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span>
+
+        <span class="c1">#Manually add time units, not imported with units formatted in saveNETCDF.py</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_convert</span> <span class="o">=</span> <span class="n">netCDF4</span><span class="o">.</span><span class="n">num2date</span><span class="p">(</span><span class="n">time_arr</span><span class="p">[:],</span> <span class="n">units</span><span class="o">=</span><span class="s2">&quot;days since 0001-01-01&quot;</span><span class="p">,</span> <span class="n">has_year_zero</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+
+        <span class="c1"># min/max lat/lon degree values from netcdf4 subset</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">LAT_LOW</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;lat&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">LON_LOW</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;lon&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_min_idx</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">LAT_HIGH</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;lat&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">LON_HIGH</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;lon&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span><span class="p">]</span>
+
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;LAT RANGE: min: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">LAT_LOW</span><span class="p">),</span> <span class="s2">&quot; (deg) max: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">LAT_HIGH</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; (deg) array size: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;LON RANGE: min: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">LON_LOW</span><span class="p">),</span> <span class="s2">&quot; (deg) max: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">LON_HIGH</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; (deg) array size: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_min_idx</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span>
+
+        <span class="c1"># Import the netcdf4 subset to speed up table lookup in this script</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">levels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;lev&#39;</span><span class="p">][:]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ugdrps0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;ugrdprs&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">start_time_idx</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">end_time_idx</span><span class="o">+</span><span class="mi">1</span><span class="p">,:,</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_min_idx</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vgdrps0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;vgrdprs&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">start_time_idx</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">end_time_idx</span><span class="o">+</span><span class="mi">1</span><span class="p">,:,</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_min_idx</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hgtprs</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;hgtprs&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">start_time_idx</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">end_time_idx</span><span class="o">+</span><span class="mi">1</span><span class="p">,:,</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_min_idx</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span><span class="p">]</span>
+
+        <span class="c1">#print(&quot;Data downloaded.\n\n&quot;)</span>
+        <span class="nb">print</span><span class="p">()</span>
+
+        <span class="c1">#Check if number of hours will fit in simulation time</span>
+        <span class="n">desired_simulation_end_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_time</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sim_time</span><span class="p">)</span>
+        <span class="n">diff_time</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time_convert</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">end_time_idx</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_time</span><span class="p">)</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()</span> <span class="c1">#total number of seconds between 2 timestamps</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Sim start time: &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_time</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;NetCDF end time:&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_convert</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">end_time_idx</span><span class="p">])</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Max sim runtime:&quot;</span><span class="p">,</span> <span class="n">diff_time</span><span class="o">//</span><span class="mi">3600</span><span class="p">,</span> <span class="s2">&quot;hours&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Des sim runtime:&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_time</span><span class="p">,</span> <span class="s2">&quot;hours&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">desired_simulation_end_time</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_convert</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">end_time_idx</span><span class="p">]:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">colored</span><span class="p">(</span><span class="s2">&quot;Desired simulation run time of &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sim_time</span><span class="p">)</span>  <span class="o">+</span>
+            <span class="s2">&quot; hours is out of bounds of downloaded forecast. &quot;</span> <span class="o">+</span>
+            <span class="s2">&quot;Check simulation start time and/or download a new forecast.&quot;</span><span class="p">,</span> <span class="s2">&quot;red&quot;</span><span class="p">))</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="GFS.latlonrange">
+<a class="viewcode-back" href="../API/GFS.html#GFS.GFS.latlonrange">[docs]</a>
+    <span class="k">def</span> <span class="nf">latlonrange</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">lla</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Determine the lat/lon min/max index values from netcdf4 forecast subset.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+
+        <span class="nb">print</span><span class="p">(</span><span class="n">colored</span><span class="p">(</span><span class="s2">&quot;Forecast Information (Parsed from netcdf file):&quot;</span><span class="p">,</span> <span class="s2">&quot;blue&quot;</span><span class="p">,</span> <span class="n">attrs</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;bold&#39;</span><span class="p">]))</span>
+
+        <span class="n">results</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="o">~</span><span class="n">lla</span><span class="o">.</span><span class="n">mask</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+        <span class="c1">#Results will almost always be false,  unless an entire netcdf of the world is downloaded. Or if the netcdf is downloaded via another method with lat/lon bounds</span>
+        <span class="k">if</span> <span class="n">results</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="n">timerange</span><span class="p">,</span> <span class="n">latrange</span><span class="p">,</span> <span class="n">lonrange</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="o">~</span><span class="n">lla</span><span class="o">.</span><span class="n">mask</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">start_time_idx</span> <span class="o">=</span> <span class="n">timerange</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">end_time_idx</span> <span class="o">=</span> <span class="n">timerange</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span> <span class="o">=</span> <span class="n">latrange</span><span class="o">.</span><span class="n">min</span><span class="p">()</span> <span class="c1">#Min/Max are switched compared to with ERA5</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span> <span class="o">=</span> <span class="n">latrange</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lon_min_idx</span> <span class="o">=</span> <span class="n">lonrange</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span> <span class="o">=</span> <span class="n">lonrange</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">lati</span><span class="p">,</span> <span class="n">loni</span> <span class="o">=</span> <span class="n">lla</span><span class="o">.</span><span class="n">shape</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span> <span class="o">=</span> <span class="n">lati</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span> <span class="o">=</span> <span class="n">loni</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lon_min_idx</span> <span class="o">=</span> <span class="mi">0</span></div>
+
+
+<div class="viewcode-block" id="GFS.closest">
+<a class="viewcode-back" href="../API/GFS.html#GFS.GFS.closest">[docs]</a>
+    <span class="k">def</span> <span class="nf">closest</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Given an ordered array and a value, determines the index of the closest item contained in the array.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)),</span> <span class="n">key</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="nb">abs</span><span class="p">(</span><span class="n">arr</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">k</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="GFS.getNearestLat">
+<a class="viewcode-back" href="../API/GFS.html#GFS.GFS.getNearestLat">[docs]</a>
+    <span class="k">def</span> <span class="nf">getNearestLat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">lat</span><span class="p">,</span><span class="nb">min</span><span class="p">,</span><span class="nb">max</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Determines the nearest lattitude (to .25 degrees)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="nb">min</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="nb">max</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">res</span><span class="p">)</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">closest</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">lat</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">i</span></div>
+
+
+<div class="viewcode-block" id="GFS.getNearestLon">
+<a class="viewcode-back" href="../API/GFS.html#GFS.GFS.getNearestLon">[docs]</a>
+    <span class="k">def</span> <span class="nf">getNearestLon</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">lon</span><span class="p">,</span><span class="nb">min</span><span class="p">,</span><span class="nb">max</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Determines the nearest longitude (to .25 degrees)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">lon</span> <span class="o">=</span> <span class="n">lon</span> <span class="o">%</span> <span class="mi">360</span> <span class="c1">#convert from -180-180 to 0-360</span>
+        <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="nb">min</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="nb">max</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">res</span><span class="p">)</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">closest</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">lon</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">i</span></div>
+
+
+<div class="viewcode-block" id="GFS.getNearestAlt">
+<a class="viewcode-back" href="../API/GFS.html#GFS.GFS.getNearestAlt">[docs]</a>
+    <span class="k">def</span> <span class="nf">getNearestAlt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">hour_index</span><span class="p">,</span><span class="n">lat</span><span class="p">,</span><span class="n">lon</span><span class="p">,</span><span class="n">alt</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Determines the nearest altitude based off of geo potential height of a .25 degree lat/lon area.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">lat_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getNearestLat</span><span class="p">(</span><span class="n">lat</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">LAT_LOW</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">LAT_HIGH</span><span class="p">)</span>
+        <span class="n">lon_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getNearestLon</span><span class="p">(</span><span class="n">lon</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">LON_LOW</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">LON_HIGH</span><span class="p">)</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">closest</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hgtprs</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">),:,</span><span class="n">lat_i</span><span class="p">,</span><span class="n">lon_i</span><span class="p">],</span> <span class="n">alt</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">i</span></div>
+
+
+<div class="viewcode-block" id="GFS.wind_alt_Interpolate">
+<a class="viewcode-back" href="../API/GFS.html#GFS.GFS.wind_alt_Interpolate">[docs]</a>
+    <span class="k">def</span> <span class="nf">wind_alt_Interpolate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coord</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Performs a 2 step linear interpolation to determine horizontal wind velocity.  First the altitude is interpolated between the two nearest</span>
+<span class="sd">        .25 degree lat/lon areas.  Once altitude is matched, a second linear interpolation is performed with respect to time.</span>
+<span class="sd">        :param coord: Coordinate of balloon</span>
+<span class="sd">        :type coord: dict</span>
+<span class="sd">        :returns: [x_wind_vel, y_wind_vel]</span>
+<span class="sd">        :rtype: array</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">diff</span> <span class="o">=</span> <span class="n">coord</span><span class="p">[</span><span class="s2">&quot;timestamp&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">gfs_time</span>
+        <span class="n">hour_index</span> <span class="o">=</span> <span class="p">(</span><span class="n">diff</span><span class="o">.</span><span class="n">days</span><span class="o">*</span><span class="mi">24</span> <span class="o">+</span> <span class="n">diff</span><span class="o">.</span><span class="n">seconds</span> <span class="o">/</span> <span class="mf">3600.</span><span class="p">)</span><span class="o">/</span><span class="mi">3</span>
+
+        <span class="n">lat_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getNearestLat</span><span class="p">(</span><span class="n">coord</span><span class="p">[</span><span class="s2">&quot;lat&quot;</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">LAT_LOW</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">LAT_HIGH</span><span class="p">)</span>
+        <span class="n">lon_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getNearestLon</span><span class="p">(</span><span class="n">coord</span><span class="p">[</span><span class="s2">&quot;lon&quot;</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">LON_LOW</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">LON_HIGH</span><span class="p">)</span>
+        <span class="n">z_low</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getNearestAlt</span><span class="p">(</span><span class="n">hour_index</span><span class="p">,</span><span class="n">coord</span><span class="p">[</span><span class="s2">&quot;lat&quot;</span><span class="p">],</span><span class="n">coord</span><span class="p">[</span><span class="s2">&quot;lon&quot;</span><span class="p">],</span><span class="n">coord</span><span class="p">[</span><span class="s2">&quot;alt&quot;</span><span class="p">])</span> <span class="c1">#fix this for lower and Upper</span>
+
+
+        <span class="c1"># First interpolate wind speeds between 2 closest time steps to match altitude estimates (hgtprs), which can change with time</span>
+        <span class="n">v_0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vgdrps0</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">),:,</span><span class="n">lat_i</span><span class="p">,</span><span class="n">lon_i</span><span class="p">]</span> <span class="c1"># Round hour index to nearest int</span>
+        <span class="n">v_0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fill_missing_data</span><span class="p">(</span><span class="n">v_0</span><span class="p">)</span> <span class="c1"># Fill the missing wind data. With netcdf4 there are always 3 missing values at the higher elevations</span>
+        <span class="n">u_0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ugdrps0</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">),:,</span><span class="n">lat_i</span><span class="p">,</span><span class="n">lon_i</span><span class="p">]</span>
+        <span class="n">u_0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fill_missing_data</span><span class="p">(</span><span class="n">u_0</span><span class="p">)</span>
+
+        <span class="n">u0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">coord</span><span class="p">[</span><span class="s2">&quot;alt&quot;</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">hgtprs</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">),:,</span><span class="n">lat_i</span><span class="p">,</span><span class="n">lon_i</span><span class="p">],</span><span class="n">u_0</span><span class="p">)</span>
+        <span class="n">v0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">coord</span><span class="p">[</span><span class="s2">&quot;alt&quot;</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">hgtprs</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">),:,</span><span class="n">lat_i</span><span class="p">,</span><span class="n">lon_i</span><span class="p">],</span><span class="n">v_0</span><span class="p">)</span>
+
+        <span class="c1"># Next interpolate the wind velocities with respect to time.</span>
+        <span class="n">v_1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vgdrps0</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">,:,</span><span class="n">lat_i</span><span class="p">,</span><span class="n">lon_i</span><span class="p">]</span>
+        <span class="n">v_1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fill_missing_data</span><span class="p">(</span><span class="n">v_1</span><span class="p">)</span>
+
+        <span class="n">u_1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ugdrps0</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">,:,</span><span class="n">lat_i</span><span class="p">,</span><span class="n">lon_i</span><span class="p">]</span>
+        <span class="n">u_1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fill_missing_data</span><span class="p">(</span><span class="n">u_1</span><span class="p">)</span>
+
+        <span class="n">u1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">coord</span><span class="p">[</span><span class="s2">&quot;alt&quot;</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">hgtprs</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">,:,</span><span class="n">lat_i</span><span class="p">,</span><span class="n">lon_i</span><span class="p">],</span><span class="n">u_1</span><span class="p">)</span> <span class="c1"># Round hour index to next timestep</span>
+        <span class="n">v1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">coord</span><span class="p">[</span><span class="s2">&quot;alt&quot;</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">hgtprs</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">,:,</span><span class="n">lat_i</span><span class="p">,</span><span class="n">lon_i</span><span class="p">],</span><span class="n">v_1</span><span class="p">)</span>
+
+        <span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">hour_index</span><span class="p">,[</span><span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">),</span><span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">],[</span><span class="n">u0</span><span class="p">,</span><span class="n">u1</span><span class="p">])</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">hour_index</span><span class="p">,[</span><span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">),</span><span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">],[</span><span class="n">v0</span><span class="p">,</span><span class="n">v1</span><span class="p">])</span>
+
+        <span class="k">return</span><span class="p">[</span><span class="n">u</span><span class="p">,</span><span class="n">v</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="GFS.fill_missing_data">
+<a class="viewcode-back" href="../API/GFS.html#GFS.GFS.fill_missing_data">[docs]</a>
+    <span class="k">def</span> <span class="nf">fill_missing_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Helper function to fill in linearly interpolate and fill in missing data</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">filled</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+        <span class="n">nans</span><span class="p">,</span> <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="k">lambda</span> <span class="n">z</span><span class="p">:</span> <span class="n">z</span><span class="o">.</span><span class="n">nonzero</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">data</span><span class="p">[</span><span class="n">nans</span><span class="p">]</span><span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">x</span><span class="p">(</span><span class="n">nans</span><span class="p">),</span> <span class="n">x</span><span class="p">(</span><span class="o">~</span><span class="n">nans</span><span class="p">),</span> <span class="n">data</span><span class="p">[</span><span class="o">~</span><span class="n">nans</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">data</span></div>
+
+
+<div class="viewcode-block" id="GFS.getNewCoord">
+<a class="viewcode-back" href="../API/GFS.html#GFS.GFS.getNewCoord">[docs]</a>
+    <span class="k">def</span> <span class="nf">getNewCoord</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coord</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Determines the new coordinates every second due to wind velocity</span>
+<span class="sd">        :param coord: Coordinate of balloon</span>
+<span class="sd">        :type coord: dict</span>
+<span class="sd">        :returns: [lat_new, lon_new, x_wind_vel, y_wind_vel, bearing, closest_lat, closest_lon, closest alt]</span>
+<span class="sd">        :rtype: array</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">diff</span> <span class="o">=</span> <span class="n">coord</span><span class="p">[</span><span class="s2">&quot;timestamp&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">gfs_time</span>
+        <span class="n">hour_index</span> <span class="o">=</span> <span class="p">(</span><span class="n">diff</span><span class="o">.</span><span class="n">days</span><span class="o">*</span><span class="mi">24</span> <span class="o">+</span> <span class="n">diff</span><span class="o">.</span><span class="n">seconds</span> <span class="o">/</span> <span class="mf">3600.</span><span class="p">)</span><span class="o">/</span><span class="mi">3</span>
+
+        <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getNearestLat</span><span class="p">(</span><span class="n">coord</span><span class="p">[</span><span class="s2">&quot;lat&quot;</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">LAT_LOW</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">LAT_HIGH</span><span class="p">)</span>
+        <span class="n">j</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getNearestLon</span><span class="p">(</span><span class="n">coord</span><span class="p">[</span><span class="s2">&quot;lon&quot;</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">LON_LOW</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">LON_HIGH</span><span class="p">)</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getNearestAlt</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">),</span><span class="n">coord</span><span class="p">[</span><span class="s2">&quot;lat&quot;</span><span class="p">],</span><span class="n">coord</span><span class="p">[</span><span class="s2">&quot;lon&quot;</span><span class="p">],</span><span class="n">coord</span><span class="p">[</span><span class="s2">&quot;alt&quot;</span><span class="p">])</span>
+
+        <span class="c1">#Get wind estimate for current coordiante</span>
+
+        <span class="c1">#add some error handling here?</span>
+        <span class="n">x_wind_vel</span><span class="p">,</span><span class="n">y_wind_vel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wind_alt_Interpolate</span><span class="p">(</span><span class="n">coord</span><span class="p">)</span>
+
+        <span class="n">bearing</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="n">y_wind_vel</span><span class="p">,</span><span class="n">x_wind_vel</span><span class="p">))</span>
+        <span class="n">bearing</span> <span class="o">=</span> <span class="mi">90</span> <span class="o">-</span> <span class="n">bearing</span> <span class="c1"># perform 90 degree rotation for bearing from wind data</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">pow</span><span class="p">((</span><span class="n">math</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="n">y_wind_vel</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span><span class="o">+</span><span class="n">math</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="n">x_wind_vel</span><span class="p">,</span><span class="mi">2</span><span class="p">)),</span><span class="mf">.5</span><span class="p">)</span> <span class="o">*</span> <span class="n">dt</span> <span class="c1">#dt multiplier</span>
+        <span class="n">g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">geod</span><span class="o">.</span><span class="n">Direct</span><span class="p">(</span><span class="n">coord</span><span class="p">[</span><span class="s2">&quot;lat&quot;</span><span class="p">],</span> <span class="n">coord</span><span class="p">[</span><span class="s2">&quot;lon&quot;</span><span class="p">],</span> <span class="n">bearing</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">coord</span><span class="p">[</span><span class="s2">&quot;alt&quot;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_alt</span><span class="p">:</span>
+            <span class="c1"># Balloon should remain stationary if it&#39;s reached the minimum altitude</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">coord</span><span class="p">[</span><span class="s1">&#39;lat&#39;</span><span class="p">],</span><span class="n">coord</span><span class="p">[</span><span class="s1">&#39;lon&#39;</span><span class="p">],</span><span class="n">x_wind_vel</span><span class="p">,</span><span class="n">y_wind_vel</span><span class="p">,</span><span class="n">bearing</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">lon</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">hgtprs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="n">z</span><span class="p">,</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]]</span> <span class="c1"># hgtprs doesn&#39;t matter here so is set to 0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">g</span><span class="p">[</span><span class="s1">&#39;lat2&#39;</span><span class="p">],</span><span class="n">g</span><span class="p">[</span><span class="s1">&#39;lon2&#39;</span><span class="p">],</span><span class="n">x_wind_vel</span><span class="p">,</span><span class="n">y_wind_vel</span><span class="p">,</span><span class="n">bearing</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">lon</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">hgtprs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="n">z</span><span class="p">,</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]]</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Tristan Schuler.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

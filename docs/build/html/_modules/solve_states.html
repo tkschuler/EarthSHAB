@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>solve_states &mdash; EarthSHAB 1.1.0 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=fc837d61"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            EarthSHAB
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../usage/installation.html">Installation Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../API/index.html">EarthSHAB API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../citing.html">Citing EarthSHAB</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">EarthSHAB</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Module code</a></li>
+      <li class="breadcrumb-item active">solve_states</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for solve_states</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">radiation</span>
+<span class="kn">import</span> <span class="nn">sphere_balloon</span>
+<span class="kn">import</span> <span class="nn">config_earth</span>  <span class="c1">#Import parameters from configuration file.</span>
+
+<span class="sd">&quot;&quot;&quot; solve_states.py uses numerical integration to solve for the dynamic response of the balloon.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="SolveStates">
+<a class="viewcode-back" href="../API/solve_states.html#solve_states.SolveStates">[docs]</a>
+<span class="k">class</span> <span class="nc">SolveStates</span><span class="p">:</span>
+<div class="viewcode-block" id="SolveStates.__init__">
+<a class="viewcode-back" href="../API/solve_states.html#solve_states.SolveStates.__init__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initializes all of the solar balloon paramaters from the configuration file&quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">Cp_air0</span> <span class="o">=</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">earth_properties</span><span class="p">[</span><span class="s1">&#39;Cp_air0&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Rsp_air</span> <span class="o">=</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">earth_properties</span><span class="p">[</span><span class="s1">&#39;Rsp_air&#39;</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">d</span> <span class="o">=</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">balloon_properties</span><span class="p">[</span><span class="s1">&#39;d&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vol</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span><span class="o">*</span><span class="mi">4</span><span class="o">/</span><span class="mi">3</span><span class="o">*</span><span class="nb">pow</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">d</span><span class="o">/</span><span class="mi">2</span><span class="p">),</span><span class="mi">3</span><span class="p">)</span> <span class="c1">#volume m^3</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">surfArea</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">d</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">d</span> <span class="c1">#m^2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cs_area</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">d</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">d</span><span class="o">/</span><span class="mf">4.0</span> <span class="c1">#m^2</span>
+
+        <span class="c1">#self.emissEnv = config_earth.balloon_properties[&#39;emissEnv&#39;]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">areaDensityEnv</span> <span class="o">=</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">balloon_properties</span><span class="p">[</span><span class="s1">&#39;areaDensityEnv&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mp</span> <span class="o">=</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">balloon_properties</span><span class="p">[</span><span class="s1">&#39;mp&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mdot</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">massEnv</span> <span class="o">=</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">balloon_properties</span><span class="p">[</span><span class="s1">&#39;mEnv&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Upsilon</span> <span class="o">=</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">balloon_properties</span><span class="p">[</span><span class="s1">&#39;Upsilon&#39;</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">vent</span> <span class="o">=</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">simulation</span><span class="p">[</span><span class="s1">&#39;vent&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coord</span> <span class="o">=</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">simulation</span><span class="p">[</span><span class="s1">&#39;start_coord&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">t</span> <span class="o">=</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">simulation</span><span class="p">[</span><span class="s1">&#39;start_time&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lat</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coord</span><span class="p">[</span><span class="s1">&#39;lat&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Ls</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="o">.</span><span class="n">timetuple</span><span class="p">()</span><span class="o">.</span><span class="n">tm_yday</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_alt</span> <span class="o">=</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">simulation</span><span class="p">[</span><span class="s1">&#39;min_alt&#39;</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">vm_coeff</span> <span class="o">=</span> <span class="mf">.1</span> <span class="c1">#virtual mass coefficient</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">massEnv</span><span class="o">*</span><span class="n">config_earth</span><span class="o">.</span><span class="n">balloon_properties</span><span class="p">[</span><span class="s1">&#39;cp&#39;</span><span class="p">]</span> <span class="c1">#thermal mass coefficient</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dt</span> <span class="o">=</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">dt</span></div>
+
+
+<div class="viewcode-block" id="SolveStates.get_acceleration">
+<a class="viewcode-back" href="../API/solve_states.html#solve_states.SolveStates.get_acceleration">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_acceleration</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">v</span><span class="p">,</span><span class="n">el</span><span class="p">,</span><span class="n">T_s</span><span class="p">,</span><span class="n">T_i</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Solves for the acceleration of the solar balloon after one timestep (dt).</span>
+
+<span class="sd">        :param T_s: Surface Temperature (K)</span>
+<span class="sd">        :type T_s: float</span>
+<span class="sd">        :param T_i: Internal Temperature (K)</span>
+<span class="sd">        :type T_i: float</span>
+<span class="sd">        :param el: Elevation (m)</span>
+<span class="sd">        :type el: float</span>
+<span class="sd">        :param v: Velocity (m)</span>
+<span class="sd">        :type v: float</span>
+
+<span class="sd">        :returns: acceleration of balloon (m/s^2)</span>
+<span class="sd">        :rtype: float</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">rad</span> <span class="o">=</span> <span class="n">radiation</span><span class="o">.</span><span class="n">Radiation</span><span class="p">()</span>
+        <span class="n">T_atm</span> <span class="o">=</span> <span class="n">rad</span><span class="o">.</span><span class="n">getTemp</span><span class="p">(</span><span class="n">el</span><span class="p">)</span>
+        <span class="n">p_atm</span> <span class="o">=</span> <span class="n">rad</span><span class="o">.</span><span class="n">getPressure</span><span class="p">(</span><span class="n">el</span><span class="p">)</span>
+        <span class="n">rho_atm</span> <span class="o">=</span> <span class="n">rad</span><span class="o">.</span><span class="n">getDensity</span><span class="p">(</span><span class="n">el</span><span class="p">)</span>
+        <span class="n">g</span> <span class="o">=</span> <span class="n">rad</span><span class="o">.</span><span class="n">getGravity</span><span class="p">(</span><span class="n">el</span><span class="p">)</span>
+
+
+        <span class="n">rho_int</span> <span class="o">=</span> <span class="n">p_atm</span><span class="o">/</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Rsp_air</span><span class="o">*</span><span class="n">T_i</span><span class="p">)</span> <span class="c1"># Internal air density</span>
+
+        <span class="n">Cd</span> <span class="o">=</span> <span class="mf">.5</span> <span class="c1"># Drag Coefficient</span>
+        <span class="n">F_b</span> <span class="o">=</span> <span class="p">(</span><span class="n">rho_atm</span> <span class="o">-</span> <span class="n">rho_int</span><span class="p">)</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">vol</span><span class="o">*</span><span class="n">g</span> <span class="c1"># Force due to buyoancy</span>
+        <span class="n">F_d</span> <span class="o">=</span>  <span class="n">Cd</span><span class="o">*</span><span class="p">(</span><span class="mf">0.5</span><span class="o">*</span><span class="n">rho_atm</span><span class="o">*</span><span class="n">math</span><span class="o">.</span><span class="n">fabs</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="o">*</span><span class="n">v</span><span class="p">)</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">cs_area</span><span class="c1"># Force due to Drag</span>
+
+        <span class="k">if</span> <span class="n">F_d</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">F_d</span> <span class="o">=</span> <span class="n">F_d</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">Upsilon</span>
+        <span class="n">vm</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">massEnv</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">mp</span><span class="p">)</span> <span class="o">+</span> <span class="n">rho_atm</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">vol</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">vm_coeff</span><span class="o">*</span><span class="n">rho_atm</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">vol</span> <span class="c1">#Virtual Mass</span>
+        <span class="n">accel</span> <span class="o">=</span> <span class="p">((</span><span class="n">F_b</span>  <span class="o">-</span> <span class="n">F_d</span> <span class="o">-</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">massEnv</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">mp</span><span class="p">)</span><span class="o">*</span><span class="n">g</span><span class="p">)</span><span class="o">/</span><span class="n">vm</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">accel</span></div>
+
+
+<div class="viewcode-block" id="SolveStates.get_convection_vent">
+<a class="viewcode-back" href="../API/solve_states.html#solve_states.SolveStates.get_convection_vent">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_convection_vent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">T_i</span><span class="p">,</span><span class="n">el</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates the heat lost to the atmosphere due to venting</span>
+
+<span class="sd">        :param T_i: Internal Temperature (K)</span>
+<span class="sd">        :type T_i: float</span>
+<span class="sd">        :param el: Elevation (m)</span>
+<span class="sd">        :type el: float</span>
+
+<span class="sd">        :returns: Convection due to Venting (unit?)</span>
+<span class="sd">        :rtype: float</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">rad</span> <span class="o">=</span> <span class="n">radiation</span><span class="o">.</span><span class="n">Radiation</span><span class="p">()</span>
+        <span class="n">T_atm</span> <span class="o">=</span> <span class="n">rad</span><span class="o">.</span><span class="n">getTemp</span><span class="p">(</span><span class="n">el</span><span class="p">)</span>
+
+        <span class="n">Q_vent</span> <span class="o">=</span>  <span class="bp">self</span><span class="o">.</span><span class="n">mdot</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">Cp_air0</span><span class="o">*</span><span class="p">(</span><span class="n">T_i</span><span class="o">-</span><span class="n">T_atm</span><span class="p">)</span> <span class="c1"># Convection due to released air</span>
+        <span class="k">return</span> <span class="n">Q_vent</span></div>
+
+
+
+<div class="viewcode-block" id="SolveStates.solveVerticalTrajectory">
+<a class="viewcode-back" href="../API/solve_states.html#solve_states.SolveStates.solveVerticalTrajectory">[docs]</a>
+    <span class="k">def</span> <span class="nf">solveVerticalTrajectory</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">t</span><span class="p">,</span><span class="n">T_s</span><span class="p">,</span><span class="n">T_i</span><span class="p">,</span><span class="n">el</span><span class="p">,</span><span class="n">v</span><span class="p">,</span><span class="n">coord</span><span class="p">,</span><span class="n">alt_sp</span><span class="p">,</span><span class="n">v_sp</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;This function numerically integrates and solves for the change in Surface Temperature, Internal Temperature, and accelleration</span>
+<span class="sd">        after a timestep, dt.</span>
+
+<span class="sd">        :param t: Datetime</span>
+<span class="sd">        :type t: datetime</span>
+<span class="sd">        :param T_s: Surface Temperature (K)</span>
+<span class="sd">        :type T_s: float</span>
+<span class="sd">        :param T_i: Internal Temperature (K)</span>
+<span class="sd">        :type T_i: float</span>
+<span class="sd">        :param el: Elevation (m)</span>
+<span class="sd">        :type el: float</span>
+<span class="sd">        :param v: Velocity (m)</span>
+<span class="sd">        :type v: float</span>
+<span class="sd">        :param alt_sp: Altitude Setpoint (m)</span>
+<span class="sd">        :type alt_sp: float</span>
+<span class="sd">        :param v_sp: Velocity Setpoint (m/s)</span>
+<span class="sd">        :type v_sp: float</span>
+
+<span class="sd">        :returns: Updated parameters after dt (seconds)</span>
+<span class="sd">        :rtype: float [T_s,T_i,el,v]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">bal</span> <span class="o">=</span> <span class="n">sphere_balloon</span><span class="o">.</span><span class="n">Sphere_Balloon</span><span class="p">()</span>
+        <span class="n">rad</span> <span class="o">=</span> <span class="n">radiation</span><span class="o">.</span><span class="n">Radiation</span><span class="p">()</span>
+
+        <span class="n">T_atm</span> <span class="o">=</span> <span class="n">rad</span><span class="o">.</span><span class="n">getTemp</span><span class="p">(</span><span class="n">el</span><span class="p">)</span>
+        <span class="n">p_atm</span> <span class="o">=</span> <span class="n">rad</span><span class="o">.</span><span class="n">getPressure</span><span class="p">(</span><span class="n">el</span><span class="p">)</span>
+        <span class="n">rho_atm</span> <span class="o">=</span> <span class="n">rad</span><span class="o">.</span><span class="n">getDensity</span><span class="p">(</span><span class="n">el</span><span class="p">)</span>
+
+        <span class="n">rho_int</span> <span class="o">=</span> <span class="n">p_atm</span><span class="o">/</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Rsp_air</span><span class="o">*</span><span class="n">T_i</span><span class="p">)</span>
+        <span class="n">tm_air</span> <span class="o">=</span> <span class="n">rho_int</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">vol</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">Cp_air0</span>
+
+        <span class="c1">#Numerically integrate change in Surface Temperature</span>
+        <span class="n">coord</span><span class="p">[</span><span class="s2">&quot;alt&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">el</span>
+        <span class="n">q_rad</span>  <span class="o">=</span> <span class="n">rad</span><span class="o">.</span><span class="n">get_rad_total</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="n">coord</span><span class="p">)</span>
+        <span class="n">q_surf</span> <span class="o">=</span> <span class="n">bal</span><span class="o">.</span><span class="n">get_sum_q_surf</span><span class="p">(</span><span class="n">q_rad</span><span class="p">,</span> <span class="n">T_s</span><span class="p">,</span> <span class="n">el</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+        <span class="n">q_int</span>  <span class="o">=</span> <span class="n">bal</span><span class="o">.</span><span class="n">get_sum_q_int</span><span class="p">(</span><span class="n">T_s</span><span class="p">,</span> <span class="n">T_i</span><span class="p">,</span> <span class="n">el</span><span class="p">)</span>
+        <span class="n">dT_sdt</span> <span class="o">=</span> <span class="p">(</span><span class="n">q_surf</span><span class="o">-</span><span class="n">q_int</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">k</span>
+
+        <span class="c1">#Numerically integrate change in Surface Temperature</span>
+        <span class="n">tm_air</span> <span class="o">=</span> <span class="n">rho_atm</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">vol</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">Cp_air0</span>
+        <span class="n">dT_idt</span> <span class="o">=</span> <span class="p">(</span><span class="n">q_int</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">get_convection_vent</span><span class="p">(</span><span class="n">T_i</span><span class="p">,</span><span class="n">el</span><span class="p">))</span><span class="o">/</span><span class="n">tm_air</span>
+
+        <span class="c1">#Add the new surface and internal Temperatures</span>
+        <span class="n">T_s_new</span> <span class="o">=</span> <span class="n">T_s</span><span class="o">+</span><span class="n">dT_sdt</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
+        <span class="n">T_i_new</span> <span class="o">=</span> <span class="n">T_i</span><span class="o">+</span><span class="n">dT_idt</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
+
+        <span class="c1">#solve for accellration, position, and velocity</span>
+        <span class="n">dzdotdt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_acceleration</span><span class="p">(</span><span class="n">v</span><span class="p">,</span><span class="n">el</span><span class="p">,</span><span class="n">T_s</span><span class="p">,</span><span class="n">T_i</span><span class="p">)</span>
+        <span class="n">zdot</span> <span class="o">=</span> <span class="n">v</span> <span class="o">+</span> <span class="n">dzdotdt</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="n">el</span><span class="o">+</span><span class="n">zdot</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
+
+        <span class="c1">#Add the new velocity and position</span>
+        <span class="k">if</span> <span class="n">z</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_alt</span><span class="p">:</span>
+            <span class="n">v_new</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">el_new</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_alt</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">v_new</span> <span class="o">=</span> <span class="n">zdot</span>
+            <span class="n">el_new</span> <span class="o">=</span> <span class="n">z</span>
+
+        <span class="c1"># Venting commands for an altitude setpoint. Vent is either on or off.</span>
+        <span class="k">if</span> <span class="n">el_new</span> <span class="o">&gt;</span> <span class="n">alt_sp</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mdot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vent</span>
+
+        <span class="k">if</span> <span class="n">el_new</span> <span class="o">&lt;</span> <span class="n">alt_sp</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mdot</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="n">T_s_new</span><span class="p">,</span><span class="n">T_i_new</span><span class="p">,</span><span class="n">T_atm</span><span class="p">,</span><span class="n">el_new</span><span class="p">,</span><span class="n">v_new</span><span class="p">,</span> <span class="n">q_rad</span><span class="p">,</span> <span class="n">q_surf</span><span class="p">,</span> <span class="n">q_int</span><span class="p">]</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Tristan Schuler.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

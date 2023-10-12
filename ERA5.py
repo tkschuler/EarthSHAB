@@ -25,6 +25,9 @@ logging.basicConfig(filename='era5.log',
                     datefmt="%Y-%m-%d %H:%M")
 
 class ERA5:
+    """TODO: Write high level overview
+
+    """
     #def __init__(self, start_coord, end_coord, input_file, dt_sec, sim_time_hours, use_time):
     def __init__(self, start_coord): #CHANGED INPUT VARIABLES
         """Create a class object containing information about an ERA5. Along the way,
@@ -49,6 +52,7 @@ class ERA5:
         See Also
         --------
         GFS
+
         """
 
 
@@ -57,7 +61,8 @@ class ERA5:
 
         self.dt = config_earth.dt
 
-        '''
+        '''''' #
+        ''' #
         #CHANGES
         file_path = os.path.realpath(__file__)
         logging.debug(f"Initializing ERA5 class in File path = {file_path}")
@@ -82,6 +87,7 @@ class ERA5:
         self.num_model_hrs = sim_time_hours = self.sim_time = config_earth.simulation["sim_time"]
         self.start_coord = config_earth.simulation["start_coord"]
 
+        '''''' #
         '''
         #CHANGES
         if use_time:
@@ -94,6 +100,7 @@ class ERA5:
 
         self.init_with_time()
 
+        '''''' #
         '''
         #For Later updating with saveNETCDF4.py
         print(self.file.data_model)
@@ -453,6 +460,7 @@ class ERA5:
         Determine the dimensions of actual data. If you have columns or rows with missing data
         as indicated by NaN, then this function will return your actual shape size so you can
         resize your data being used.
+
         """
         logging.debug("Scraping given netcdf4 forecast file\n (" + str(self.file) + "\n for subset size")
         logging.info("Scraping given netcdf4 forecast file (" + str(self.file) + " for subset size")
@@ -478,11 +486,13 @@ class ERA5:
 
     def closestIdx(self, arr, k):
         """ Given an ordered array and a value, determines the index of the closest item contained in the array.
+
         """
         return min(range(len(arr)), key=lambda i: abs(arr[i] - k))
 
     def getNearestLatIdx(self, lat, min, max):
         """ Determines the nearest latitude index (to .25 degrees),  which will be integer index starting at 0 where you data is starting
+
         """
         # arr = np.arange(start=min, stop=max, step=self.res)
         # i = self.closest(arr, lat)
@@ -491,6 +501,7 @@ class ERA5:
 
     def getNearestLonIdx(self, lon, min, max):
         """ Determines the nearest longitude (to .25 degrees)
+
         """
 
         # lon = lon % 360 #convert from -180-180 to 0-360
@@ -501,6 +512,7 @@ class ERA5:
     def getNearestAltbyIndex(self, int_hr_idx, lat_i, lon_i, alt_m):
         """ Determines the nearest altitude based off of geo potential height of a .25 degree lat/lon area.
             at a given latitude, longitude index
+
         """
         i = self.closestIdx(self.hgtprs[int_hr_idx, :, lat_i, lon_i], alt_m)
 
@@ -539,6 +551,7 @@ class ERA5:
                 u component wind vector
             v : float
                 v component wind vector
+
         """
 
         #we need to clean this up, ends up we check for the hour_index before we call this function
@@ -652,6 +665,7 @@ class ERA5:
 
     def fill_missing_data(self, data):
         """Helper function to fill in linearly interpolate and fill in missing data
+
         """
 
         data = data.filled(np.nan)

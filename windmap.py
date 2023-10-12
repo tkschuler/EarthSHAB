@@ -1,3 +1,13 @@
+"""
+This is a rough update of windmap to include ERA5 support.  However hour indecies are hardcoded
+right now.  I think I should be able to make object instances of ERA5.py and GFS.py an call the
+variables from those objects instead of what I'm doing here.  That's tomorow's project.
+
+testing
+
+"""
+
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -12,14 +22,6 @@ import sys
 
 import GFS
 import ERA5
-
-
-'''
-This is a rough update of windmap to include ERA5 support.  However hour indecies are hardcoded
-right now.  I think I should be able to make object instances of ERA5.py and GFS.py an call the
-variables from those objects instead of what I'm doing here.  That's tomorow's project.
-
-'''
 
 class Windmap:
     def __init__(self):
@@ -268,6 +270,6 @@ class Windmap:
         plt.show()
 
 
-wind = Windmap()
+#wind = Windmap()
 
-wind.makePlots()
+#wind.makePlots()
