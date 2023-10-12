@@ -12,6 +12,8 @@ import os
 import numpy as np
 import re
 import copy
+
+import seaborn as sns
 #import windmap
 
 import radiation
@@ -171,8 +173,7 @@ if balloon_trajectory != None:
         print(colored(("El: " + str(alt_aprs[i]) + " Lat: " + str(lat_new) + " Lon: " + str(lon_new) + " Bearing: " + str(bearing)),"green"))
 
 
-
-plt.style.use('seaborn-pastel')
+sns.set_palette("muted")
 fig, ax = plt.subplots()
 ax.plot(ttt,el, label = "reforecasted simulation")
 plt.xlabel('Datetime (MST)')
@@ -208,7 +209,7 @@ if forecast_type == "GFS":
     ])
     gmap1.plot(lat, lon,'blue', edge_width = 2.5) # Simulated Trajectory
     gmap1.text(coord["lat"]-.2, coord["lon"]-.2, 'Simulated Trajectory with GFS Forecast', color='blue')
-    gmap1.polygon(*region, color='cornflowerblue', edge_width=1, alpha= .2) #plot region
+    gmap1.polygon(*region, color='cornflowerblue', edge_width=5, alpha= .2) #plot region
 
 elif forecast_type == "ERA5":
     region= zip(*[

@@ -160,33 +160,33 @@ class ERA5:
         # Determine Index values from netcdf4 subset
         lla = self.file.variables['u'][0, :, :]
         self.latlon_index_range(lla)
-        logging.debug(f"By default will use the following latitude index boundaries: {self.lat_top_idx}, {self.lat_bot_idx}")
-        logging.debug(f"In degrees this covers : {self.file.variables['latitude'][self.lat_top_idx]} to  {self.file.variables['latitude'][self.lat_bot_idx-1]}")
-        logging.debug(f"By default will use the following longitude index boundaries: {self.lon_left_idx}, {self.lon_right_idx}")
-        logging.debug(f"In degrees this covers : {self.file.variables['longitude'][self.lon_left_idx]} to  {self.file.variables['longitude'][self.lon_right_idx-1]}")
-        print(f"By default will use the following latitude index boundaries: {self.lat_top_idx}, {self.lat_bot_idx}")
-        print(f"In degrees this covers : {self.file.variables['latitude'][self.lat_top_idx]} to  {self.file.variables['latitude'][self.lat_bot_idx-1]} degrees")
-        print(f"By default will use the following longitude index boundaries: {self.lon_left_idx}, {self.lon_right_idx} degrees")
-        print(f"In degrees this covers : {self.file.variables['longitude'][self.lon_left_idx]} to  {self.file.variables['longitude'][self.lon_right_idx-1]}")
+        logging.debug(f"By default will use the following latitude index boundaries: {self.lat_max_idx}, {self.lat_min_idx}")
+        logging.debug(f"In degrees this covers : {self.file.variables['latitude'][self.lat_max_idx]} to  {self.file.variables['latitude'][self.lat_min_idx-1]}")
+        logging.debug(f"By default will use the following longitude index boundaries: {self.lon_min_idx}, {self.lon_max_idx}")
+        logging.debug(f"In degrees this covers : {self.file.variables['longitude'][self.lon_min_idx]} to  {self.file.variables['longitude'][self.lon_max_idx-1]}")
+        print(f"By default will use the following latitude index boundaries: {self.lat_max_idx}, {self.lat_min_idx}")
+        print(f"In degrees this covers : {self.file.variables['latitude'][self.lat_max_idx]} to  {self.file.variables['latitude'][self.lat_min_idx-1]} degrees")
+        print(f"By default will use the following longitude index boundaries: {self.lon_min_idx}, {self.lon_max_idx} degrees")
+        print(f"In degrees this covers : {self.file.variables['longitude'][self.lon_min_idx]} to  {self.file.variables['longitude'][self.lon_max_idx-1]}")
 
         # smaller array of downloaded forecast subset
         self.test = self.file.variables['latitude']
         logging.debug(f"Current shape of the latitude variable: {self.file.variables['latitude'].shape}")
-        self.lat = self.file.variables['latitude'][self.lat_top_idx:self.lat_bot_idx]
-        self.lon = self.file.variables['longitude'][self.lon_left_idx:self.lon_right_idx]
+        self.lat = self.file.variables['latitude'][self.lat_max_idx:self.lat_min_idx]
+        self.lon = self.file.variables['longitude'][self.lon_min_idx:self.lon_max_idx]
         logging.debug(f"Final shape of the latitude variable: {self.lat.shape}")
 
         # min/max lat/lon degree values from netcdf4 subset
-        self.lat_bot_deg = self.file.variables['latitude'][self.lat_bot_idx-1]
-        self.lon_left_deg = self.file.variables['longitude'][self.lon_left_idx]
-        self.lat_top_deg = self.file.variables['latitude'][self.lat_top_idx]
-        self.lon_right_deg = self.file.variables['longitude'][self.lon_right_idx-1]
+        self.lat_bot_deg = self.file.variables['latitude'][self.lat_min_idx-1]
+        self.lon_left_deg = self.file.variables['longitude'][self.lon_min_idx]
+        self.lat_top_deg = self.file.variables['latitude'][self.lat_max_idx]
+        self.lon_right_deg = self.file.variables['longitude'][self.lon_max_idx-1]
 
         message = "LAT RANGE - min:" + str(self.lat_bot_deg) + " max: " + str(self.lat_top_deg) + " size: " + str(
-            abs(self.lat_bot_idx - self.lat_top_idx))
+            abs(self.lat_min_idx - self.lat_max_idx))
         logging.info(message)
         message = "LON RANGE - min:" + str(self.lon_left_deg) + " max: " + str(self.lon_right_deg) + " size: " + str(
-            abs(self.lon_left_idx - self.lon_right_idx))
+            abs(self.lon_min_idx - self.lon_max_idx))
         logging.info(message)
 
         # Import the netcdf4 subset to speed up table lookup in this script
@@ -203,16 +203,16 @@ class ERA5:
 
         g = 9.80665 # gravitation constant used to convert geopotential height to height
         logging.debug(f"Original model wind shape:  {self.file.variables['u'].shape}")
-        self.ugdrps0 = self.file.variables['u'][:, self.lat_top_idx:self.lat_bot_idx,
-                       self.lon_left_idx:self.lon_right_idx]
+        self.ugdrps0 = self.file.variables['u'][:, self.lat_max_idx:self.lat_min_idx,
+                       self.lon_min_idx:self.lon_max_idx]
         logging.debug(f"Reduced or final model wind shape:  {self.ugdrps0.shape}")
-        self.vgdrps0 = self.file.variables['v'][:, self.lat_top_idx:self.lat_bot_idx,
-                       self.lon_left_idx:self.lon_right_idx]
-        self.hgtprs = self.file.variables['z'][:, self.lat_top_idx:self.lat_bot_idx,
-                      self.lon_left_idx:self.lon_right_idx] / g
+        self.vgdrps0 = self.file.variables['v'][:, self.lat_max_idx:self.lat_min_idx,
+                       self.lon_min_idx:self.lon_max_idx]
+        self.hgtprs = self.file.variables['z'][:, self.lat_max_idx:self.lat_min_idx,
+                      self.lon_min_idx:self.lon_max_idx] / g
 
-        #self.temp0 = self.file.variables['t'][start_time_idx:end_time_idx+1, :, self.lat_top_idx:self.lat_bot_idx,
-        #             self.lon_left_idx:self.lon_right_idx]
+        #self.temp0 = self.file.variables['t'][start_time_idx:end_time_idx+1, :, self.lat_max_idx:self.lat_min_idx,
+        #             self.lon_min_idx:self.lon_max_idx]
 
         logging.info("ERA5 Data Finished downloading.\n\n")
     '''
@@ -332,49 +332,54 @@ class ERA5:
         self.min_alt_m = self.start_coord['alt']
 
         # Initialize min/max lat/lon index values from netcdf4 subset
-        #lat_top_idx = netcdf_prop.netcdf["lat_top"]
-        #lat_bot_idx = netcdf_prop.netcdf["lat_bot"]
-        #lon_left_idx = netcdf_prop.netcdf["lon_left"]
-        #lon_right_idx = netcdf_prop.netcdf["lon_right"]
+        #lat_max_idx = netcdf_prop.netcdf["lat_top"]
+        #lat_min_idx = netcdf_prop.netcdf["lat_bot"]
+        #lon_min_idx = netcdf_prop.netcdf["lon_left"]
+        #lon_max_idx = netcdf_prop.netcdf["lon_right"]
 
         # Determine Index values from netcdf4 subset
         lla = self.file.variables['u'][0, 0, :, :]
         self.latlon_index_range(lla)
-        logging.debug(f"By default will use the following latitude index boundaries: {self.lat_top_idx}, {self.lat_bot_idx}")
-        logging.debug(f"In degrees this covers : {self.file.variables['latitude'][self.lat_top_idx]} to  {self.file.variables['latitude'][self.lat_bot_idx-1]} degrees")
-        logging.debug(f"By default will use the following longitude index boundaries: {self.lon_left_idx}, {self.lon_right_idx} degrees")
-        logging.debug(f"In degrees this covers : {self.file.variables['longitude'][self.lon_left_idx]} to  {self.file.variables['longitude'][self.lon_right_idx-1]}")
+        logging.debug(f"By default will use the following latitude index boundaries: {self.lat_max_idx}, {self.lat_min_idx}")
+        logging.debug(f"In degrees this covers : {self.file.variables['latitude'][self.lat_max_idx]} to  {self.file.variables['latitude'][self.lat_min_idx-1]} degrees")
+        logging.debug(f"By default will use the following longitude index boundaries: {self.lon_min_idx}, {self.lon_max_idx} degrees")
+        logging.debug(f"In degrees this covers : {self.file.variables['longitude'][self.lon_min_idx]} to  {self.file.variables['longitude'][self.lon_max_idx-1]}")
 
         '''
-        print(f"By default will use the following latitude index boundaries: {self.lat_top_idx}, {self.lat_bot_idx}")
-        print(f"In degrees this covers : {self.file.variables['latitude'][self.lat_top_idx]} to  {self.file.variables['latitude'][self.lat_bot_idx-1]} degrees")
-        print(f"By default will use the following longitude index boundaries: {self.lon_left_idx}, {self.lon_right_idx} degrees")
-        print(f"In degrees this covers : {self.file.variables['longitude'][self.lon_left_idx]} to  {self.file.variables['longitude'][self.lon_right_idx-1]}")
+        print(f"By default will use the following latitude index boundaries: {self.lat_max_idx}, {self.lat_min_idx}")
+        print(f"In degrees this covers : {self.file.variables['latitude'][self.lat_max_idx]} to  {self.file.variables['latitude'][self.lat_min_idx-1]} degrees")
+        print(f"By default will use the following longitude index boundaries: {self.lon_min_idx}, {self.lon_max_idx} degrees")
+        print(f"In degrees this covers : {self.file.variables['longitude'][self.lon_min_idx]} to  {self.file.variables['longitude'][self.lon_max_idx-1]}")
         '''
 
-        print("LAT RANGE: min:" + str(self.file.variables['latitude'][self.lat_bot_idx-1]), " max: " + str(self.file.variables['latitude'][self.lat_top_idx]) + " size: " + str(self.lat_bot_idx-self.lat_top_idx))
-        print("LON RANGE: min:" + str(self.file.variables['longitude'][self.lon_left_idx]), " max: " + str(self.file.variables['longitude'][self.lon_right_idx-1]) + " size: " + str(self.lon_right_idx-self.lon_left_idx))
+        print("LAT RANGE: min:" + str(self.file.variables['latitude'][self.lat_min_idx-1]), " max: " + str(self.file.variables['latitude'][self.lat_max_idx]) + " size: " + str(self.lat_min_idx-self.lat_max_idx))
+        print("LON RANGE: min:" + str(self.file.variables['longitude'][self.lon_min_idx]), " max: " + str(self.file.variables['longitude'][self.lon_max_idx-1]) + " size: " + str(self.lon_max_idx-self.lon_min_idx))
         print()
+
+        self.LAT_LOW  = self.file.variables['latitude'][self.lat_min_idx-1]
+        self.LON_LOW  = self.file.variables['longitude'][self.lon_min_idx]
+        self.LAT_HIGH = self.file.variables['latitude'][self.lat_max_idx]
+        self.LON_HIGH = self.file.variables['longitude'][self.lon_max_idx-1]
 
 
         # smaller array of downloaded forecast subset
         self.test = self.file.variables['latitude']
         logging.debug(f"Current shape of the latitude variable: {self.file.variables['latitude'].shape}")
-        self.lat = self.file.variables['latitude'][self.lat_top_idx:self.lat_bot_idx]
-        self.lon = self.file.variables['longitude'][self.lon_left_idx:self.lon_right_idx]
+        self.lat = self.file.variables['latitude'][self.lat_max_idx:self.lat_min_idx]
+        self.lon = self.file.variables['longitude'][self.lon_min_idx:self.lon_max_idx]
         logging.debug(f"Final shape of the latitude variable: {self.lat.shape}")
 
         # min/max lat/lon degree values from netcdf4 subset
-        self.lat_bot_deg = self.file.variables['latitude'][self.lat_bot_idx-1]
-        self.lon_left_deg = self.file.variables['longitude'][self.lon_left_idx]
-        self.lat_top_deg = self.file.variables['latitude'][self.lat_top_idx]
-        self.lon_right_deg = self.file.variables['longitude'][self.lon_right_idx-1]
+        self.lat_bot_deg = self.file.variables['latitude'][self.lat_min_idx-1]
+        self.lon_left_deg = self.file.variables['longitude'][self.lon_min_idx]
+        self.lat_top_deg = self.file.variables['latitude'][self.lat_max_idx]
+        self.lon_right_deg = self.file.variables['longitude'][self.lon_max_idx-1]
 
         message = "LAT RANGE - min:" + str(self.lat_bot_deg) + " max: " + str(self.lat_top_deg) + " size: " + str(
-            abs(self.lat_bot_idx - self.lat_top_idx))
+            abs(self.lat_min_idx - self.lat_max_idx))
         logging.info(message)
         message = "LON RANGE - min:" + str(self.lon_left_deg) + " max: " + str(self.lon_right_deg) + " size: " + str(
-            abs(self.lon_left_idx - self.lon_right_idx))
+            abs(self.lon_min_idx - self.lon_max_idx))
         logging.info(message)
 
         # Import the netcdf4 subset to speed up table lookup in this script
@@ -397,17 +402,17 @@ class ERA5:
         g = 9.80665 # gravitation constant used to convert geopotential height to height
         logging.debug(f"Original model wind shape:  {self.file.variables['u'].shape}")
         #these are typos, fix later.  Should be ugrdprs0
-        self.ugdrps0 = self.file.variables['u'][start_time_idx:end_time_idx+1, :, self.lat_top_idx:self.lat_bot_idx,
-                       self.lon_left_idx:self.lon_right_idx]
+        self.ugdrps0 = self.file.variables['u'][start_time_idx:end_time_idx+1, :, self.lat_max_idx:self.lat_min_idx,
+                       self.lon_min_idx:self.lon_max_idx]
         logging.debug(f"Reduced or final model wind shape:  {self.ugdrps0.shape}")
-        self.vgdrps0 = self.file.variables['v'][start_time_idx:end_time_idx+1, :, self.lat_top_idx:self.lat_bot_idx,
-                       self.lon_left_idx:self.lon_right_idx]
-        self.hgtprs = self.file.variables['z'][start_time_idx:end_time_idx+1, :, self.lat_top_idx:self.lat_bot_idx,
-                      self.lon_left_idx:self.lon_right_idx] / g #what is this divide by g???
+        self.vgdrps0 = self.file.variables['v'][start_time_idx:end_time_idx+1, :, self.lat_max_idx:self.lat_min_idx,
+                       self.lon_min_idx:self.lon_max_idx]
+        self.hgtprs = self.file.variables['z'][start_time_idx:end_time_idx+1, :, self.lat_max_idx:self.lat_min_idx,
+                      self.lon_min_idx:self.lon_max_idx] / g #what is this divide by g???
 
 
-        #self.temp0 = self.file.variables['t'][start_time_idx:end_time_idx+1, :, self.lat_top_idx:self.lat_bot_idx,
-        #             self.lon_left_idx:self.lon_right_idx]
+        #self.temp0 = self.file.variables['t'][start_time_idx:end_time_idx+1, :, self.lat_max_idx:self.lat_min_idx,
+        #             self.lon_min_idx:self.lon_max_idx]
 
         logging.info("ERA5 Data Finished downloading.\n\n")
 
@@ -473,16 +478,16 @@ class ERA5:
             rows, columns = np.nonzero(~lla.mask)
             logging.debug('Row values :', (rows.min(), rows.max()))  # print the min and max rows
             logging.debug('Column values :', (columns.min(), columns.max()))  # print the min and max columns
-            self.lat_top_idx = rows.min()
-            self.lat_bot_idx = rows.max()
-            self.lon_left_idx = columns.min()
-            self.lon_right_idx = columns.max()
+            self.lat_max_idx = rows.min()
+            self.lat_min_idx = rows.max()
+            self.lon_min_idx = columns.min()
+            self.lon_max_idx = columns.max()
         else:
             lati, loni = lla.shape
-            self.lat_bot_idx = lati
-            self.lat_top_idx = 0
-            self.lon_right_idx = loni
-            self.lon_left_idx = 0
+            self.lat_min_idx = lati
+            self.lat_max_idx = 0
+            self.lon_max_idx = loni
+            self.lon_min_idx = 0
 
     def closestIdx(self, arr, k):
         """ Given an ordered array and a value, determines the index of the closest item contained in the array.
@@ -696,8 +701,8 @@ class ERA5:
         self.diff_check = diff_time
         self.hour_index_check = int_hr_idx
 
-        lat_idx = self.getNearestLatIdx(coord["lat"], self.lat_top_idx, self.lat_bot_idx)
-        lon_idx = self.getNearestLonIdx(coord["lon"], self.lon_left_idx, self.lon_right_idx)
+        lat_idx = self.getNearestLatIdx(coord["lat"], self.lat_max_idx, self.lat_min_idx)
+        lon_idx = self.getNearestLonIdx(coord["lon"], self.lon_min_idx, self.lon_max_idx)
         #z = self.getNearestAltbyIndex(lat_idx, lon_idx, coord["alt_m"])  # fix this for lower and Upper
         z = self.getNearestAltbyIndex(int_hr_idx, lat_idx, lon_idx, coord["alt"])  # fix this for lower and Upper
 
@@ -721,6 +726,11 @@ class ERA5:
         bearing = 90 - bearing  # perform 90 degree rotation for bearing from wind data
         d = math.pow((math.pow(y_wind_vel, 2) + math.pow(x_wind_vel, 2)), .5) * dt  # dt multiplier
         g = self.geod.Direct(coord["lat"], coord["lon"], bearing, d)
+
+
+        #GFS is %360 here.  The files are organized a bit differently
+        if g['lat2'] < self.LAT_LOW or g['lat2']  > self.LAT_HIGH or (g['lon2']) < self.LON_LOW or (g['lon2']) > self.LON_HIGH:
+            print(colored("WARNING: Trajectory is out of bounds of downloaded netcdf forecast", "yellow"))
 
         '''Changed to alt instead of alt_m'''
         if coord["alt"] <= self.min_alt_m:
@@ -755,8 +765,8 @@ class ERA5:
         #self.diff_check = diff_time
         #self.hour_index_check = int_hr_idx
 
-        lat_idx = self.getNearestLatIdx(coord["lat"], self.lat_top_idx, self.lat_bot_idx)
-        lon_idx = self.getNearestLonIdx(coord["lon"], self.lon_left_idx, self.lon_right_idx)
+        lat_idx = self.getNearestLatIdx(coord["lat"], self.lat_max_idx, self.lat_min_idx)
+        lon_idx = self.getNearestLonIdx(coord["lon"], self.lon_min_idx, self.lon_max_idx)
         z = self.getNearestAltbyIndexNoTime(lat_idx, lon_idx, coord["alt_m"])  # fix this for lower and Upper
 
         try:

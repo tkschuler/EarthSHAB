@@ -79,7 +79,7 @@ simulation = dict(
     alt_sp = 15000.0,           # (m) Altitude Setpoint
     v_sp = 0.,                  # (m/s) Altitude Setpoint, Not Implemented right now
     start_coord =	{
-                      "lat": 34.60,    #34.60,   32.44,    33.66,    # (deg) Latitude
+                      "lat": 34.60,     #34.60,   32.44,    33.66,    # (deg) Latitude
                       "lon": -106.80,    #-106.80, -111.06, -114.22    # (deg) Longitude
                       "alt": 480., #720.,             # (m) Elevation
                       "timestamp": start_time, # timestamp

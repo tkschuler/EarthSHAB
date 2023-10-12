@@ -33,10 +33,10 @@ class GFS:
         self.geod = Geodesic.WGS84
 
         # Initialize min/max lat/lon index values from netcdf4 subset
-        self.lat_min_idx = None
-        self.lon_min_idx = None
-        self.lat_max_idx = None
-        self.lon_max_idx = None
+        #self.lat_min_idx = None
+        #self.lon_min_idx = None
+        #self.lat_max_idx = None
+        #self.lon_max_idx = None
 
         #Determine Index values from netcdf4 subset
         lla = self.file.variables['ugrdprs'][:,0,:,:]
@@ -107,7 +107,9 @@ class GFS:
             self.lat_max_idx = latrange.max()
             self.lon_min_idx = lonrange.min()
             self.lon_max_idx = lonrange.max()
-        else:
+        else: #This might be broken for time
+            self.start_time_idx = 0
+            self.end_time_idx = len(self.time_convert)
             lati, loni = lla.shape
             self.lat_min_idx = lati
             self.lat_max_idx = 0
@@ -219,8 +221,14 @@ class GFS:
         d = math.pow((math.pow(y_wind_vel,2)+math.pow(x_wind_vel,2)),.5) * dt #dt multiplier
         g = self.geod.Direct(coord["lat"], coord["lon"], bearing, d)
 
+        if g['lat2'] < self.LAT_LOW or g['lat2']  > self.LAT_HIGH or (g['lon2'] % 360) < self.LON_LOW or (g['lon2'] % 360) > self.LON_HIGH:
+            print(colored("WARNING: Trajectory is out of bounds of downloaded netcdf forecast", "yellow"))
+
         if coord["alt"] <= self.min_alt:
             # Balloon should remain stationary if it's reached the minimum altitude
             return [coord['lat'],coord['lon'],x_wind_vel,y_wind_vel,bearing, self.lat[i], self.lon[j], self.hgtprs[0,z,i,j]] # hgtprs doesn't matter here so is set to 0
         else:
             return [g['lat2'],g['lon2'],x_wind_vel,y_wind_vel,bearing, self.lat[i], self.lon[j], self.hgtprs[0,z,i,j]]
+
+        if g['lat2'] < self.LAT_LOW or g['lat2'] > self.LAT_HIGH or g['lon2'] < self.LON_LOW or g['lon2'] > self.LON_HIGH:
+            print(colored("WARNING: Trajectory is out of bounds of downloaded netcdf forecast", "yellow"))
