@@ -16,11 +16,12 @@
         <script src="../_static/documentation_options.js?v=fc837d61"></script>
         <script src="../_static/doctools.js?v=888ff710"></script>
         <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="solve_states" href="solve_states.html" />
-    <link rel="prev" title="GFS" href="GFS.html" /> 
+    <link rel="prev" title="ERA5" href="era5.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -44,13 +45,15 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../usage/installation.html">Installation Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">EarthSHAB Examples</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">EarthSHAB API</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="era5.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ERA5</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="GFS.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">GFS</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="era5.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ERA5</span></code></a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">radiation</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="solve_states.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">solve_states</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="sphere_balloon.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">sphere_balloon</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="windmap.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">windmap</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../citing.html">Citing EarthSHAB</a></li>
@@ -83,6 +86,7 @@
              
   <section id="module-radiation">
 <span id="radiation"></span><h1><a class="reference internal" href="#module-radiation" title="radiation"><code class="xref py py-mod docutils literal notranslate"><span class="pre">radiation</span></code></a><a class="headerlink" href="#module-radiation" title="Link to this heading"></a></h1>
+<p>radiation solves for radiation due to the enviorment for a particular datetime and altitude.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="radiation.Radiation">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">radiation.</span></span><span class="sig-name descname"><span class="pre">Radiation</span></span><a class="reference internal" href="../_modules/radiation.html#Radiation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#radiation.Radiation" title="Link to this definition"></a></dt>
@@ -90,6 +94,8 @@
 <dt class="sig sig-object py" id="radiation.Radiation.get_SI0">
 <span class="sig-name descname"><span class="pre">get_SI0</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/radiation.html#Radiation.get_SI0"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#radiation.Radiation.get_SI0" title="Link to this definition"></a></dt>
 <dd><p>Incident solar radiation above Earth’s atmosphere (W/m^2)</p>
+<div class="math notranslate nohighlight">
+\[I_{sun,0}= I_0 \cdot [1+0.5(\frac{1+e}{1-e})^2-1) \cdot cos(f)]\]</div>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>The incident solar radiation above Earths atm (W/m^2)</p>
@@ -104,6 +110,8 @@
 <dt class="sig sig-object py" id="radiation.Radiation.get_air_mass">
 <span class="sig-name descname"><span class="pre">get_air_mass</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">zen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">el</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/radiation.html#Radiation.get_air_mass"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#radiation.Radiation.get_air_mass" title="Link to this definition"></a></dt>
 <dd><p>Air Mass at elevation</p>
+<div class="math notranslate nohighlight">
+\[AM = 1229+(614cos(\zeta)^2)^{\frac{1}{2}}-614cos(\zeta)\]</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -116,20 +124,6 @@
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>float</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="radiation.Radiation.get_declination">
-<span class="sig-name descname"><span class="pre">get_declination</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/radiation.html#Radiation.get_declination"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#radiation.Radiation.get_declination" title="Link to this definition"></a></dt>
-<dd><p>Expression from <a class="reference external" href="http://en.wikipedia.org/wiki/Position_of_the_Sun">http://en.wikipedia.org/wiki/Position_of_the_Sun</a></p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Approximate solar declination (rad)</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>float</p>
 </dd>
 </dl>
 </dd></dl>
@@ -194,7 +188,10 @@
 <dl class="py method">
 <dt class="sig sig-object py" id="radiation.Radiation.get_rad_total">
 <span class="sig-name descname"><span class="pre">get_rad_total</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">datetime</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coord</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/radiation.html#Radiation.get_rad_total"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#radiation.Radiation.get_rad_total" title="Link to this definition"></a></dt>
-<dd><p>Total Radiation as a function of elevation, time of day, and balloon surface area</p>
+<dd><p>Calculates total radiation sources as a function of altitude, time, and balloon surface area.</p>
+<p>The figure below shows how different altitudes effects the radiation sources on
+a particular date and coordinate for Tucson Arizona (at sruface level and 25 km altitudes)</p>
+<img alt="../_images/Tucson_Radiation_Comparison.png" src="../_images/Tucson_Radiation_Comparison.png" />
 </dd></dl>
 
 <dl class="py method">
@@ -237,7 +234,10 @@
 <dl class="py method">
 <dt class="sig sig-object py" id="radiation.Radiation.get_trans_atm">
 <span class="sig-name descname"><span class="pre">get_trans_atm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">zen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">el</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/radiation.html#Radiation.get_trans_atm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#radiation.Radiation.get_trans_atm" title="Link to this definition"></a></dt>
-<dd><p>get zenith angle</p>
+<dd><p>The amount of solar radiation that permeates through the atmosphere at a
+certain altitude, I_{sun} is driven by the atmospheric transmittance.</p>
+<div class="math notranslate nohighlight">
+\[\tau_{atm}= \frac{1}{2}(e^{-0.65AM}+e^{-0.095AM})\]</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -257,7 +257,7 @@
 <dl class="py method">
 <dt class="sig sig-object py" id="radiation.Radiation.get_zenith">
 <span class="sig-name descname"><span class="pre">get_zenith</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coord</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/radiation.html#Radiation.get_zenith"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#radiation.Radiation.get_zenith" title="Link to this definition"></a></dt>
-<dd><p>Calculates solar zenith angle</p>
+<dd><p>Calculates adjusted solar zenith angle at elevation</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -282,7 +282,7 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="GFS.html" class="btn btn-neutral float-left" title="GFS" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="era5.html" class="btn btn-neutral float-left" title="ERA5" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="solve_states.html" class="btn btn-neutral float-right" title="solve_states" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

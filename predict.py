@@ -1,3 +1,8 @@
+""" predict.py creates a family of predictions at different float altitudes.  Float altitudes are adjusted by
+changing the payload mass in .25 increments.
+
+"""
+
 import math
 from termcolor import colored
 import matplotlib.pyplot as plt
@@ -8,38 +13,39 @@ import pandas as pd
 from matplotlib.pyplot import cm
 import matplotlib as mpl
 import os
+import sys
+import seaborn as sns
 
 import solve_states
 import GFS
 import radiation
 import windmap
 
-""" This files creates a family of predictions at different float altitudes.  Float altitudes are adjusted by
-changing the payload mass in .25 increments. 
-"""
+if config_earth.forecast_type == "ERA5":
+    print(colored("WARNING: Switch forecast type to GFS. This example is for predicting future flights", "yellow"))
+    sys.exit()
 
 if not os.path.exists('trajectories'):
     os.makedirs('trajectories')
 
 coord = config_earth.simulation['start_coord']
-nc_start = config_earth.netcdf["nc_start"]
+nc_start = config_earth.netcdf_gfs["nc_start"]
 gfs = GFS.GFS(coord)
 gmap1 = gmplot.GoogleMapPlotter(coord["lat"], coord["lon"], 10)
-hourstamp = config_earth.netcdf['hourstamp']
+hourstamp = config_earth.netcdf_gfs['hourstamp']
 
 masses = [0, .25, .5, .75, 1, 1.25, 1.5, 1.75, 2]
 
-
 color = cmap = cm.get_cmap('rainbow_r', len(masses))
 
-plt.style.use('seaborn-darkgrid')
+sns.set_style("darkgrid")
 plt.rcParams.update({'font.size': 14})
 fig, ax = plt.subplots(1, 1, figsize=(12,8))
 
 
 for j in range(0,len(masses)):
 
-    print(colored("----------------------------------------------------------","magenta"))
+    print(colored("---------------------------" + str(masses[j]) + "kg-------------------------------","magenta"))
 
     #Reset Config Values
     GMT = 7  # MST
@@ -145,8 +151,8 @@ plt.xlabel('Datetime (MST)')
 plt.ylabel('Elevation (m)')
 ax.get_xaxis().set_minor_locator(mpl.ticker.AutoMinorLocator())
 ax.get_yaxis().set_minor_locator(mpl.ticker.AutoMinorLocator())
-ax.grid(b=True, which='major', color='w', linewidth=1.0)
-ax.grid(b=True, which='minor', color='w', linewidth=0.5)
+ax.grid(visible=True, which='major', color='w', linewidth=1.0)
+ax.grid(visible=True, which='minor', color='w', linewidth=0.5)
 
 region= zip(*[
     (gfs.LAT_LOW, gfs.LON_LOW),
@@ -159,7 +165,9 @@ gmap1.polygon(*region, color='cornflowerblue', edge_width=1, alpha= .2)
 gmap1.draw("trajectories/" + str(t.year) + "_" + str(t.month) + "_" + str(start.day) + "_trajectories.html" )
 
 plt.style.use('default')
-hour_index, new_timestamp = windmap.getHourIndex(start, nc_start)
-windmap.plotWindVelocity(hour_index,coord["lat"],coord["lon"])
-windmap.plotTempAlt(hour_index,coord["lat"],coord["lon"])
+windmap = windmap.Windmap()
+windmap.plotWindVelocity(windmap.hour_index,windmap.LAT,windmap.LON)
+#hour_index, new_timestamp = windmap.getHourIndex(start, nc_start)
+#windmap.plotWindVelocity(hour_index,coord["lat"],coord["lon"])
+#windmap.plotTempAlt(hour_index,coord["lat"],coord["lon"])
 plt.show()

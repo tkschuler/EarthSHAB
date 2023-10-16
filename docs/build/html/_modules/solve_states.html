@@ -71,13 +71,15 @@
            <div itemprop="articleBody">
              
   <h1>Source code for solve_states</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">math</span>
+<span></span><span class="sd">&quot;&quot;&quot; solve_states uses numerical integration to solve for the dynamic response of the balloon.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">radiation</span>
 <span class="kn">import</span> <span class="nn">sphere_balloon</span>
 <span class="kn">import</span> <span class="nn">config_earth</span>  <span class="c1">#Import parameters from configuration file.</span>
 
-<span class="sd">&quot;&quot;&quot; solve_states.py uses numerical integration to solve for the dynamic response of the balloon.</span>
-<span class="sd">&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="SolveStates">
 <a class="viewcode-back" href="../API/solve_states.html#solve_states.SolveStates">[docs]</a>
@@ -85,7 +87,9 @@
 <div class="viewcode-block" id="SolveStates.__init__">
 <a class="viewcode-back" href="../API/solve_states.html#solve_states.SolveStates.__init__">[docs]</a>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initializes all of the solar balloon paramaters from the configuration file&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initializes all of the solar balloon paramaters from the configuration file</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">Cp_air0</span> <span class="o">=</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">earth_properties</span><span class="p">[</span><span class="s1">&#39;Cp_air0&#39;</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">Rsp_air</span> <span class="o">=</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">earth_properties</span><span class="p">[</span><span class="s1">&#39;Rsp_air&#39;</span><span class="p">]</span>
@@ -118,7 +122,22 @@
 <div class="viewcode-block" id="SolveStates.get_acceleration">
 <a class="viewcode-back" href="../API/solve_states.html#solve_states.SolveStates.get_acceleration">[docs]</a>
     <span class="k">def</span> <span class="nf">get_acceleration</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">v</span><span class="p">,</span><span class="n">el</span><span class="p">,</span><span class="n">T_s</span><span class="p">,</span><span class="n">T_i</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Solves for the acceleration of the solar balloon after one timestep (dt).</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Solves for the acceleration of the solar balloon after one timestep (dt).</span>
+
+<span class="sd">        .. math:: \frac{d^2z}{dt^2} = \frac{dU}{dt} = \frac{F_b-F_g-F_d}{m_{virtual}}</span>
+
+<span class="sd">        The Buyoancy Force, F_{b}:</span>
+
+<span class="sd">        .. math:: F_b = (\rho_{atm}-\rho_{int}) \cdot V_{bal} \cdot g</span>
+
+<span class="sd">        The drag force, F_{d}:</span>
+
+<span class="sd">        .. math:: F_d = \frac{1}{2} \cdot C_d \cdot rho_{atm} \cdot U^2 \cdot A_{proj} \cdot \beta</span>
+
+<span class="sd">        and where the virtual mass is the total mass of the balloon system:</span>
+
+<span class="sd">        .. math:: m_{virt} = m_{payload}+m_{envelope}+C_{virt} \cdot \rho_{atm} \cdot V_{bal}</span>
+
 
 <span class="sd">        :param T_s: Surface Temperature (K)</span>
 <span class="sd">        :type T_s: float</span>
@@ -131,6 +150,7 @@
 
 <span class="sd">        :returns: acceleration of balloon (m/s^2)</span>
 <span class="sd">        :rtype: float</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">rad</span> <span class="o">=</span> <span class="n">radiation</span><span class="o">.</span><span class="n">Radiation</span><span class="p">()</span>
@@ -157,7 +177,9 @@
 <div class="viewcode-block" id="SolveStates.get_convection_vent">
 <a class="viewcode-back" href="../API/solve_states.html#solve_states.SolveStates.get_convection_vent">[docs]</a>
     <span class="k">def</span> <span class="nf">get_convection_vent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">T_i</span><span class="p">,</span><span class="n">el</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates the heat lost to the atmosphere due to venting</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Calculates the heat lost to the atmosphere due to venting</span>
+
+<span class="sd">        .. math:: Q_{vent} = \dot{m} \cdot c_v \cdot (T_i-T_{atm})</span>
 
 <span class="sd">        :param T_i: Internal Temperature (K)</span>
 <span class="sd">        :type T_i: float</span>
@@ -166,6 +188,7 @@
 
 <span class="sd">        :returns: Convection due to Venting (unit?)</span>
 <span class="sd">        :rtype: float</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">rad</span> <span class="o">=</span> <span class="n">radiation</span><span class="o">.</span><span class="n">Radiation</span><span class="p">()</span>
@@ -179,8 +202,13 @@
 <div class="viewcode-block" id="SolveStates.solveVerticalTrajectory">
 <a class="viewcode-back" href="../API/solve_states.html#solve_states.SolveStates.solveVerticalTrajectory">[docs]</a>
     <span class="k">def</span> <span class="nf">solveVerticalTrajectory</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">t</span><span class="p">,</span><span class="n">T_s</span><span class="p">,</span><span class="n">T_i</span><span class="p">,</span><span class="n">el</span><span class="p">,</span><span class="n">v</span><span class="p">,</span><span class="n">coord</span><span class="p">,</span><span class="n">alt_sp</span><span class="p">,</span><span class="n">v_sp</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;This function numerically integrates and solves for the change in Surface Temperature, Internal Temperature, and accelleration</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;This function numerically integrates and solves for the change in Surface Temperature, Internal Temperature, and accelleration</span>
 <span class="sd">        after a timestep, dt.</span>
+
+<span class="sd">        .. math:: \frac{dT_s}{dt} = \frac{\dot{Q}_{rad}+\dot{Q}_{conv,ext}-\dot{Q}_{conv,int}}{c_{v,env} \cdot m_{envelope}}</span>
+
+<span class="sd">        .. math:: \frac{dT_i}{dt} = \frac{\dot{Q}_{conv,int}-\dot{Q}_{vent}}{c_{v,CO_2} \cdot m_{CO_2}}</span>
+
 
 <span class="sd">        :param t: Datetime</span>
 <span class="sd">        :type t: datetime</span>
@@ -199,6 +227,7 @@
 
 <span class="sd">        :returns: Updated parameters after dt (seconds)</span>
 <span class="sd">        :rtype: float [T_s,T_i,el,v]</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">bal</span> <span class="o">=</span> <span class="n">sphere_balloon</span><span class="o">.</span><span class="n">Sphere_Balloon</span><span class="p">()</span>

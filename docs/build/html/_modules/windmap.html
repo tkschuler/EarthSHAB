@@ -210,7 +210,22 @@
         <span class="k">return</span> <span class="n">hour_index</span><span class="p">,</span> <span class="n">closest_time</span>
 
 
+<div class="viewcode-block" id="Windmap.windVectorToBearing">
+<a class="viewcode-back" href="../API/windmap.html#windmap.Windmap.windVectorToBearing">[docs]</a>
     <span class="k">def</span> <span class="nf">windVectorToBearing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">h</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Converts U-V wind data at specific heights to angular and radial</span>
+<span class="sd">        components for polar plotting.</span>
+
+<span class="sd">        :param u: U-Vector Wind Component from Forecast</span>
+<span class="sd">        :type u: float64 array</span>
+<span class="sd">        :param v: V-Vector Wind Component from Forecast</span>
+<span class="sd">        :type v: float64 array</span>
+<span class="sd">        :param h: Corresponding Converted Altitudes (m) from Forecast</span>
+<span class="sd">        :type h: float64 array</span>
+<span class="sd">        :returns: Array of bearings, radius, colors, and color map for plotting</span>
+<span class="sd">        :rtype: array</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Calculate altitude</span>
         <span class="n">bearing</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">v</span><span class="p">,</span><span class="n">u</span><span class="p">)</span>
         <span class="n">bearing</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unwrap</span><span class="p">(</span><span class="n">bearing</span><span class="p">)</span>
@@ -220,15 +235,33 @@
         <span class="n">colors</span> <span class="o">=</span> <span class="n">h</span>
         <span class="n">cmap</span><span class="o">=</span><span class="n">mpl</span><span class="o">.</span><span class="n">colors</span><span class="o">.</span><span class="n">ListedColormap</span><span class="p">(</span><span class="n">colors</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="p">[</span><span class="n">bearing</span><span class="p">,</span> <span class="n">r</span> <span class="p">,</span> <span class="n">colors</span><span class="p">,</span> <span class="n">cmap</span><span class="p">]</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">bearing</span><span class="p">,</span> <span class="n">r</span> <span class="p">,</span> <span class="n">colors</span><span class="p">,</span> <span class="n">cmap</span><span class="p">]</span></div>
 
 
+
+<div class="viewcode-block" id="Windmap.getWind">
+<a class="viewcode-back" href="../API/windmap.html#windmap.Windmap.getWind">[docs]</a>
     <span class="k">def</span> <span class="nf">getWind</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">hour_index</span><span class="p">,</span><span class="n">lat_i</span><span class="p">,</span><span class="n">lon_i</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Calculates a wind vector estimate at a particular 3D coordinate and timestamp</span>
+<span class="sd">        using a 2-step linear interpolation approach.</span>
+
+<span class="sd">        Currently using scipy.interpolat.CubicSpline instead of np.interp like in GFS and ERA5.</span>
+
+<span class="sd">        See also :meth:`GFS.GFS.wind_alt_Interpolate`</span>
+
+<span class="sd">        :param hour_index: Time index from forecast file</span>
+<span class="sd">        :type hour_index: int</span>
+<span class="sd">        :param lat_i: Array index for corresponding netcdf lattitude array</span>
+<span class="sd">        :type lat_i: int</span>
+<span class="sd">        :param lon_i: Array index for corresponding netcdf laongitude array</span>
+<span class="sd">        :type lon_i: int</span>
+<span class="sd">        :returns: [U, V]</span>
+<span class="sd">        :rtype: float64 2d array</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">g</span> <span class="o">=</span> <span class="mf">9.80665</span> <span class="c1"># gravitation constant used to convert geopotential height to height</span>
 
-
-        <span class="c1">#hard coded hour index to 0 for now?  Update this later.</span>
         <span class="n">u</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ugrdprs</span><span class="p">[</span><span class="n">hour_index</span><span class="p">,:,</span><span class="n">lat_i</span><span class="p">,</span><span class="n">lon_i</span><span class="p">]</span>
         <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vgrdprs</span><span class="p">[</span><span class="n">hour_index</span><span class="p">,:,</span><span class="n">lat_i</span><span class="p">,</span><span class="n">lon_i</span><span class="p">]</span>
         <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hgtprs</span><span class="p">[</span><span class="n">hour_index</span><span class="p">,:,</span><span class="n">lat_i</span><span class="p">,</span><span class="n">lon_i</span><span class="p">]</span>
@@ -258,10 +291,24 @@
         <span class="n">u</span> <span class="o">=</span> <span class="n">cs_u</span><span class="p">(</span><span class="n">h_new</span><span class="p">)</span>
         <span class="n">v</span> <span class="o">=</span> <span class="n">cs_v</span><span class="p">(</span><span class="n">h_new</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">windVectorToBearing</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">h_new</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">windVectorToBearing</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">h_new</span><span class="p">)</span></div>
 
 
+
+<div class="viewcode-block" id="Windmap.plotWindVelocity">
+<a class="viewcode-back" href="../API/windmap.html#windmap.Windmap.plotWindVelocity">[docs]</a>
     <span class="k">def</span> <span class="nf">plotWindVelocity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">hour_index</span><span class="p">,</span><span class="n">lat</span><span class="p">,</span><span class="n">lon</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Plots a 3D Windrose for a particular coordinate and timestamp from a downloaded forecast.</span>
+
+<span class="sd">        :param hour_index: Time index from forecast file</span>
+<span class="sd">        :type hour_index: int</span>
+<span class="sd">        :param lat: Latitude</span>
+<span class="sd">        :type lat: float</span>
+<span class="sd">        :param lon: Longitude</span>
+<span class="sd">        :type lon: float</span>
+<span class="sd">        :returns:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="c1"># Find location in data</span>
         <span class="k">if</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">forecast_type</span> <span class="o">==</span> <span class="s2">&quot;GFS&quot;</span><span class="p">:</span>
@@ -299,7 +346,8 @@
         <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
         <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ugrdprs</span><span class="p">[</span><span class="n">hour_index</span><span class="p">,:,</span><span class="n">lat_i</span><span class="p">,</span><span class="n">lon_i</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">hgtprs</span><span class="p">[</span><span class="n">hour_index</span><span class="p">,:,</span><span class="n">lat_i</span><span class="p">,</span><span class="n">lon_i</span><span class="p">])</span>
         <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vgrdprs</span><span class="p">[</span><span class="n">hour_index</span><span class="p">,:,</span><span class="n">lat_i</span><span class="p">,</span><span class="n">lon_i</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">hgtprs</span><span class="p">[</span><span class="n">hour_index</span><span class="p">,:,</span><span class="n">lat_i</span><span class="p">,</span><span class="n">lon_i</span><span class="p">])</span>
-        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;U V Wind Plot&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;U V Wind Plot&quot;</span><span class="p">)</span></div>
+
 
         <span class="c1">#ax1.title.set_text(&quot;3D Windrose for (&quot; + str(self.LAT) + &quot;, &quot; + str(self.LON) + &quot;) on &quot; + str(self.new_timestamp))</span>
 

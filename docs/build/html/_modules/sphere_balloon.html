@@ -71,20 +71,24 @@
            <div itemprop="articleBody">
              
   <h1>Source code for sphere_balloon</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">math</span>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">sphere_balloon solves for the total heat transfer on the solar balloon.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">radiation</span>
 
 <span class="kn">import</span> <span class="nn">config_earth</span>
 
-<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">sphere_balloon.py solves for the total heat transfer on the solar balloon.</span>
-<span class="sd">&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="Sphere_Balloon">
 <a class="viewcode-back" href="../API/sphere_balloon.html#sphere_balloon.Sphere_Balloon">[docs]</a>
 <span class="k">class</span> <span class="nc">Sphere_Balloon</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Initializes atmospheric properties from the earth configuration file&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Initializes atmospheric properties from the earth configuration file</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">Cp_air0</span> <span class="o">=</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">earth_properties</span><span class="p">[</span><span class="s1">&#39;Cp_air0&#39;</span><span class="p">]</span>
     <span class="n">Rsp_air</span> <span class="o">=</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">earth_properties</span><span class="p">[</span><span class="s1">&#39;Rsp_air&#39;</span><span class="p">]</span>
     <span class="n">cv_air0</span> <span class="o">=</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">earth_properties</span><span class="p">[</span><span class="s1">&#39;Cv_air0&#39;</span><span class="p">]</span>
@@ -96,7 +100,9 @@
 <div class="viewcode-block" id="Sphere_Balloon.__init__">
 <a class="viewcode-back" href="../API/sphere_balloon.html#sphere_balloon.Sphere_Balloon.__init__">[docs]</a>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initializes all of the solar balloon paramaters from the configuration file&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initializes all of the solar balloon paramaters from the configuration file</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">d</span> <span class="o">=</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">balloon_properties</span><span class="p">[</span><span class="s1">&#39;d&#39;</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">emissEnv</span> <span class="o">=</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">balloon_properties</span><span class="p">[</span><span class="s1">&#39;emissEnv&#39;</span><span class="p">]</span>
 
@@ -111,12 +117,16 @@
 <div class="viewcode-block" id="Sphere_Balloon.get_viscocity">
 <a class="viewcode-back" href="../API/sphere_balloon.html#sphere_balloon.Sphere_Balloon.get_viscocity">[docs]</a>
     <span class="k">def</span> <span class="nf">get_viscocity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">T</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates Kinematic Viscocity of Air at Temperature,T</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Calculates Kinematic Viscocity of Air at Temperature, T</span>
+
+<span class="sd">        .. math:: \mu_{air} = 1.458\cdot10^{-6}\frac{T_{atm}^{1.5}}{T_{atm}+110.4}</span>
+
 
 <span class="sd">        :param T: Temperature (K)</span>
 <span class="sd">        :type Ra: float</span>
 <span class="sd">        :returns: mu, Kinematic Viscocity of Air</span>
 <span class="sd">        :rtype: float</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1">#print(&quot;viscocity&quot;,T)</span>
         <span class="k">return</span> <span class="mf">1.458E-6</span><span class="o">*</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">T</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">T</span><span class="p">))</span> <span class="o">**</span> <span class="p">(</span><span class="mf">1.5</span><span class="p">))</span><span class="o">/</span><span class="p">(</span><span class="n">T</span><span class="o">+</span><span class="mf">110.4</span><span class="p">)</span> <span class="c1">#numpy power does not allow fractional powers of negative numbers. This is the workaround</span></div>
@@ -125,17 +135,17 @@
 <div class="viewcode-block" id="Sphere_Balloon.get_conduction">
 <a class="viewcode-back" href="../API/sphere_balloon.html#sphere_balloon.Sphere_Balloon.get_conduction">[docs]</a>
     <span class="k">def</span> <span class="nf">get_conduction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">T</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates Thermal Diffusivity of Air at Temperature, T using Sutherland&#39;s Law of Thermal Diffusivity</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Calculates Thermal Diffusivity of Air at Temperature, T using Sutherland&#39;s Law of Thermal Diffusivity</span>
+
+
+<span class="sd">        .. math:: k_{air} = 0.0241(\frac{T_{atm}}{271.15})^{0.9}</span>
 
 <span class="sd">        :param T: Temperature (K)</span>
 <span class="sd">        :type Ra: float</span>
 <span class="sd">        :returns: Thermal Diffusivity of Air (W/(m*K)</span>
 <span class="sd">        :rtype: float</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="c1">#print(&quot;conduction&quot;,T)</span>
-
-
 
         <span class="k">return</span> <span class="mf">0.0241</span><span class="o">*</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">T</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">T</span><span class="o">/</span><span class="mf">273.15</span><span class="p">))</span> <span class="o">**</span> <span class="p">(</span><span class="mf">0.9</span><span class="p">))</span></div>
 
@@ -143,12 +153,15 @@
 <div class="viewcode-block" id="Sphere_Balloon.get_Pr">
 <a class="viewcode-back" href="../API/sphere_balloon.html#sphere_balloon.Sphere_Balloon.get_Pr">[docs]</a>
     <span class="k">def</span> <span class="nf">get_Pr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">T</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates Prantl Number</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Calculates Prantl Number</span>
+
+<span class="sd">        .. math:: Pr = \mu_{air}  \frac{C_{p,air}}{k}</span>
 
 <span class="sd">        :param T: Temperature (K)</span>
 <span class="sd">        :type Ra: float</span>
 <span class="sd">        :returns: Prantl Number</span>
 <span class="sd">        :rtype: float</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_conduction</span><span class="p">(</span><span class="n">T</span><span class="p">)</span> <span class="c1">#Thermal diffusivity</span>
         <span class="n">Pr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_viscocity</span><span class="p">(</span><span class="n">T</span><span class="p">)</span><span class="o">*</span><span class="n">Sphere_Balloon</span><span class="o">.</span><span class="n">Cp_air0</span><span class="o">/</span><span class="n">k</span>
@@ -160,7 +173,26 @@
 <div class="viewcode-block" id="Sphere_Balloon.get_Nu_ext">
 <a class="viewcode-back" href="../API/sphere_balloon.html#sphere_balloon.Sphere_Balloon.get_Nu_ext">[docs]</a>
     <span class="k">def</span> <span class="nf">get_Nu_ext</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">Ra</span><span class="p">,</span> <span class="n">Re</span><span class="p">,</span> <span class="n">Pr</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates External Nusselt Number</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Calculates External Nusselt Number.</span>
+
+<span class="sd">        Determine the external convection due to natural buoyancy</span>
+
+<span class="sd">        .. math:: Nu_{ext,n}=\begin{cases}</span>
+<span class="sd">            2+0.6Ra^{0.25}, &amp; \text{$Ra&lt;1.5\cdot10^8$}\\</span>
+<span class="sd">            0.1Ra^{0.34}, &amp; \text{$Ra\geq1.5\cdot10^8$}</span>
+<span class="sd">            \end{cases}</span>
+
+<span class="sd">        Determine the external forced convection due to the balloon ascending</span>
+
+<span class="sd">        .. math:: Nu_{ext,f}=\begin{cases}</span>
+<span class="sd">            2+0.47Re^{\frac{1}{2}}Pr^{\frac{1}{3}}, &amp; \text{$Re&lt;5\cdot10^4$}\\</span>
+<span class="sd">            (0.0262Re^{0.34}-615)Pr^{\frac{1}{3}}, &amp; \text{$Re\geq1.5\cdot10^8$}</span>
+<span class="sd">            \end{cases}</span>
+
+<span class="sd">        To transition between the two correlations:</span>
+
+<span class="sd">        .. math:: Nu_{ext} = max(Nu_{ext,n},Nu_{ext,f})</span>
+
 
 <span class="sd">        :param Ra: Raleigh&#39;s number</span>
 <span class="sd">        :type Ra: float</span>
@@ -170,6 +202,7 @@
 <span class="sd">        :type Pr: float</span>
 <span class="sd">        :returns: External Nusselt Number</span>
 <span class="sd">        :rtype: float</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">Nu_n</span> <span class="o">=</span> <span class="mf">0.0</span>
@@ -201,6 +234,7 @@
 <span class="sd">        :type el: float</span>
 <span class="sd">        :returns: Power transferred from sphere to surrounding atmosphere due to convection(W)</span>
 <span class="sd">        :rtype: float</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">rad</span> <span class="o">=</span> <span class="n">radiation</span><span class="o">.</span><span class="n">Radiation</span><span class="p">()</span>
@@ -242,6 +276,7 @@
 <span class="sd">        :type v: float</span>
 <span class="sd">        :returns: The sum of power input to the balloon surface (W)</span>
 <span class="sd">        :rtype: float</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">q_conv_loss</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">get_q_ext</span><span class="p">(</span><span class="n">T_s</span><span class="p">,</span> <span class="n">el</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
@@ -254,12 +289,19 @@
 <div class="viewcode-block" id="Sphere_Balloon.get_Nu_int">
 <a class="viewcode-back" href="../API/sphere_balloon.html#sphere_balloon.Sphere_Balloon.get_Nu_int">[docs]</a>
     <span class="k">def</span> <span class="nf">get_Nu_int</span><span class="p">(</span><span class="n">sef</span><span class="p">,</span><span class="n">Ra</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates Internal Nusselt Number</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Calculates Internal Nusselt Number for internal convection between the balloon</span>
+<span class="sd">        envelope and internal gas</span>
+
+<span class="sd">        .. math:: Nu_{int}=\begin{cases}</span>
+<span class="sd">            2.5(2+0.6Ra^{\frac{1}{4}}), &amp; \text{$Ra&lt;1.35\cdot10^8$}\\</span>
+<span class="sd">            0.325Ra^{\frac{1}{3}}, &amp; \text{$Ra\geq1.35\cdot10^8$}</span>
+<span class="sd">            \end{cases}</span>
 
 <span class="sd">        :param Ra: Raleigh&#39;s number</span>
 <span class="sd">        :type Ra: float</span>
 <span class="sd">        :returns: Internal Nusselt Number</span>
 <span class="sd">        :rtype: float</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="k">if</span> <span class="n">Ra</span> <span class="o">&lt;</span> <span class="mf">1.35E8</span><span class="p">:</span>
@@ -281,6 +323,7 @@
 <span class="sd">        :type v: float</span>
 <span class="sd">        :returns: Internal Heat Transfer (W)</span>
 <span class="sd">        :rtype: float</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">rad</span> <span class="o">=</span> <span class="n">radiation</span><span class="o">.</span><span class="n">Radiation</span><span class="p">()</span>
@@ -332,6 +375,7 @@
 <span class="sd">        :type v: float</span>
 <span class="sd">        :returns: SUm of Internal Heat Transfer (W)</span>
 <span class="sd">        :rtype: float</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">q_conv_int</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_q_int</span><span class="p">(</span><span class="n">T_s</span><span class="p">,</span> <span class="n">T_i</span><span class="p">,</span> <span class="n">el</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">q_conv_int</span></div>

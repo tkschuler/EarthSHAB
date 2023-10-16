@@ -1,3 +1,10 @@
+""" GFS extracts meteorological data from a NOAA netcdf (.nc file) data set.  To speed up predicting trajectories,
+saveNETCDF.py should be run before main.py. This way, the large data set doesn't need to be redownloaded each time the trajectory is run.
+For now, only wind velocity is used for the simulation prediction.  Atmposheric properties such as temperarature and pressure are based off of
+the U.S. Standard Atmosphere tables from 1976, and the fluids library is used for these, which can be seen in radiation3.py
+
+"""
+
 import numpy as np
 import netCDF4
 from termcolor import colored
@@ -10,12 +17,6 @@ from backports.datetime_fromisoformat import MonkeyPatch
 MonkeyPatch.patch_fromisoformat()   #Hacky solution for Python 3.6 to use ISO format Strings
 
 import config_earth
-
-""" GFS.py extracts meteorological data from a NOAA netcdf (.nc file) data set.  To speed up predicting trajectories,
-saveNETCDF.py should be run before main.py. This way, the large data set doesn't need to be redownloaded each time the trajectory is run.
-For now, only wind velocity is used for the simulation prediction.  Atmposheric properties such as temperarature and pressure are based off of
-the U.S. Standard Atmosphere tables from 1976, and the fluids library is used for these, which can be seen in radiation3.py
-"""
 
 class GFS:
     def __init__(self, centered_coord):
@@ -90,6 +91,7 @@ class GFS:
     def latlonrange(self,lla):
         """
         Determine the lat/lon min/max index values from netcdf4 forecast subset.
+
         """
 
 
@@ -118,11 +120,13 @@ class GFS:
 
     def closest(self, arr, k):
         """ Given an ordered array and a value, determines the index of the closest item contained in the array.
+
         """
         return min(range(len(arr)), key = lambda i: abs(arr[i]-k))
 
     def getNearestLat(self,lat,min,max):
         """ Determines the nearest lattitude (to .25 degrees)
+
         """
         arr = np.arange(start=min, stop=max, step=self.res)
         i = self.closest(arr, lat)
@@ -130,6 +134,7 @@ class GFS:
 
     def getNearestLon(self,lon,min,max):
         """ Determines the nearest longitude (to .25 degrees)
+
         """
 
         lon = lon % 360 #convert from -180-180 to 0-360
@@ -139,6 +144,7 @@ class GFS:
 
     def getNearestAlt(self,hour_index,lat,lon,alt):
         """ Determines the nearest altitude based off of geo potential height of a .25 degree lat/lon area.
+
         """
 
         lat_i = self.getNearestLat(lat,self.LAT_LOW,self.LAT_HIGH)
@@ -147,12 +153,32 @@ class GFS:
         return i
 
     def wind_alt_Interpolate(self, coord):
-        """Performs a 2 step linear interpolation to determine horizontal wind velocity.  First the altitude is interpolated between the two nearest
-        .25 degree lat/lon areas.  Once altitude is matched, a second linear interpolation is performed with respect to time.
+        """
+        This function performs a 2-step linear interpolation to determine horizontal wind velocity at a
+        3d desired coordinate and timestamp.
+
+        The figure below shows a visual representation of how wind data is stored in netcdf forecasts based on
+        lat, lon, and geopotential height. The data forms a non-uniform grid, that also changes in time. Therefore
+        we performs a 2-step linear interpolation to determine horizontal wind velocity at a desired 3D coordinate
+        and particular timestamp.
+
+        To start, the two nearest .25 degree lat/lon areas to the desired coordinate are looked up along with the
+        2 closest timestamps t0 and t1. This produces 6 arrays: u-wind, v-wind, and geopotential heights at the lower
+        and upper closest timestamps (t0 and t1).
+
+        Next, the geopotential height is converted to altitude (m) for each timestamp. For the first interpolation,
+        the u-v wind components at the desired altitude are determined (1a and 1b) using np.interp.
+
+        Then, once the wind speeds at matching altitudes for t0 and t1 are detemined, a second linear interpolation
+        is performed with respect to time (t0 and t1).
+
+        .. image:: ../../img/netcdf-2step-interpolation.png
+
         :param coord: Coordinate of balloon
         :type coord: dict
-        :returns: [x_wind_vel, y_wind_vel]
+        :returns: [u_wind_vel, v_wind_vel]
         :rtype: array
+
         """
 
         diff = coord["timestamp"] - self.gfs_time
@@ -189,6 +215,7 @@ class GFS:
 
     def fill_missing_data(self, data):
         """Helper function to fill in linearly interpolate and fill in missing data
+
         """
 
         data = data.filled(np.nan)
@@ -202,6 +229,7 @@ class GFS:
         :type coord: dict
         :returns: [lat_new, lon_new, x_wind_vel, y_wind_vel, bearing, closest_lat, closest_lon, closest alt]
         :rtype: array
+
         """
 
         diff = coord["timestamp"] - self.gfs_time

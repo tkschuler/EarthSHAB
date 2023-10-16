@@ -1,14 +1,18 @@
+""" solve_states uses numerical integration to solve for the dynamic response of the balloon.
+
+"""
+
 import math
 import radiation
 import sphere_balloon
 import config_earth  #Import parameters from configuration file.
 
-""" solve_states.py uses numerical integration to solve for the dynamic response of the balloon.
-"""
 
 class SolveStates:
     def __init__(self):
-        """Initializes all of the solar balloon paramaters from the configuration file"""
+        """Initializes all of the solar balloon paramaters from the configuration file
+
+        """
 
         self.Cp_air0 = config_earth.earth_properties['Cp_air0']
         self.Rsp_air = config_earth.earth_properties['Rsp_air']
@@ -38,7 +42,22 @@ class SolveStates:
         self.dt = config_earth.dt
 
     def get_acceleration(self,v,el,T_s,T_i):
-        """Solves for the acceleration of the solar balloon after one timestep (dt).
+        r"""Solves for the acceleration of the solar balloon after one timestep (dt).
+
+        .. math:: \frac{d^2z}{dt^2} = \frac{dU}{dt} = \frac{F_b-F_g-F_d}{m_{virtual}}
+
+        The Buyoancy Force, F_{b}:
+
+        .. math:: F_b = (\rho_{atm}-\rho_{int}) \cdot V_{bal} \cdot g
+
+        The drag force, F_{d}:
+
+        .. math:: F_d = \frac{1}{2} \cdot C_d \cdot rho_{atm} \cdot U^2 \cdot A_{proj} \cdot \beta
+
+        and where the virtual mass is the total mass of the balloon system:
+
+        .. math:: m_{virt} = m_{payload}+m_{envelope}+C_{virt} \cdot \rho_{atm} \cdot V_{bal}
+
 
         :param T_s: Surface Temperature (K)
         :type T_s: float
@@ -51,6 +70,7 @@ class SolveStates:
 
         :returns: acceleration of balloon (m/s^2)
         :rtype: float
+
         """
 
         rad = radiation.Radiation()
@@ -74,7 +94,9 @@ class SolveStates:
         return accel
 
     def get_convection_vent(self,T_i,el):
-        """Calculates the heat lost to the atmosphere due to venting
+        r"""Calculates the heat lost to the atmosphere due to venting
+
+        .. math:: Q_{vent} = \dot{m} \cdot c_v \cdot (T_i-T_{atm})
 
         :param T_i: Internal Temperature (K)
         :type T_i: float
@@ -83,6 +105,7 @@ class SolveStates:
 
         :returns: Convection due to Venting (unit?)
         :rtype: float
+
         """
 
         rad = radiation.Radiation()
@@ -93,8 +116,13 @@ class SolveStates:
 
 
     def solveVerticalTrajectory(self,t,T_s,T_i,el,v,coord,alt_sp,v_sp):
-        """This function numerically integrates and solves for the change in Surface Temperature, Internal Temperature, and accelleration
+        r"""This function numerically integrates and solves for the change in Surface Temperature, Internal Temperature, and accelleration
         after a timestep, dt.
+
+        .. math:: \frac{dT_s}{dt} = \frac{\dot{Q}_{rad}+\dot{Q}_{conv,ext}-\dot{Q}_{conv,int}}{c_{v,env} \cdot m_{envelope}}
+
+        .. math:: \frac{dT_i}{dt} = \frac{\dot{Q}_{conv,int}-\dot{Q}_{vent}}{c_{v,CO_2} \cdot m_{CO_2}}
+
 
         :param t: Datetime
         :type t: datetime
@@ -113,6 +141,7 @@ class SolveStates:
 
         :returns: Updated parameters after dt (seconds)
         :rtype: float [T_s,T_i,el,v]
+
         """
 
         bal = sphere_balloon.Sphere_Balloon()

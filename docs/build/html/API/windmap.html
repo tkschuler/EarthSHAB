@@ -44,7 +44,8 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../usage/installation.html">Installation Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">EarthSHAB Examples</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">EarthSHAB API</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="GFS.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">GFS</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="era5.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ERA5</span></code></a></li>
@@ -97,9 +98,73 @@ variables from those objects instead of what I’m doing here.  That’s tomorow
 <dd></dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="windmap.Windmap.getWind">
+<span class="sig-name descname"><span class="pre">getWind</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hour_index</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lat_i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lon_i</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/windmap.html#Windmap.getWind"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#windmap.Windmap.getWind" title="Link to this definition"></a></dt>
+<dd><p>Calculates a wind vector estimate at a particular 3D coordinate and timestamp
+using a 2-step linear interpolation approach.</p>
+<p>Currently using scipy.interpolat.CubicSpline instead of np.interp like in GFS and ERA5.</p>
+<p>See also <a class="reference internal" href="GFS.html#GFS.GFS.wind_alt_Interpolate" title="GFS.GFS.wind_alt_Interpolate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">GFS.GFS.wind_alt_Interpolate()</span></code></a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>hour_index</strong> (<em>int</em>) – Time index from forecast file</p></li>
+<li><p><strong>lat_i</strong> (<em>int</em>) – Array index for corresponding netcdf lattitude array</p></li>
+<li><p><strong>lon_i</strong> (<em>int</em>) – Array index for corresponding netcdf laongitude array</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>[U, V]</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float64 2d array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="windmap.Windmap.plotWindVelocity">
+<span class="sig-name descname"><span class="pre">plotWindVelocity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hour_index</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lon</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/windmap.html#Windmap.plotWindVelocity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#windmap.Windmap.plotWindVelocity" title="Link to this definition"></a></dt>
+<dd><p>Plots a 3D Windrose for a particular coordinate and timestamp from a downloaded forecast.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>hour_index</strong> (<em>int</em>) – Time index from forecast file</p></li>
+<li><p><strong>lat</strong> (<em>float</em>) – Latitude</p></li>
+<li><p><strong>lon</strong> (<em>float</em>) – Longitude</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="windmap.Windmap.time_in_range">
 <span class="sig-name descname"><span class="pre">time_in_range</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/windmap.html#Windmap.time_in_range"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#windmap.Windmap.time_in_range" title="Link to this definition"></a></dt>
 <dd><p>Return true if x is in the range [start, end]</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="windmap.Windmap.windVectorToBearing">
+<span class="sig-name descname"><span class="pre">windVectorToBearing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/windmap.html#Windmap.windVectorToBearing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#windmap.Windmap.windVectorToBearing" title="Link to this definition"></a></dt>
+<dd><p>Converts U-V wind data at specific heights to angular and radial
+components for polar plotting.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u</strong> (<em>float64 array</em>) – U-Vector Wind Component from Forecast</p></li>
+<li><p><strong>v</strong> (<em>float64 array</em>) – V-Vector Wind Component from Forecast</p></li>
+<li><p><strong>h</strong> (<em>float64 array</em>) – Corresponding Converted Altitudes (m) from Forecast</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Array of bearings, radius, colors, and color map for plotting</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>array</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>

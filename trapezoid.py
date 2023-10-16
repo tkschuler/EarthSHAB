@@ -1,3 +1,10 @@
+"""
+trapezoid. shows an example of using a manual altitude profile to generate a balloon trajectory.
+
+This particular altitude profile is trapezoidal in shape with an ascent/descent velocity 2 and 3 m/s respectively and a float altitude
+that is specified in config_earth.
+"""
+
 from termcolor import colored
 import math
 import gmplot
@@ -12,13 +19,6 @@ import config_earth
 
 if not os.path.exists('trajectories'):
     os.makedirs('trajectories')
-
-"""
-This file shows an example of using a manual altitude profile to generate a balloon trajectory.
-
-This particular altitude profile is trapezoidal in shape with an ascent/descent velocity 2 and 3 m/s respectively and a float altitude
-that is specified in config_earth.
-"""
 
 GMT = 7
 
@@ -75,7 +75,7 @@ for i in range(0,simulation_time):
         el_new = float
 
     if zen > math.radians(90):
-        el_new -= 3 *dtt
+        el_new -= 3 *dt #this used to say dtt
 
 
     if el_new < min_alt:

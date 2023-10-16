@@ -85,6 +85,7 @@ simulation = dict(
                       "timestamp": start_time, # timestamp
                     },
     min_alt = 480, #720.,             # starting altitude. Generally the same as initial coordinate
+    float = 23000, #720.,             # for simulating in trapezoid.py
 )
 
 GFS = dict(

@@ -16,6 +16,7 @@
         <script src="../_static/documentation_options.js?v=fc837d61"></script>
         <script src="../_static/doctools.js?v=888ff710"></script>
         <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -44,13 +45,15 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../usage/installation.html">Installation Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">EarthSHAB Examples</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">EarthSHAB API</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="era5.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ERA5</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="GFS.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">GFS</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="era5.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ERA5</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="radiation.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">radiation</span></code></a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">solve_states</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="sphere_balloon.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">sphere_balloon</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="windmap.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">windmap</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../citing.html">Citing EarthSHAB</a></li>
@@ -83,6 +86,7 @@
              
   <section id="module-solve_states">
 <span id="solve-states"></span><h1><a class="reference internal" href="#module-solve_states" title="solve_states"><code class="xref py py-mod docutils literal notranslate"><span class="pre">solve_states</span></code></a><a class="headerlink" href="#module-solve_states" title="Link to this heading"></a></h1>
+<p>solve_states uses numerical integration to solve for the dynamic response of the balloon.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="solve_states.SolveStates">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">solve_states.</span></span><span class="sig-name descname"><span class="pre">SolveStates</span></span><a class="reference internal" href="../_modules/solve_states.html#SolveStates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#solve_states.SolveStates" title="Link to this definition"></a></dt>
@@ -96,6 +100,17 @@
 <dt class="sig sig-object py" id="solve_states.SolveStates.get_acceleration">
 <span class="sig-name descname"><span class="pre">get_acceleration</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">el</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_i</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/solve_states.html#SolveStates.get_acceleration"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#solve_states.SolveStates.get_acceleration" title="Link to this definition"></a></dt>
 <dd><p>Solves for the acceleration of the solar balloon after one timestep (dt).</p>
+<div class="math notranslate nohighlight">
+\[\frac{d^2z}{dt^2} = \frac{dU}{dt} = \frac{F_b-F_g-F_d}{m_{virtual}}\]</div>
+<p>The Buyoancy Force, F_{b}:</p>
+<div class="math notranslate nohighlight">
+\[F_b = (\rho_{atm}-\rho_{int}) \cdot V_{bal} \cdot g\]</div>
+<p>The drag force, F_{d}:</p>
+<div class="math notranslate nohighlight">
+\[F_d = \frac{1}{2} \cdot C_d \cdot rho_{atm} \cdot U^2 \cdot A_{proj} \cdot \beta\]</div>
+<p>and where the virtual mass is the total mass of the balloon system:</p>
+<div class="math notranslate nohighlight">
+\[m_{virt} = m_{payload}+m_{envelope}+C_{virt} \cdot \rho_{atm} \cdot V_{bal}\]</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -118,6 +133,8 @@
 <dt class="sig sig-object py" id="solve_states.SolveStates.get_convection_vent">
 <span class="sig-name descname"><span class="pre">get_convection_vent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">el</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/solve_states.html#SolveStates.get_convection_vent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#solve_states.SolveStates.get_convection_vent" title="Link to this definition"></a></dt>
 <dd><p>Calculates the heat lost to the atmosphere due to venting</p>
+<div class="math notranslate nohighlight">
+\[Q_{vent} = \dot{m} \cdot c_v \cdot (T_i-T_{atm})\]</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -139,6 +156,10 @@
 <span class="sig-name descname"><span class="pre">solveVerticalTrajectory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">el</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coord</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alt_sp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v_sp</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/solve_states.html#SolveStates.solveVerticalTrajectory"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#solve_states.SolveStates.solveVerticalTrajectory" title="Link to this definition"></a></dt>
 <dd><p>This function numerically integrates and solves for the change in Surface Temperature, Internal Temperature, and accelleration
 after a timestep, dt.</p>
+<div class="math notranslate nohighlight">
+\[\frac{dT_s}{dt} = \frac{\dot{Q}_{rad}+\dot{Q}_{conv,ext}-\dot{Q}_{conv,int}}{c_{v,env} \cdot m_{envelope}}\]</div>
+<div class="math notranslate nohighlight">
+\[\frac{dT_i}{dt} = \frac{\dot{Q}_{conv,int}-\dot{Q}_{vent}}{c_{v,CO_2} \cdot m_{CO_2}}\]</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">

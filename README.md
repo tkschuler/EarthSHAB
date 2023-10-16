@@ -20,6 +20,9 @@ numpy
 pandas
 termcolor
 backports.datetime_fromisoformat
+seaborn
+scipy
+pytz
 ```
 
 ## Overview
@@ -85,3 +88,10 @@ The scripts can be run with the default configuration file parameters and the in
 ## Acknowledgments
 
 Hat Tip to [Bovine Aerospace](https://bovineaerospace.wordpress.com/), who developed an initial solar balloon model in C++. This code was adapted from their [repo](https://github.com/tunawhiskers/balloon_trajectory).
+
+## Citing EarthSHAB
+
+If EarthSHAB played an important role in your research, then please cite the following publication
+where EarthSHAB was first introduced:
+
+[Solar Balloons - An Aerial Platform for Planetary Exploration](https://repository.arizona.edu/handle/10150/656740)

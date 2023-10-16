@@ -19,8 +19,8 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="radiation" href="radiation.html" />
-    <link rel="prev" title="ERA5" href="era5.html" /> 
+    <link rel="next" title="ERA5" href="era5.html" />
+    <link rel="prev" title="EarthSHAB API" href="index.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -44,13 +44,15 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../usage/installation.html">Installation Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">EarthSHAB Examples</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">EarthSHAB API</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="era5.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ERA5</span></code></a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">GFS</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="era5.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ERA5</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="radiation.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">radiation</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="solve_states.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">solve_states</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="sphere_balloon.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">sphere_balloon</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="windmap.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">windmap</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../citing.html">Citing EarthSHAB</a></li>
@@ -83,6 +85,10 @@
              
   <section id="module-GFS">
 <span id="gfs"></span><h1><a class="reference internal" href="#module-GFS" title="GFS"><code class="xref py py-mod docutils literal notranslate"><span class="pre">GFS</span></code></a><a class="headerlink" href="#module-GFS" title="Link to this heading"></a></h1>
+<p>GFS extracts meteorological data from a NOAA netcdf (.nc file) data set.  To speed up predicting trajectories,
+saveNETCDF.py should be run before main.py. This way, the large data set doesn’t need to be redownloaded each time the trajectory is run.
+For now, only wind velocity is used for the simulation prediction.  Atmposheric properties such as temperarature and pressure are based off of
+the U.S. Standard Atmosphere tables from 1976, and the fluids library is used for these, which can be seen in radiation3.py</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="GFS.GFS">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">GFS.</span></span><span class="sig-name descname"><span class="pre">GFS</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">centered_coord</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GFS.html#GFS"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GFS.GFS" title="Link to this definition"></a></dt>
@@ -140,12 +146,31 @@
 <dl class="py method">
 <dt class="sig sig-object py" id="GFS.GFS.wind_alt_Interpolate">
 <span class="sig-name descname"><span class="pre">wind_alt_Interpolate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coord</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GFS.html#GFS.wind_alt_Interpolate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GFS.GFS.wind_alt_Interpolate" title="Link to this definition"></a></dt>
-<dd><p>Performs a 2 step linear interpolation to determine horizontal wind velocity.  First the altitude is interpolated between the two nearest
-.25 degree lat/lon areas.  Once altitude is matched, a second linear interpolation is performed with respect to time.
-:param coord: Coordinate of balloon
-:type coord: dict
-:returns: [x_wind_vel, y_wind_vel]
-:rtype: array</p>
+<dd><p>This function performs a 2-step linear interpolation to determine horizontal wind velocity at a
+3d desired coordinate and timestamp.</p>
+<p>The figure below shows a visual representation of how wind data is stored in netcdf forecasts based on
+lat, lon, and geopotential height. The data forms a non-uniform grid, that also changes in time. Therefore
+we performs a 2-step linear interpolation to determine horizontal wind velocity at a desired 3D coordinate
+and particular timestamp.</p>
+<p>To start, the two nearest .25 degree lat/lon areas to the desired coordinate are looked up along with the
+2 closest timestamps t0 and t1. This produces 6 arrays: u-wind, v-wind, and geopotential heights at the lower
+and upper closest timestamps (t0 and t1).</p>
+<p>Next, the geopotential height is converted to altitude (m) for each timestamp. For the first interpolation,
+the u-v wind components at the desired altitude are determined (1a and 1b) using np.interp.</p>
+<p>Then, once the wind speeds at matching altitudes for t0 and t1 are detemined, a second linear interpolation
+is performed with respect to time (t0 and t1).</p>
+<img alt="../_images/netcdf-2step-interpolation.png" src="../_images/netcdf-2step-interpolation.png" />
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>coord</strong> (<em>dict</em>) – Coordinate of balloon</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>[u_wind_vel, v_wind_vel]</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>array</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -156,8 +181,8 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="era5.html" class="btn btn-neutral float-left" title="ERA5" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="radiation.html" class="btn btn-neutral float-right" title="radiation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="index.html" class="btn btn-neutral float-left" title="EarthSHAB API" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="era5.html" class="btn btn-neutral float-right" title="ERA5" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

@@ -130,6 +130,19 @@ class Windmap:
 
 
     def windVectorToBearing(self, u, v, h):
+        """ Converts U-V wind data at specific heights to angular and radial
+        components for polar plotting.
+
+        :param u: U-Vector Wind Component from Forecast
+        :type u: float64 array
+        :param v: V-Vector Wind Component from Forecast
+        :type v: float64 array
+        :param h: Corresponding Converted Altitudes (m) from Forecast
+        :type h: float64 array
+        :returns: Array of bearings, radius, colors, and color map for plotting
+        :rtype: array
+
+        """
         # Calculate altitude
         bearing = np.arctan2(v,u)
         bearing = np.unwrap(bearing)
@@ -143,11 +156,26 @@ class Windmap:
 
 
     def getWind(self,hour_index,lat_i,lon_i):
+        """ Calculates a wind vector estimate at a particular 3D coordinate and timestamp
+        using a 2-step linear interpolation approach.
+
+        Currently using scipy.interpolat.CubicSpline instead of np.interp like in GFS and ERA5.
+
+        See also :meth:`GFS.GFS.wind_alt_Interpolate`
+
+        :param hour_index: Time index from forecast file
+        :type hour_index: int
+        :param lat_i: Array index for corresponding netcdf lattitude array
+        :type lat_i: int
+        :param lon_i: Array index for corresponding netcdf laongitude array
+        :type lon_i: int
+        :returns: [U, V]
+        :rtype: float64 2d array
+
+        """
 
         g = 9.80665 # gravitation constant used to convert geopotential height to height
 
-
-        #hard coded hour index to 0 for now?  Update this later.
         u = self.ugrdprs[hour_index,:,lat_i,lon_i]
         v = self.vgrdprs[hour_index,:,lat_i,lon_i]
         h = self.hgtprs[hour_index,:,lat_i,lon_i]
@@ -181,6 +209,20 @@ class Windmap:
 
 
     def plotWindVelocity(self,hour_index,lat,lon):
+        """ Plots a 3D Windrose for a particular coordinate and timestamp from a downloaded forecast.
+
+        :param hour_index: Time index from forecast file
+        :type hour_index: int
+        :param lat: Latitude
+        :type lat: float
+        :param lon: Longitude
+        :type lon: float
+        :returns:
+
+        """
+
+        #Should I remove arguments for the function and just use the initialized functions from config?
+
 
         # Find location in data
         if config_earth.forecast_type == "GFS":

@@ -8,7 +8,8 @@
    :caption: Contents:
    :hidden:
    
-   usage/installation
+   installation
+   examples/index
    API/index
    citing
    
