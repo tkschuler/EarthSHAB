@@ -17,7 +17,8 @@
 EarthSHAB
 =========
 
-EarthSHAB is an open source software platform for predicting the flight paths of solar balloon on Earth, adapted from MarsSHAB, developed at the University of Arizona. Altitude profiles for a SHAB flight are generated using heat transfer modeling and dynamic analysis. By incorporating weather forecasts from NOAA, complete 3D SHAB trajectories can also be predicted.
+EarthSHAB is an open source software platform for predicting the flight paths of solar balloon on Earth, adapted from `MarsSHAB <https://github.com/tkschuler/MarsSHAB>`_, developed at the University of Arizona. Altitude profiles for a SHAB flight are generated using heat transfer modeling and dynamic analysis. By incorporating weather forecasts from NOAA, complete 3D SHAB trajectories can also be predicted.
+
 
 
 Indices and tables

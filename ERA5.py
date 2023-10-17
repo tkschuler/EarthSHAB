@@ -427,7 +427,7 @@ class ERA5:
         print("Des sim runtime:", self.sim_time, "hours")
         print()
 
-        if not desired_simulation_end_time < self.time_convert[end_time_idx]:
+        if not desired_simulation_end_time <= self.time_convert[end_time_idx]:
             print(colored("Desired simulation run time of " + str(self.sim_time)  +
             " hours is out of bounds of downloaded forecast. " +
             "Check simulation start time and/or download a new forecast.", "red"))

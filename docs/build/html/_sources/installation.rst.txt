@@ -1,10 +1,6 @@
-==================
-Installation Guide
-==================
-
-------------
-Requirements
-------------
+==========================
+Installation Requirements
+==========================
 
 EarthSHAB relies on the following libraries:
 	- fluids
@@ -15,6 +11,9 @@ EarthSHAB relies on the following libraries:
 	- pandas
 	- termcolor
 	- backports.datetime_fromisoformat
+	- seaborn
+	- scipy
+	- pytz
 
 
 

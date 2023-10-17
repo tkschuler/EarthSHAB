@@ -35,26 +35,30 @@ balloon_properties = dict(
 #balloon_trajectory = "balloon_data/SHAB5V_APRS_Processed.csv"  # Only Accepting Files in the Standard APRS.fi format for now
 
 #SHAB12/15
-gfs =  "2022-08-22 12:00:00" # Forecast start time, should match a downloaded forecast in the forecasts directory
-start_time = datetime.fromisoformat("2022-08-22 14:21:00") # Simulation start time. The end time needs to be within the downloaded forecast
-balloon_trajectory = "balloon_data/SHAB12V-APRS.csv"  # Only Accepting Files in the Standard APRS.fi format for now
+#gfs =  "2022-08-22 12:00:00" # Forecast start time, should match a downloaded forecast in the forecasts directory
+#start_time = datetime.fromisoformat("2022-08-22 14:21:00") # Simulation start time. The end time needs to be within the downloaded forecast
+#balloon_trajectory = "balloon_data/SHAB12V-APRS.csv"  # Only Accepting Files in the Standard APRS.fi format for now
 
-
+#Save netcdf test
+gfs =  "2023-10-16 12:00:00" # Forecast start time, should match a downloaded forecast in the forecasts directory
+start_time = datetime.fromisoformat("2023-10-16 22:00:00") # Simulation start time. The end time needs to be within the downloaded forecast
+balloon_trajectory = None
 #GFS AND ERA5 CAN BE DIFFERENT START TIMES???
-
 
 forecast_type = "ERA5" # GFS or ERA5
 
 #These parameters are for both downloading new forecasts, and running simulations with downloaded forecasts.
 netcdf_gfs = dict(
-    nc_file = ("forecasts/gfs_0p25_" + gfs[0:4] + gfs[5:7] + gfs[8:10] + "_" + gfs[11:13] + ".nc"),  # file structure for downloading .25 resolution NOAA forecast data.
-    nc_start = datetime.fromisoformat(gfs),    # Start time of the downloaded netCDF file
+    nc_file = ("forecasts/gfs_0p25_" + gfs[0:4] + gfs[5:7] + gfs[8:10] + "_" + gfs[11:13] + ".nc"),  # DO NOT CHANGE -  file structure for downloading .25 resolution NOAA forecast data.
+    nc_start = datetime.fromisoformat(gfs),    # DO NOT CHANGE - Start time of the downloaded netCDF file
     hourstamp = gfs[11:13],  # parsed from gfs timestamp
 
-    res = 0.25,       # (deg) Do not change
-    lat_range = 40,  # (.25 deg)
-    lon_range= 60,   # (.25 deg)
-    hours3 = 8,      # (1-80) In intervals of 3 hours.  hour_index of 8 is 8*3=24 hours. This value is only used in saveNETCDF.py
+    res = 0.25,        # (deg) DO NOT CHANGE
+
+    #The following values are for savenetcdf.py for forecast downloading and saving
+    lat_range = 40,    # (.25 deg)
+    lon_range= 60,     # (.25 deg)
+    download_days = 1, # (1-10) Number of days to download for forecast This value is only used in saveNETCDF.py
 
 )
 
@@ -73,14 +77,14 @@ netcdf_era5 = dict(
 
 simulation = dict(
     start_time = start_time,    # (UTC) Simulation Start Time, updated above
-    sim_time = 15, #8,              # (hours) Simulation time in hours (for trapezoid.py)
+    sim_time = 14, #8,              # (hours) Simulation time in hours (for trapezoid.py)
 
     vent = 0.0,                 # (kg/s) Vent Mass Flow Rate  (Do not have an accurate model of the vent yet, this is innacurate)
     alt_sp = 15000.0,           # (m) Altitude Setpoint
     v_sp = 0.,                  # (m/s) Altitude Setpoint, Not Implemented right now
     start_coord =	{
-                      "lat": 34.60,     #34.60,   32.44,    33.66,    # (deg) Latitude
-                      "lon": -106.80,    #-106.80, -111.06, -114.22    # (deg) Longitude
+                      "lat": 0.51,      #34.60,   32.44,    33.66,    # (deg) Latitude
+                      "lon": 101.45,    #-106.80, -111.06, -114.22    # (deg) Longitude
                       "alt": 480., #720.,             # (m) Elevation
                       "timestamp": start_time, # timestamp
                     },

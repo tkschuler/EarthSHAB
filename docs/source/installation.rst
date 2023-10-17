@@ -1,10 +1,6 @@
-==================
-Installation Guide
-==================
-
-------------
-Requirements
-------------
+==========================
+Installation Requirements
+==========================
 
 EarthSHAB relies on the following libraries:
 	- fluids

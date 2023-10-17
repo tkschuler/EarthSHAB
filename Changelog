@@ -1,0 +1,11 @@
+version 1.1.0
+===============================
+* 
+
+version 1.0.1
+===============================
+* Added predict.py and rainbow trajectory prediction for multiple float altitudes
+
+version 1.0.0
+===============================
+* The original EarthSHAB software

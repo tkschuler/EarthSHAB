@@ -14,15 +14,20 @@ import re
 import copy
 
 import seaborn as sns
+import xarray as xr
+from netCDF4 import Dataset
 #import windmap
 
 import radiation
 import config_earth
+import windmap
 
 """ This file shows an example of how to predict solar balloon trajectories and produces several plots
 as well as an html trajectory map that uses Google maps and can be opened in an internet browser.
 
 run saveNETCDF.py before running this file to download a forecast from NOAA.
+
+Maybe convert to this new library later https://unidata.github.io/python-training/workshop/Bonus/downloading-gfs-with-siphon/
 """
 
 if not os.path.exists('trajectories'):
@@ -47,6 +52,28 @@ hourstamp = config_earth.netcdf_gfs['hourstamp']
 balloon_trajectory = config_earth.balloon_trajectory
 forecast_type = config_earth.forecast_type
 atm = fluids.atmosphere.ATMOSPHERE_1976(min_alt)
+
+
+#Some netcdf testing stuff
+rootgrp = Dataset(config_earth.netcdf_gfs['nc_file'], "r", format="NETCDF4")
+#rootgrp = Dataset("forecasts/" + config_earth.netcdf_era5['filename'], "r", format="NETCDF4")
+print(rootgrp.data_model)
+print(rootgrp.groups)
+print(rootgrp.dimensions)
+print(rootgrp.variables)
+for name in rootgrp.ncattrs():
+    print("Global attr {} = {}".format(name, getattr(rootgrp, name)))
+
+sdfs
+
+data = xr.open_dataset(config_earth.netcdf_gfs['nc_file'])
+data = xr.open_dataset("forecasts/" + config_earth.netcdf_era5['filename'])
+data2 = data.to_array()
+
+print (data)
+print(data.attrs)
+
+jhgjh
 
 #Get trajectory name from config file for Google Maps:
 if balloon_trajectory != None:
@@ -244,10 +271,7 @@ else:
 executionTime = (tm.time() - scriptstartTime)
 print('\nSimulation executed in ' + str(executionTime) + ' seconds.')
 
-'''
-plt.style.use('default')
-hour_index, new_timestamp = windmap.getHourIndex(start, nc_start)
-windmap.plotWindVelocity(hour_index,coord["lat"],coord["lon"])
-windmap.plotTempAlt(hour_index,coord["lat"],coord["lon"])
-'''
+windmap = windmap.Windmap()
+windmap.plotWindVelocity(windmap.hour_index,windmap.LAT,windmap.LON)
+
 plt.show()
