@@ -1,9 +1,7 @@
 """
-This is a rough update of windmap to include ERA5 support.  However hour indecies are hardcoded
-right now.  I think I should be able to make object instances of ERA5.py and GFS.py an call the
-variables from those objects instead of what I'm doing here.  That's tomorow's project.
-
-testing
+This is file generates a 3d windrose plot for a particular coordinate and timestamp.
+The polar plot displays information on wind speed and direction  at
+various altitudes in a visual format
 
 """
 
@@ -26,7 +24,7 @@ import ERA5
 class Windmap:
     def __init__(self):
 
-        if config_earth.forecast_type == "GFS":
+        if config_earth.forecast['forecast_type'] == "GFS":
             self.gfs = GFS.GFS(config_earth.simulation['start_coord'])
             self.file = self.gfs.file
         else:
@@ -50,7 +48,7 @@ class Windmap:
 
         #EDIT TO REMOVE THESE
         #Should I move these to ERA5 and GFS for organization?
-        if config_earth.forecast_type == "GFS":
+        if config_earth.forecast['forecast_type'] == "GFS":
             self.lat  = self.file.variables['lat'][:]
             self.lon  = self.file.variables['lon'][:]
             self.levels = self.file.variables['lev'][:]
@@ -65,7 +63,7 @@ class Windmap:
                 self.tmpprs = None
             self.hour_index, self.new_timestamp = self.getHourIndex(self.start_time)
 
-        if config_earth.forecast_type == "ERA5":
+        if config_earth.forecast['forecast_type'] == "ERA5":
 
             self.lat  = self.file.variables['latitude'][:]
             self.lon  = self.file.variables['longitude'][:]
@@ -108,7 +106,7 @@ class Windmap:
 
     #THIS IS ASSUMING THE CORRECT ERA5 TIME PERIOD HAS BEEN DOWNLOADED
     def getHourIndex(self,start_time):
-        if config_earth.forecast_type == "GFS":
+        if config_earth.forecast['forecast_type'] == "GFS":
             times = self.gfs.time_convert
         else:
             times = self.era5.time_convert
@@ -189,7 +187,7 @@ class Windmap:
         h = h[nans]
 
         #for ERA5, need to reverse all array so h is increasing.
-        if config_earth.forecast_type == "ERA5":
+        if config_earth.forecast['forecast_type'] == "ERA5":
             u = np.flip(u)
             v = np.flip(v)
             h = np.flip(h)
@@ -198,9 +196,9 @@ class Windmap:
         #Fix this interpolation method later, espcially for ERA5
         cs_u = CubicSpline(h, u)
         cs_v = CubicSpline(h, v)
-        if config_earth.forecast_type == "GFS":
+        if config_earth.forecast['forecast_type'] == "GFS":
             h_new = np.arange(0, 50000, 10) # New altitude range
-        elif config_earth.forecast_type == "ERA5":
+        elif config_earth.forecast['forecast_type'] == "ERA5":
             h_new = np.arange(0, 50000, 10) # New altitude range
         u = cs_u(h_new)
         v = cs_v(h_new)
@@ -225,26 +223,26 @@ class Windmap:
 
 
         # Find location in data
-        if config_earth.forecast_type == "GFS":
+        if config_earth.forecast['forecast_type'] == "GFS":
             lat_i = self.gfs.getNearestLat(lat, -90, 90.01 ) #I think instead of min max this is because download netcdf downloads the whole world, but many of the spots are empty.
             lon_i = self.gfs.getNearestLon(lon, 0, 360 )
             bearing1, r1 , colors1, cmap1 = self.getWind(hour_index,lat_i,lon_i)
 
-        elif config_earth.forecast_type == "ERA5":
-            lat_i = self.era5.getNearestLatIdx(lat, self.era5.lat_top_idx, self.era5.lat_bot_idx)
-            lon_i = self.era5.getNearestLonIdx(lon, self.era5.lon_left_idx, self.era5.lon_right_idx)
+        elif config_earth.forecast['forecast_type'] == "ERA5":
+            lat_i = self.era5.getNearestLatIdx(lat, self.era5.lat_min_idx, self.era5.lat_max_idx)
+            lon_i = self.era5.getNearestLonIdx(lon, self.era5.lon_min_idx, self.era5.lon_max_idx)
             bearing1, r1 , colors1, cmap1 = self.getWind(hour_index,lat_i,lon_i)
 
         # Plot figure and legend
         fig = plt.figure(figsize=(10, 8))
         ax1 = fig.add_subplot(111, projection='polar')
-        if config_earth.forecast_type == "GFS":
+        if config_earth.forecast['forecast_type'] == "GFS":
             #sc1 = ax1.scatter(bearing0, colors0, c=r0, cmap='rainbow', alpha=0.75, s = 2)
             sc2 = ax1.scatter(bearing1[0:3000], colors1[0:3000], c=r1[0:3000], cmap='winter', alpha=0.75, s = 2)
             ax1.title.set_text("GFS 3D Windrose for (" + str(self.LAT) + ", " + str(self.LON) + ") on " + str(self.new_timestamp))
 
 
-        elif config_earth.forecast_type == "ERA5":
+        elif config_earth.forecast['forecast_type'] == "ERA5":
             #This is hardcoded for now
             #sc1 = ax1.scatter(bearing0[0:50000], colors0[0:50000], c=r0[0:50000], cmap='rainbow', alpha=0.75, s = 2)
             sc2 = ax1.scatter(bearing1[0:3000], colors1[0:3000], c=r1[0:3000], cmap='winter', alpha=0.75, s = 2)
@@ -267,7 +265,7 @@ class Windmap:
 
         #Update this
     def plotTempAlt(self,hour_index,lat,lon):
-        if config_earth.forecast_type == "ERA5":
+        if config_earth.forecast['forecast_type'] == "ERA5":
             hour_index = 0 #not right, hard_coded for now
 
         # Find nearest lat/lon in ncdf4 resolution

@@ -21,7 +21,7 @@ import GFS
 import radiation
 import windmap
 
-if config_earth.forecast_type == "ERA5":
+if config_earth.forecast['forecast_type'] == "ERA5":
     print(colored("WARNING: Switch forecast type to GFS. This example is for predicting future flights", "yellow"))
     sys.exit()
 
@@ -57,10 +57,10 @@ for j in range(0,len(masses)):
     min_alt = config_earth.simulation['min_alt']
     alt_sp = config_earth.simulation['alt_sp']
     v_sp = config_earth.simulation['v_sp']
-    dt = config_earth.dt
+    dt = config_earth.simulation['dt']
     atm = fluids.atmosphere.ATMOSPHERE_1976(min_alt)
 
-    GFSrate = config_earth.GFS['GFSrate']
+    GFSrate = config_earth.forecast['GFSrate']
 
     # Variables for Simulation and Plotting
     T_s = [atm.T]

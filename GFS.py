@@ -40,8 +40,8 @@ class GFS:
         #self.lon_max_idx = None
 
         #Determine Index values from netcdf4 subset
-        lla = self.file.variables['ugrdprs'][:,0,:,:]
-        self.latlonrange(lla)
+        netcdf_ranges = self.file.variables['ugrdprs'][:,0,:,:]
+        self.determineRanges(netcdf_ranges)
 
         # smaller array of downloaded forecast subset
         self.lat  = self.file.variables['lat'][self.lat_min_idx:self.lat_max_idx]
@@ -88,20 +88,26 @@ class GFS:
             sys.exit()
 
 
-    def latlonrange(self,lla):
+    def determineRanges(self,netcdf_ranges):
         """
-        Determine the lat/lon min/max index values from netcdf4 forecast subset.
+        Determine the following variable ranges (min/max) within the netcdf file:
+
+        -time
+        -lat
+        -lon
+
+        note:: the levels variable is uncessary for knowing the ranges for, because they vary from
+            coordinate to coordinate, and all levels in the array are always be used.
 
         """
 
 
         print(colored("Forecast Information (Parsed from netcdf file):", "blue", attrs=['bold']))
 
-        results = np.all(~lla.mask)
-        print(results)
+        results = np.all(~netcdf_ranges.mask)
         #Results will almost always be false,  unless an entire netcdf of the world is downloaded. Or if the netcdf is downloaded via another method with lat/lon bounds
         if results == False:
-            timerange, latrange, lonrange = np.nonzero(~lla.mask)
+            timerange, latrange, lonrange = np.nonzero(~netcdf_ranges.mask)
 
             self.start_time_idx = timerange.min()
             self.end_time_idx = timerange.max()
@@ -112,7 +118,7 @@ class GFS:
         else: #This might be broken for time
             self.start_time_idx = 0
             self.end_time_idx = len(self.time_convert)
-            lati, loni = lla.shape
+            lati, loni = netcdf_ranges.shape
             self.lat_min_idx = lati
             self.lat_max_idx = 0
             self.lon_max_idx = loni

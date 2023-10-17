@@ -41,8 +41,8 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation Guide</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">EarthSHAB Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">EarthSHAB Usage</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../API/index.html">EarthSHAB API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../citing.html">Citing EarthSHAB</a></li>
 </ul>
@@ -73,11 +73,9 @@
              
   <h1>Source code for windmap</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">This is a rough update of windmap to include ERA5 support.  However hour indecies are hardcoded</span>
-<span class="sd">right now.  I think I should be able to make object instances of ERA5.py and GFS.py an call the</span>
-<span class="sd">variables from those objects instead of what I&#39;m doing here.  That&#39;s tomorow&#39;s project.</span>
-
-<span class="sd">testing</span>
+<span class="sd">This is file generates a 3d windrose plot for a particular coordinate and timestamp.</span>
+<span class="sd">The polar plot displays information on wind speed and direction  at</span>
+<span class="sd">various altitudes in a visual format</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
 
@@ -104,7 +102,7 @@
 <a class="viewcode-back" href="../API/windmap.html#windmap.Windmap.__init__">[docs]</a>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
-        <span class="k">if</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">forecast_type</span> <span class="o">==</span> <span class="s2">&quot;GFS&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">forecast</span><span class="p">[</span><span class="s1">&#39;forecast_type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;GFS&quot;</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">gfs</span> <span class="o">=</span> <span class="n">GFS</span><span class="o">.</span><span class="n">GFS</span><span class="p">(</span><span class="n">config_earth</span><span class="o">.</span><span class="n">simulation</span><span class="p">[</span><span class="s1">&#39;start_coord&#39;</span><span class="p">])</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gfs</span><span class="o">.</span><span class="n">file</span>
         <span class="k">else</span><span class="p">:</span>
@@ -128,7 +126,7 @@
 
         <span class="c1">#EDIT TO REMOVE THESE</span>
         <span class="c1">#Should I move these to ERA5 and GFS for organization?</span>
-        <span class="k">if</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">forecast_type</span> <span class="o">==</span> <span class="s2">&quot;GFS&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">forecast</span><span class="p">[</span><span class="s1">&#39;forecast_type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;GFS&quot;</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">lat</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;lat&#39;</span><span class="p">][:]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">lon</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;lon&#39;</span><span class="p">][:]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">levels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;lev&#39;</span><span class="p">][:]</span>
@@ -143,7 +141,7 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">tmpprs</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">hour_index</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_timestamp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getHourIndex</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">start_time</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">forecast_type</span> <span class="o">==</span> <span class="s2">&quot;ERA5&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">forecast</span><span class="p">[</span><span class="s1">&#39;forecast_type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;ERA5&quot;</span><span class="p">:</span>
 
             <span class="bp">self</span><span class="o">.</span><span class="n">lat</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;latitude&#39;</span><span class="p">][:]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">lon</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;longitude&#39;</span><span class="p">][:]</span>
@@ -190,7 +188,7 @@
 
     <span class="c1">#THIS IS ASSUMING THE CORRECT ERA5 TIME PERIOD HAS BEEN DOWNLOADED</span>
     <span class="k">def</span> <span class="nf">getHourIndex</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">start_time</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">forecast_type</span> <span class="o">==</span> <span class="s2">&quot;GFS&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">forecast</span><span class="p">[</span><span class="s1">&#39;forecast_type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;GFS&quot;</span><span class="p">:</span>
             <span class="n">times</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gfs</span><span class="o">.</span><span class="n">time_convert</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">times</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">era5</span><span class="o">.</span><span class="n">time_convert</span>
@@ -276,7 +274,7 @@
         <span class="n">h</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="n">nans</span><span class="p">]</span>
 
         <span class="c1">#for ERA5, need to reverse all array so h is increasing.</span>
-        <span class="k">if</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">forecast_type</span> <span class="o">==</span> <span class="s2">&quot;ERA5&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">forecast</span><span class="p">[</span><span class="s1">&#39;forecast_type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;ERA5&quot;</span><span class="p">:</span>
             <span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">u</span><span class="p">)</span>
             <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
             <span class="n">h</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
@@ -285,9 +283,9 @@
         <span class="c1">#Fix this interpolation method later, espcially for ERA5</span>
         <span class="n">cs_u</span> <span class="o">=</span> <span class="n">CubicSpline</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span>
         <span class="n">cs_v</span> <span class="o">=</span> <span class="n">CubicSpline</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">forecast_type</span> <span class="o">==</span> <span class="s2">&quot;GFS&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">forecast</span><span class="p">[</span><span class="s1">&#39;forecast_type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;GFS&quot;</span><span class="p">:</span>
             <span class="n">h_new</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">50000</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span> <span class="c1"># New altitude range</span>
-        <span class="k">elif</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">forecast_type</span> <span class="o">==</span> <span class="s2">&quot;ERA5&quot;</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">forecast</span><span class="p">[</span><span class="s1">&#39;forecast_type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;ERA5&quot;</span><span class="p">:</span>
             <span class="n">h_new</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">50000</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span> <span class="c1"># New altitude range</span>
         <span class="n">u</span> <span class="o">=</span> <span class="n">cs_u</span><span class="p">(</span><span class="n">h_new</span><span class="p">)</span>
         <span class="n">v</span> <span class="o">=</span> <span class="n">cs_v</span><span class="p">(</span><span class="n">h_new</span><span class="p">)</span>
@@ -315,26 +313,26 @@
 
 
         <span class="c1"># Find location in data</span>
-        <span class="k">if</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">forecast_type</span> <span class="o">==</span> <span class="s2">&quot;GFS&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">forecast</span><span class="p">[</span><span class="s1">&#39;forecast_type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;GFS&quot;</span><span class="p">:</span>
             <span class="n">lat_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gfs</span><span class="o">.</span><span class="n">getNearestLat</span><span class="p">(</span><span class="n">lat</span><span class="p">,</span> <span class="o">-</span><span class="mi">90</span><span class="p">,</span> <span class="mf">90.01</span> <span class="p">)</span> <span class="c1">#I think instead of min max this is because download netcdf downloads the whole world, but many of the spots are empty.</span>
             <span class="n">lon_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gfs</span><span class="o">.</span><span class="n">getNearestLon</span><span class="p">(</span><span class="n">lon</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">360</span> <span class="p">)</span>
             <span class="n">bearing1</span><span class="p">,</span> <span class="n">r1</span> <span class="p">,</span> <span class="n">colors1</span><span class="p">,</span> <span class="n">cmap1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getWind</span><span class="p">(</span><span class="n">hour_index</span><span class="p">,</span><span class="n">lat_i</span><span class="p">,</span><span class="n">lon_i</span><span class="p">)</span>
 
-        <span class="k">elif</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">forecast_type</span> <span class="o">==</span> <span class="s2">&quot;ERA5&quot;</span><span class="p">:</span>
-            <span class="n">lat_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">era5</span><span class="o">.</span><span class="n">getNearestLatIdx</span><span class="p">(</span><span class="n">lat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">era5</span><span class="o">.</span><span class="n">lat_top_idx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">era5</span><span class="o">.</span><span class="n">lat_bot_idx</span><span class="p">)</span>
-            <span class="n">lon_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">era5</span><span class="o">.</span><span class="n">getNearestLonIdx</span><span class="p">(</span><span class="n">lon</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">era5</span><span class="o">.</span><span class="n">lon_left_idx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">era5</span><span class="o">.</span><span class="n">lon_right_idx</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">forecast</span><span class="p">[</span><span class="s1">&#39;forecast_type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;ERA5&quot;</span><span class="p">:</span>
+            <span class="n">lat_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">era5</span><span class="o">.</span><span class="n">getNearestLatIdx</span><span class="p">(</span><span class="n">lat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">era5</span><span class="o">.</span><span class="n">lat_min_idx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">era5</span><span class="o">.</span><span class="n">lat_max_idx</span><span class="p">)</span>
+            <span class="n">lon_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">era5</span><span class="o">.</span><span class="n">getNearestLonIdx</span><span class="p">(</span><span class="n">lon</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">era5</span><span class="o">.</span><span class="n">lon_min_idx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">era5</span><span class="o">.</span><span class="n">lon_max_idx</span><span class="p">)</span>
             <span class="n">bearing1</span><span class="p">,</span> <span class="n">r1</span> <span class="p">,</span> <span class="n">colors1</span><span class="p">,</span> <span class="n">cmap1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getWind</span><span class="p">(</span><span class="n">hour_index</span><span class="p">,</span><span class="n">lat_i</span><span class="p">,</span><span class="n">lon_i</span><span class="p">)</span>
 
         <span class="c1"># Plot figure and legend</span>
         <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
         <span class="n">ax1</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">111</span><span class="p">,</span> <span class="n">projection</span><span class="o">=</span><span class="s1">&#39;polar&#39;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">forecast_type</span> <span class="o">==</span> <span class="s2">&quot;GFS&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">forecast</span><span class="p">[</span><span class="s1">&#39;forecast_type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;GFS&quot;</span><span class="p">:</span>
             <span class="c1">#sc1 = ax1.scatter(bearing0, colors0, c=r0, cmap=&#39;rainbow&#39;, alpha=0.75, s = 2)</span>
             <span class="n">sc2</span> <span class="o">=</span> <span class="n">ax1</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">bearing1</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3000</span><span class="p">],</span> <span class="n">colors1</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3000</span><span class="p">],</span> <span class="n">c</span><span class="o">=</span><span class="n">r1</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3000</span><span class="p">],</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;winter&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.75</span><span class="p">,</span> <span class="n">s</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span>
             <span class="n">ax1</span><span class="o">.</span><span class="n">title</span><span class="o">.</span><span class="n">set_text</span><span class="p">(</span><span class="s2">&quot;GFS 3D Windrose for (&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">LAT</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;, &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">LON</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;) on &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">new_timestamp</span><span class="p">))</span>
 
 
-        <span class="k">elif</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">forecast_type</span> <span class="o">==</span> <span class="s2">&quot;ERA5&quot;</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">forecast</span><span class="p">[</span><span class="s1">&#39;forecast_type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;ERA5&quot;</span><span class="p">:</span>
             <span class="c1">#This is hardcoded for now</span>
             <span class="c1">#sc1 = ax1.scatter(bearing0[0:50000], colors0[0:50000], c=r0[0:50000], cmap=&#39;rainbow&#39;, alpha=0.75, s = 2)</span>
             <span class="n">sc2</span> <span class="o">=</span> <span class="n">ax1</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">bearing1</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3000</span><span class="p">],</span> <span class="n">colors1</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3000</span><span class="p">],</span> <span class="n">c</span><span class="o">=</span><span class="n">r1</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3000</span><span class="p">],</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;winter&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.75</span><span class="p">,</span> <span class="n">s</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span>
@@ -358,7 +356,7 @@
 
         <span class="c1">#Update this</span>
     <span class="k">def</span> <span class="nf">plotTempAlt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">hour_index</span><span class="p">,</span><span class="n">lat</span><span class="p">,</span><span class="n">lon</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">forecast_type</span> <span class="o">==</span> <span class="s2">&quot;ERA5&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">forecast</span><span class="p">[</span><span class="s1">&#39;forecast_type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;ERA5&quot;</span><span class="p">:</span>
             <span class="n">hour_index</span> <span class="o">=</span> <span class="mi">0</span> <span class="c1">#not right, hard_coded for now</span>
 
         <span class="c1"># Find nearest lat/lon in ncdf4 resolution</span>

@@ -35,23 +35,13 @@ class ERA5:
         data before or after your simulation times, you can ignore these data through saving
         indexes.
 
-        Parameters
-        ----------
-        start_coord : dict
-            Contains information about the starting location.
+        :param start_coord: starting coordinate of balloon for simulation
+        :type coord: dict
 
-        Returns
-        -------
-        ERA5 : Class Object
-            Object with our NetCDF data.
+        .. note:: Similar to class GFS which stores NOAA GFS data from NOMAD server
 
-        Notes
-        -----
-        Similar to class GFS which stores NOAA GFS data from NOMAD server
 
-        See Also
-        --------
-        GFS
+        .. seealso:: GFS
 
         """
 
@@ -59,7 +49,7 @@ class ERA5:
 
 
 
-        self.dt = config_earth.dt
+        self.dt = config_earth.simulation['dt']
 
         '''''' #
         ''' #
@@ -95,8 +85,6 @@ class ERA5:
         else:
             self.init_without_time(start_coord, end_coord, dt_sec, sim_time_hours)
         '''
-
-        self.dt = config_earth.dt
 
         self.init_with_time()
 
@@ -158,8 +146,8 @@ class ERA5:
         # Initialize min/max lat/lon index values from netcdf4 subset
 
         # Determine Index values from netcdf4 subset
-        lla = self.file.variables['u'][0, :, :]
-        self.latlon_index_range(lla)
+        netcdf_ranges = self.file.variables['u'][0, :, :]
+        self.determineRanges(netcdf_ranges)
         logging.debug(f"By default will use the following latitude index boundaries: {self.lat_max_idx}, {self.lat_min_idx}")
         logging.debug(f"In degrees this covers : {self.file.variables['latitude'][self.lat_max_idx]} to  {self.file.variables['latitude'][self.lat_min_idx-1]}")
         logging.debug(f"By default will use the following longitude index boundaries: {self.lon_min_idx}, {self.lon_max_idx}")
@@ -338,8 +326,8 @@ class ERA5:
         #lon_max_idx = netcdf_prop.netcdf["lon_right"]
 
         # Determine Index values from netcdf4 subset
-        lla = self.file.variables['u'][0, 0, :, :]
-        self.latlon_index_range(lla)
+        netcdf_ranges = self.file.variables['u'][0, 0, :, :]
+        self.determineRanges(netcdf_ranges)
         logging.debug(f"By default will use the following latitude index boundaries: {self.lat_max_idx}, {self.lat_min_idx}")
         logging.debug(f"In degrees this covers : {self.file.variables['latitude'][self.lat_max_idx]} to  {self.file.variables['latitude'][self.lat_min_idx-1]} degrees")
         logging.debug(f"By default will use the following longitude index boundaries: {self.lon_min_idx}, {self.lon_max_idx} degrees")
@@ -460,7 +448,7 @@ class ERA5:
             return False
     """
 
-    def latlon_index_range(self, lla):
+    def determineRanges(self, netcdf_ranges):
         """
         Determine the dimensions of actual data. If you have columns or rows with missing data
         as indicated by NaN, then this function will return your actual shape size so you can
@@ -471,11 +459,11 @@ class ERA5:
         logging.info("Scraping given netcdf4 forecast file (" + str(self.file) + " for subset size")
         logging.info(colored('...', 'white', attrs=['blink']))
 
-        logging.debug(f"Shape of u data compent: {lla.shape}")
-        results = np.all(~lla.mask)
+        logging.debug(f"Shape of u data compent: {netcdf_ranges.shape}")
+        results = np.all(~netcdf_ranges.mask)
         if results == False:
             logging.debug("Found missing data inside the latitude, longitude, grid will determine range and set new latitude, longitude boundary indexes.")
-            rows, columns = np.nonzero(~lla.mask)
+            rows, columns = np.nonzero(~netcdf_ranges.mask)
             logging.debug('Row values :', (rows.min(), rows.max()))  # print the min and max rows
             logging.debug('Column values :', (columns.min(), columns.max()))  # print the min and max columns
             self.lat_max_idx = rows.min()
@@ -483,7 +471,7 @@ class ERA5:
             self.lon_min_idx = columns.min()
             self.lon_max_idx = columns.max()
         else:
-            lati, loni = lla.shape
+            lati, loni = netcdf_ranges.shape
             self.lat_min_idx = lati
             self.lat_max_idx = 0
             self.lon_max_idx = loni

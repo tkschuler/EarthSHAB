@@ -28,9 +28,9 @@ start = config_earth.simulation['start_time']
 t = start
 min_alt = config_earth.simulation['min_alt']
 float = config_earth.simulation['float']
-dt = config_earth.dt
+dt = config_earth.simulation['dt']
 sim = config_earth.simulation["sim_time"]
-GFSrate = config_earth.GFS["GFSrate"]
+GFSrate = config_earth.forecast["GFSrate"]
 
 simulation_time = sim*int(3600*(1/dt)) # Simulation time in seconds
 

@@ -44,8 +44,8 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation Guide</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">EarthSHAB Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">EarthSHAB Usage</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">EarthSHAB API</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">GFS</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="era5.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ERA5</span></code></a></li>
@@ -104,6 +104,19 @@ the U.S. Standard Atmosphere tables from 1976, and the fluids library is used fo
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="GFS.GFS.determineRanges">
+<span class="sig-name descname"><span class="pre">determineRanges</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">netcdf_ranges</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GFS.html#GFS.determineRanges"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GFS.GFS.determineRanges" title="Link to this definition"></a></dt>
+<dd><p>Determine the following variable ranges (min/max) within the netcdf file:</p>
+<p>-time
+-lat
+-lon</p>
+<dl class="simple">
+<dt>note:: the levels variable is uncessary for knowing the ranges for, because they vary from</dt><dd><p>coordinate to coordinate, and all levels in the array are always be used.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="GFS.GFS.fill_missing_data">
 <span class="sig-name descname"><span class="pre">fill_missing_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GFS.html#GFS.fill_missing_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GFS.GFS.fill_missing_data" title="Link to this definition"></a></dt>
 <dd><p>Helper function to fill in linearly interpolate and fill in missing data</p>
@@ -135,12 +148,6 @@ the U.S. Standard Atmosphere tables from 1976, and the fluids library is used fo
 :type coord: dict
 :returns: [lat_new, lon_new, x_wind_vel, y_wind_vel, bearing, closest_lat, closest_lon, closest alt]
 :rtype: array</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="GFS.GFS.latlonrange">
-<span class="sig-name descname"><span class="pre">latlonrange</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lla</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GFS.html#GFS.latlonrange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GFS.GFS.latlonrange" title="Link to this definition"></a></dt>
-<dd><p>Determine the lat/lon min/max index values from netcdf4 forecast subset.</p>
 </dd></dl>
 
 <dl class="py method">

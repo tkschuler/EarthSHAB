@@ -41,8 +41,8 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation Guide</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">EarthSHAB Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">EarthSHAB Usage</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../API/index.html">EarthSHAB API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../citing.html">Citing EarthSHAB</a></li>
 </ul>
@@ -113,23 +113,13 @@
 <span class="sd">        data before or after your simulation times, you can ignore these data through saving</span>
 <span class="sd">        indexes.</span>
 
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        start_coord : dict</span>
-<span class="sd">            Contains information about the starting location.</span>
+<span class="sd">        :param start_coord: starting coordinate of balloon for simulation</span>
+<span class="sd">        :type coord: dict</span>
 
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        ERA5 : Class Object</span>
-<span class="sd">            Object with our NetCDF data.</span>
+<span class="sd">        .. note:: Similar to class GFS which stores NOAA GFS data from NOMAD server</span>
 
-<span class="sd">        Notes</span>
-<span class="sd">        -----</span>
-<span class="sd">        Similar to class GFS which stores NOAA GFS data from NOMAD server</span>
 
-<span class="sd">        See Also</span>
-<span class="sd">        --------</span>
-<span class="sd">        GFS</span>
+<span class="sd">        .. seealso:: GFS</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
@@ -137,7 +127,7 @@
 
 
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">dt</span> <span class="o">=</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">dt</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dt</span> <span class="o">=</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">simulation</span><span class="p">[</span><span class="s1">&#39;dt&#39;</span><span class="p">]</span>
 
 <span class="w">        </span><span class="sd">&#39;&#39;&#39;&#39;&#39;&#39;</span> <span class="c1">#</span>
 <span class="w">        </span><span class="sd">&#39;&#39;&#39; #</span>
@@ -173,8 +163,6 @@
 <span class="sd">        else:</span>
 <span class="sd">            self.init_without_time(start_coord, end_coord, dt_sec, sim_time_hours)</span>
 <span class="sd">        &#39;&#39;&#39;</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">dt</span> <span class="o">=</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">dt</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">init_with_time</span><span class="p">()</span>
 
@@ -237,8 +225,8 @@
 <span class="sd">        # Initialize min/max lat/lon index values from netcdf4 subset</span>
 
 <span class="sd">        # Determine Index values from netcdf4 subset</span>
-<span class="sd">        lla = self.file.variables[&#39;u&#39;][0, :, :]</span>
-<span class="sd">        self.latlon_index_range(lla)</span>
+<span class="sd">        netcdf_ranges = self.file.variables[&#39;u&#39;][0, :, :]</span>
+<span class="sd">        self.determineRanges(netcdf_ranges)</span>
 <span class="sd">        logging.debug(f&quot;By default will use the following latitude index boundaries: {self.lat_max_idx}, {self.lat_min_idx}&quot;)</span>
 <span class="sd">        logging.debug(f&quot;In degrees this covers : {self.file.variables[&#39;latitude&#39;][self.lat_max_idx]} to  {self.file.variables[&#39;latitude&#39;][self.lat_min_idx-1]}&quot;)</span>
 <span class="sd">        logging.debug(f&quot;By default will use the following longitude index boundaries: {self.lon_min_idx}, {self.lon_max_idx}&quot;)</span>
@@ -419,8 +407,8 @@
         <span class="c1">#lon_max_idx = netcdf_prop.netcdf[&quot;lon_right&quot;]</span>
 
         <span class="c1"># Determine Index values from netcdf4 subset</span>
-        <span class="n">lla</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">latlon_index_range</span><span class="p">(</span><span class="n">lla</span><span class="p">)</span>
+        <span class="n">netcdf_ranges</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">determineRanges</span><span class="p">(</span><span class="n">netcdf_ranges</span><span class="p">)</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;By default will use the following latitude index boundaries: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;In degrees this covers : </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;latitude&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span><span class="p">]</span><span class="si">}</span><span class="s2"> to  </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;latitude&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2"> degrees&quot;</span><span class="p">)</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;By default will use the following longitude index boundaries: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_min_idx</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span><span class="si">}</span><span class="s2"> degrees&quot;</span><span class="p">)</span>
@@ -542,9 +530,9 @@
 <span class="sd">            return False</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="ERA5.latlon_index_range">
-<a class="viewcode-back" href="../API/era5.html#ERA5.ERA5.latlon_index_range">[docs]</a>
-    <span class="k">def</span> <span class="nf">latlon_index_range</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lla</span><span class="p">):</span>
+<div class="viewcode-block" id="ERA5.determineRanges">
+<a class="viewcode-back" href="../API/era5.html#ERA5.ERA5.determineRanges">[docs]</a>
+    <span class="k">def</span> <span class="nf">determineRanges</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">netcdf_ranges</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Determine the dimensions of actual data. If you have columns or rows with missing data</span>
 <span class="sd">        as indicated by NaN, then this function will return your actual shape size so you can</span>
@@ -555,11 +543,11 @@
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Scraping given netcdf4 forecast file (&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; for subset size&quot;</span><span class="p">)</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">colored</span><span class="p">(</span><span class="s1">&#39;...&#39;</span><span class="p">,</span> <span class="s1">&#39;white&#39;</span><span class="p">,</span> <span class="n">attrs</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;blink&#39;</span><span class="p">]))</span>
 
-        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Shape of u data compent: </span><span class="si">{</span><span class="n">lla</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="n">results</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="o">~</span><span class="n">lla</span><span class="o">.</span><span class="n">mask</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Shape of u data compent: </span><span class="si">{</span><span class="n">netcdf_ranges</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="o">~</span><span class="n">netcdf_ranges</span><span class="o">.</span><span class="n">mask</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">results</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Found missing data inside the latitude, longitude, grid will determine range and set new latitude, longitude boundary indexes.&quot;</span><span class="p">)</span>
-            <span class="n">rows</span><span class="p">,</span> <span class="n">columns</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="o">~</span><span class="n">lla</span><span class="o">.</span><span class="n">mask</span><span class="p">)</span>
+            <span class="n">rows</span><span class="p">,</span> <span class="n">columns</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="o">~</span><span class="n">netcdf_ranges</span><span class="o">.</span><span class="n">mask</span><span class="p">)</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Row values :&#39;</span><span class="p">,</span> <span class="p">(</span><span class="n">rows</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">rows</span><span class="o">.</span><span class="n">max</span><span class="p">()))</span>  <span class="c1"># print the min and max rows</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Column values :&#39;</span><span class="p">,</span> <span class="p">(</span><span class="n">columns</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">columns</span><span class="o">.</span><span class="n">max</span><span class="p">()))</span>  <span class="c1"># print the min and max columns</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span> <span class="o">=</span> <span class="n">rows</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
@@ -567,7 +555,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">lon_min_idx</span> <span class="o">=</span> <span class="n">columns</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span> <span class="o">=</span> <span class="n">columns</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">lati</span><span class="p">,</span> <span class="n">loni</span> <span class="o">=</span> <span class="n">lla</span><span class="o">.</span><span class="n">shape</span>
+            <span class="n">lati</span><span class="p">,</span> <span class="n">loni</span> <span class="o">=</span> <span class="n">netcdf_ranges</span><span class="o">.</span><span class="n">shape</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span> <span class="o">=</span> <span class="n">lati</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span> <span class="o">=</span> <span class="n">loni</span>

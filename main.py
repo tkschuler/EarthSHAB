@@ -36,7 +36,7 @@ if not os.path.exists('trajectories'):
 scriptstartTime = tm.time()
 
 GMT = 7 # MST
-dt = config_earth.dt
+dt = config_earth.simulation['dt']
 coord = config_earth.simulation['start_coord']
 t = config_earth.simulation['start_time']
 start = t
@@ -47,13 +47,13 @@ v_sp = config_earth.simulation['v_sp']
 sim_time = config_earth.simulation['sim_time'] * int(3600*(1/dt))
 lat = [coord["lat"]]
 lon = [coord["lon"]]
-GFSrate = config_earth.GFS['GFSrate']
+GFSrate = config_earth.forecast['GFSrate']
 hourstamp = config_earth.netcdf_gfs['hourstamp']
-balloon_trajectory = config_earth.balloon_trajectory
-forecast_type = config_earth.forecast_type
+balloon_trajectory = config_earth.simulation['balloon_trajectory']
+forecast_type = config_earth.forecast['forecast_type']
 atm = fluids.atmosphere.ATMOSPHERE_1976(min_alt)
 
-
+'''
 #Some netcdf testing stuff
 rootgrp = Dataset(config_earth.netcdf_gfs['nc_file'], "r", format="NETCDF4")
 #rootgrp = Dataset("forecasts/" + config_earth.netcdf_era5['filename'], "r", format="NETCDF4")
@@ -72,8 +72,7 @@ data2 = data.to_array()
 
 print (data)
 print(data.attrs)
-
-jhgjh
+'''
 
 #Get trajectory name from config file for Google Maps:
 if balloon_trajectory != None:

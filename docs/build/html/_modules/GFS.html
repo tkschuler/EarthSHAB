@@ -41,8 +41,8 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation Guide</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">EarthSHAB Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">EarthSHAB Usage</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../API/index.html">EarthSHAB API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../citing.html">Citing EarthSHAB</a></li>
 </ul>
@@ -118,8 +118,8 @@
         <span class="c1">#self.lon_max_idx = None</span>
 
         <span class="c1">#Determine Index values from netcdf4 subset</span>
-        <span class="n">lla</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;ugrdprs&#39;</span><span class="p">][:,</span><span class="mi">0</span><span class="p">,:,:]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">latlonrange</span><span class="p">(</span><span class="n">lla</span><span class="p">)</span>
+        <span class="n">netcdf_ranges</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;ugrdprs&#39;</span><span class="p">][:,</span><span class="mi">0</span><span class="p">,:,:]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">determineRanges</span><span class="p">(</span><span class="n">netcdf_ranges</span><span class="p">)</span>
 
         <span class="c1"># smaller array of downloaded forecast subset</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">lat</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;lat&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span><span class="p">]</span>
@@ -167,22 +167,28 @@
 
 
 
-<div class="viewcode-block" id="GFS.latlonrange">
-<a class="viewcode-back" href="../API/GFS.html#GFS.GFS.latlonrange">[docs]</a>
-    <span class="k">def</span> <span class="nf">latlonrange</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">lla</span><span class="p">):</span>
+<div class="viewcode-block" id="GFS.determineRanges">
+<a class="viewcode-back" href="../API/GFS.html#GFS.GFS.determineRanges">[docs]</a>
+    <span class="k">def</span> <span class="nf">determineRanges</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">netcdf_ranges</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Determine the lat/lon min/max index values from netcdf4 forecast subset.</span>
+<span class="sd">        Determine the following variable ranges (min/max) within the netcdf file:</span>
+
+<span class="sd">        -time</span>
+<span class="sd">        -lat</span>
+<span class="sd">        -lon</span>
+
+<span class="sd">        note:: the levels variable is uncessary for knowing the ranges for, because they vary from</span>
+<span class="sd">            coordinate to coordinate, and all levels in the array are always be used.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
 
         <span class="nb">print</span><span class="p">(</span><span class="n">colored</span><span class="p">(</span><span class="s2">&quot;Forecast Information (Parsed from netcdf file):&quot;</span><span class="p">,</span> <span class="s2">&quot;blue&quot;</span><span class="p">,</span> <span class="n">attrs</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;bold&#39;</span><span class="p">]))</span>
 
-        <span class="n">results</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="o">~</span><span class="n">lla</span><span class="o">.</span><span class="n">mask</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="o">~</span><span class="n">netcdf_ranges</span><span class="o">.</span><span class="n">mask</span><span class="p">)</span>
         <span class="c1">#Results will almost always be false,  unless an entire netcdf of the world is downloaded. Or if the netcdf is downloaded via another method with lat/lon bounds</span>
         <span class="k">if</span> <span class="n">results</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
-            <span class="n">timerange</span><span class="p">,</span> <span class="n">latrange</span><span class="p">,</span> <span class="n">lonrange</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="o">~</span><span class="n">lla</span><span class="o">.</span><span class="n">mask</span><span class="p">)</span>
+            <span class="n">timerange</span><span class="p">,</span> <span class="n">latrange</span><span class="p">,</span> <span class="n">lonrange</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="o">~</span><span class="n">netcdf_ranges</span><span class="o">.</span><span class="n">mask</span><span class="p">)</span>
 
             <span class="bp">self</span><span class="o">.</span><span class="n">start_time_idx</span> <span class="o">=</span> <span class="n">timerange</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">end_time_idx</span> <span class="o">=</span> <span class="n">timerange</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
@@ -193,7 +199,7 @@
         <span class="k">else</span><span class="p">:</span> <span class="c1">#This might be broken for time</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">start_time_idx</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">end_time_idx</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time_convert</span><span class="p">)</span>
-            <span class="n">lati</span><span class="p">,</span> <span class="n">loni</span> <span class="o">=</span> <span class="n">lla</span><span class="o">.</span><span class="n">shape</span>
+            <span class="n">lati</span><span class="p">,</span> <span class="n">loni</span> <span class="o">=</span> <span class="n">netcdf_ranges</span><span class="o">.</span><span class="n">shape</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span> <span class="o">=</span> <span class="n">lati</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span> <span class="o">=</span> <span class="n">loni</span>

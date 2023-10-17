@@ -44,8 +44,8 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation Guide</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">EarthSHAB Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">EarthSHAB Usage</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">EarthSHAB API</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="GFS.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">GFS</span></code></a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ERA5</span></code></a></li>
@@ -102,20 +102,16 @@ data before or after your simulation times, you can ignore these data through sa
 indexes.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>start_coord</strong> (<em>dict</em>) – Contains information about the starting location.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>ERA5</strong> – Object with our NetCDF data.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Class Object</p>
+<dd class="field-odd"><p><strong>start_coord</strong> – starting coordinate of balloon for simulation</p>
 </dd>
 </dl>
-<p class="rubric">Notes</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
 <p>Similar to class GFS which stores NOAA GFS data from NOMAD server</p>
+</div>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference internal" href="GFS.html#module-GFS" title="GFS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GFS</span></code></a></p>
+<p>GFS</p>
 </div>
 </dd></dl>
 
@@ -123,6 +119,14 @@ indexes.</p>
 <dt class="sig sig-object py" id="ERA5.ERA5.closestIdx">
 <span class="sig-name descname"><span class="pre">closestIdx</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ERA5.html#ERA5.closestIdx"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ERA5.ERA5.closestIdx" title="Link to this definition"></a></dt>
 <dd><p>Given an ordered array and a value, determines the index of the closest item contained in the array.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ERA5.ERA5.determineRanges">
+<span class="sig-name descname"><span class="pre">determineRanges</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">netcdf_ranges</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ERA5.html#ERA5.determineRanges"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ERA5.ERA5.determineRanges" title="Link to this definition"></a></dt>
+<dd><p>Determine the dimensions of actual data. If you have columns or rows with missing data
+as indicated by NaN, then this function will return your actual shape size so you can
+resize your data being used.</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -185,14 +189,6 @@ variables.</p>
 </dl>
 <p class="rubric">Notes</p>
 <p>Similar to class GFS which stores NOAA GFS data from NOMAD server</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ERA5.ERA5.latlon_index_range">
-<span class="sig-name descname"><span class="pre">latlon_index_range</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lla</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ERA5.html#ERA5.latlon_index_range"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ERA5.ERA5.latlon_index_range" title="Link to this definition"></a></dt>
-<dd><p>Determine the dimensions of actual data. If you have columns or rows with missing data
-as indicated by NaN, then this function will return your actual shape size so you can
-resize your data being used.</p>
 </dd></dl>
 
 <dl class="py attribute">

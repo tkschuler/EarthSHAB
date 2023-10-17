@@ -39,7 +39,7 @@ class SolveStates:
         self.vm_coeff = .1 #virtual mass coefficient
         self.k = self.massEnv*config_earth.balloon_properties['cp'] #thermal mass coefficient
 
-        self.dt = config_earth.dt
+        self.dt = config_earth.simulation['dt']
 
     def get_acceleration(self,v,el,T_s,T_i):
         r"""Solves for the acceleration of the solar balloon after one timestep (dt).
