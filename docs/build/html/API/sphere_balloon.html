@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>sphere_balloon &mdash; EarthSHAB 1.1.0 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=fc837d61"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="windmap" href="windmap.html" />
+    <link rel="prev" title="solve_states" href="solve_states.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            EarthSHAB
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">EarthSHAB Examples</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">EarthSHAB API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="GFS.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">GFS</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="era5.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ERA5</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="radiation.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">radiation</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="solve_states.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">solve_states</span></code></a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">sphere_balloon</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="windmap.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">windmap</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../citing.html">Citing EarthSHAB</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">EarthSHAB</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">EarthSHAB API</a></li>
+      <li class="breadcrumb-item active"><code class="xref py py-mod docutils literal notranslate"><span class="pre">sphere_balloon</span></code></li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/API/sphere_balloon.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-sphere_balloon">
+<span id="sphere-balloon"></span><h1><a class="reference internal" href="#module-sphere_balloon" title="sphere_balloon"><code class="xref py py-mod docutils literal notranslate"><span class="pre">sphere_balloon</span></code></a><a class="headerlink" href="#module-sphere_balloon" title="Link to this heading"></a></h1>
+<p>sphere_balloon solves for the total heat transfer on the solar balloon.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="sphere_balloon.Sphere_Balloon">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sphere_balloon.</span></span><span class="sig-name descname"><span class="pre">Sphere_Balloon</span></span><a class="reference internal" href="../_modules/sphere_balloon.html#Sphere_Balloon"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sphere_balloon.Sphere_Balloon" title="Link to this definition"></a></dt>
+<dd><p>Initializes atmospheric properties from the earth configuration file</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="sphere_balloon.Sphere_Balloon.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sphere_balloon.html#Sphere_Balloon.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sphere_balloon.Sphere_Balloon.__init__" title="Link to this definition"></a></dt>
+<dd><p>Initializes all of the solar balloon paramaters from the configuration file</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sphere_balloon.Sphere_Balloon.get_Nu_ext">
+<span class="sig-name descname"><span class="pre">get_Nu_ext</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Ra</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Re</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Pr</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sphere_balloon.html#Sphere_Balloon.get_Nu_ext"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sphere_balloon.Sphere_Balloon.get_Nu_ext" title="Link to this definition"></a></dt>
+<dd><p>Calculates External Nusselt Number.</p>
+<p>Determine the external convection due to natural buoyancy</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}Nu_{ext,n}=\begin{cases}
+2+0.6Ra^{0.25}, &amp; \text{$Ra&lt;1.5\cdot10^8$}\\
+0.1Ra^{0.34}, &amp; \text{$Ra\geq1.5\cdot10^8$}
+\end{cases}\end{split}\]</div>
+<p>Determine the external forced convection due to the balloon ascending</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}Nu_{ext,f}=\begin{cases}
+2+0.47Re^{\frac{1}{2}}Pr^{\frac{1}{3}}, &amp; \text{$Re&lt;5\cdot10^4$}\\
+(0.0262Re^{0.34}-615)Pr^{\frac{1}{3}}, &amp; \text{$Re\geq1.5\cdot10^8$}
+\end{cases}\end{split}\]</div>
+<p>To transition between the two correlations:</p>
+<div class="math notranslate nohighlight">
+\[Nu_{ext} = max(Nu_{ext,n},Nu_{ext,f})\]</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Ra</strong> (<em>float</em>) – Raleigh’s number</p></li>
+<li><p><strong>Re</strong> (<em>float</em>) – Reynold’s number</p></li>
+<li><p><strong>Pr</strong> (<em>float</em>) – Prandtl Number</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>External Nusselt Number</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sphere_balloon.Sphere_Balloon.get_Nu_int">
+<span class="sig-name descname"><span class="pre">get_Nu_int</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Ra</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sphere_balloon.html#Sphere_Balloon.get_Nu_int"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sphere_balloon.Sphere_Balloon.get_Nu_int" title="Link to this definition"></a></dt>
+<dd><p>Calculates Internal Nusselt Number for internal convection between the balloon
+envelope and internal gas</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}Nu_{int}=\begin{cases}
+2.5(2+0.6Ra^{\frac{1}{4}}), &amp; \text{$Ra&lt;1.35\cdot10^8$}\\
+0.325Ra^{\frac{1}{3}}, &amp; \text{$Ra\geq1.35\cdot10^8$}
+\end{cases}\end{split}\]</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>Ra</strong> (<em>float</em>) – Raleigh’s number</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Internal Nusselt Number</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sphere_balloon.Sphere_Balloon.get_Pr">
+<span class="sig-name descname"><span class="pre">get_Pr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sphere_balloon.html#Sphere_Balloon.get_Pr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sphere_balloon.Sphere_Balloon.get_Pr" title="Link to this definition"></a></dt>
+<dd><p>Calculates Prantl Number</p>
+<div class="math notranslate nohighlight">
+\[Pr = \mu_{air}  \frac{C_{p,air}}{k}\]</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>T</strong> – Temperature (K)</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Prantl Number</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sphere_balloon.Sphere_Balloon.get_conduction">
+<span class="sig-name descname"><span class="pre">get_conduction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sphere_balloon.html#Sphere_Balloon.get_conduction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sphere_balloon.Sphere_Balloon.get_conduction" title="Link to this definition"></a></dt>
+<dd><p>Calculates Thermal Diffusivity of Air at Temperature, T using Sutherland’s Law of Thermal Diffusivity</p>
+<div class="math notranslate nohighlight">
+\[k_{air} = 0.0241(\frac{T_{atm}}{271.15})^{0.9}\]</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>T</strong> – Temperature (K)</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Thermal Diffusivity of Air (W/(m*K)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sphere_balloon.Sphere_Balloon.get_q_ext">
+<span class="sig-name descname"><span class="pre">get_q_ext</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">el</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sphere_balloon.html#Sphere_Balloon.get_q_ext"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sphere_balloon.Sphere_Balloon.get_q_ext" title="Link to this definition"></a></dt>
+<dd><p>Calculate External Heat Transfer to balloon envelope</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>zen</strong> (<em>float</em>) – Surface Temperature of Envelope (K)</p></li>
+<li><p><strong>el</strong> (<em>float</em>) – Elevation (m)print fluids.atmosphere.solar_position(datetime.datetime(2018, 4, 15, 6, 43, 5), 51.0486, -114.07)[0]</p></li>
+<li><p><strong>el</strong> – velocity (m/s)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Power transferred from sphere to surrounding atmosphere due to convection(W)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sphere_balloon.Sphere_Balloon.get_q_int">
+<span class="sig-name descname"><span class="pre">get_q_int</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">el</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sphere_balloon.html#Sphere_Balloon.get_q_int"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sphere_balloon.Sphere_Balloon.get_q_int" title="Link to this definition"></a></dt>
+<dd><p>Calculates Internal Heat Transfer</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T_s</strong> (<em>float</em>) – Surface Temperature of Envelope (K)</p></li>
+<li><p><strong>el</strong> (<em>float</em>) – Elevation (m)</p></li>
+<li><p><strong>v</strong> (<em>float</em>) – velocity (m/s)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Internal Heat Transfer (W)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sphere_balloon.Sphere_Balloon.get_sum_q_int">
+<span class="sig-name descname"><span class="pre">get_sum_q_int</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">el</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sphere_balloon.html#Sphere_Balloon.get_sum_q_int"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sphere_balloon.Sphere_Balloon.get_sum_q_int" title="Link to this definition"></a></dt>
+<dd><p>Calculates sum of Internal Heat Transfer.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Currently there are no initial heat sources. So this function returns the negative of <em>get_q_int()</em></p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T_s</strong> (<em>float</em>) – Surface Temperature of Envelope (K)</p></li>
+<li><p><strong>el</strong> (<em>float</em>) – Elevation (m)</p></li>
+<li><p><strong>v</strong> (<em>float</em>) – velocity (m/s)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>SUm of Internal Heat Transfer (W)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sphere_balloon.Sphere_Balloon.get_sum_q_surf">
+<span class="sig-name descname"><span class="pre">get_sum_q_surf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">q_rad</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">el</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sphere_balloon.html#Sphere_Balloon.get_sum_q_surf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sphere_balloon.Sphere_Balloon.get_sum_q_surf" title="Link to this definition"></a></dt>
+<dd><p>External Heat Transfer</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>q_rad</strong> (<em>float</em>) – Power input from external radiation (W)</p></li>
+<li><p><strong>T_s</strong> (<em>float</em>) – Surface Temperature of Envelope (K)</p></li>
+<li><p><strong>el</strong> (<em>float</em>) – Elevation (m)</p></li>
+<li><p><strong>v</strong> (<em>float</em>) – velocity (m/s)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The sum of power input to the balloon surface (W)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sphere_balloon.Sphere_Balloon.get_viscocity">
+<span class="sig-name descname"><span class="pre">get_viscocity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sphere_balloon.html#Sphere_Balloon.get_viscocity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sphere_balloon.Sphere_Balloon.get_viscocity" title="Link to this definition"></a></dt>
+<dd><p>Calculates Kinematic Viscocity of Air at Temperature, T</p>
+<div class="math notranslate nohighlight">
+\[\mu_{air} = 1.458\cdot10^{-6}\frac{T_{atm}^{1.5}}{T_{atm}+110.4}\]</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>T</strong> – Temperature (K)</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>mu, Kinematic Viscocity of Air</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="solve_states.html" class="btn btn-neutral float-left" title="solve_states" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="windmap.html" class="btn btn-neutral float-right" title="windmap" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Tristan Schuler.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

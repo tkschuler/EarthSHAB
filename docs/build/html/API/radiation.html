@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>radiation &mdash; EarthSHAB 1.1.0 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=fc837d61"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="solve_states" href="solve_states.html" />
+    <link rel="prev" title="ERA5" href="era5.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            EarthSHAB
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">EarthSHAB Usage</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">EarthSHAB API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="GFS.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">GFS</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="era5.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ERA5</span></code></a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">radiation</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="solve_states.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">solve_states</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sphere_balloon.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">sphere_balloon</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="windmap.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">windmap</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../citing.html">Citing EarthSHAB</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">EarthSHAB</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">EarthSHAB API</a></li>
+      <li class="breadcrumb-item active"><code class="xref py py-mod docutils literal notranslate"><span class="pre">radiation</span></code></li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/API/radiation.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-radiation">
+<span id="radiation"></span><h1><a class="reference internal" href="#module-radiation" title="radiation"><code class="xref py py-mod docutils literal notranslate"><span class="pre">radiation</span></code></a><a class="headerlink" href="#module-radiation" title="Link to this heading"></a></h1>
+<p>radiation solves for radiation due to the enviorment for a particular datetime and altitude.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="radiation.Radiation">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">radiation.</span></span><span class="sig-name descname"><span class="pre">Radiation</span></span><a class="reference internal" href="../_modules/radiation.html#Radiation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#radiation.Radiation" title="Link to this definition"></a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="radiation.Radiation.getTempForecast">
+<span class="sig-name descname"><span class="pre">getTempForecast</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coord</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/radiation.html#Radiation.getTempForecast"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#radiation.Radiation.getTempForecast" title="Link to this definition"></a></dt>
+<dd><p>Looks up the forecast temperature at the current coordinate and altitude</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>TODO. This function is not operational yet.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>coord</strong> (<em>dict</em>) – current coordinate</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>atmospheric temperature (k)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="radiation.Radiation.get_SI0">
+<span class="sig-name descname"><span class="pre">get_SI0</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/radiation.html#Radiation.get_SI0"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#radiation.Radiation.get_SI0" title="Link to this definition"></a></dt>
+<dd><p>Incident solar radiation above Earth’s atmosphere (W/m^2)</p>
+<div class="math notranslate nohighlight">
+\[I_{sun,0}= I_0 \cdot [1+0.5(\frac{1+e}{1-e})^2-1) \cdot cos(f)]\]</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The incident solar radiation above Earths atm (W/m^2)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="radiation.Radiation.get_air_mass">
+<span class="sig-name descname"><span class="pre">get_air_mass</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">zen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">el</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/radiation.html#Radiation.get_air_mass"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#radiation.Radiation.get_air_mass" title="Link to this definition"></a></dt>
+<dd><p>Air Mass at elevation</p>
+<div class="math notranslate nohighlight">
+\[AM = 1229+(614cos(\zeta)^2)^{\frac{1}{2}}-614cos(\zeta)\]</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>zen</strong> (<em>float</em>) – Solar Angle (rad)</p></li>
+<li><p><strong>el</strong> (<em>float</em>) – Elevation (m)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The approximate air mass (unitless)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="radiation.Radiation.get_diffuse_SI">
+<span class="sig-name descname"><span class="pre">get_diffuse_SI</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">zen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">el</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/radiation.html#Radiation.get_diffuse_SI"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#radiation.Radiation.get_diffuse_SI" title="Link to this definition"></a></dt>
+<dd><p>Calculates Diffuse Solar Radiation from sky</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>zen</strong> (<em>float</em>) – Solar Angle (rad)</p></li>
+<li><p><strong>el</strong> (<em>float</em>) – Elevation (m)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The intensity of the diffuse solar radiation from the sky (W/m^2)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="radiation.Radiation.get_direct_SI">
+<span class="sig-name descname"><span class="pre">get_direct_SI</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">zen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">el</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/radiation.html#Radiation.get_direct_SI"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#radiation.Radiation.get_direct_SI" title="Link to this definition"></a></dt>
+<dd><p>Calculates Direct Solar Radiation</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>zen</strong> (<em>float</em>) – Solar Angle (rad)</p></li>
+<li><p><strong>el</strong> (<em>float</em>) – Elevation (m)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tntensity of the direct solar radiation (W/m^2)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="radiation.Radiation.get_earth_IR">
+<span class="sig-name descname"><span class="pre">get_earth_IR</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">el</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/radiation.html#Radiation.get_earth_IR"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#radiation.Radiation.get_earth_IR" title="Link to this definition"></a></dt>
+<dd><p>Calculates Infared Radiation emitted from Earth’s surface</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>el</strong> (<em>float</em>) – Elevation (m)</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Intensity of IR radiation emitted from earth (W/m^2)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="radiation.Radiation.get_rad_total">
+<span class="sig-name descname"><span class="pre">get_rad_total</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">datetime</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coord</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/radiation.html#Radiation.get_rad_total"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#radiation.Radiation.get_rad_total" title="Link to this definition"></a></dt>
+<dd><p>Calculates total radiation sources as a function of altitude, time, and balloon surface area.</p>
+<p>The figure below shows how different altitudes effects the radiation sources on
+a particular date and coordinate for Tucson Arizona (at sruface level and 25 km altitudes)</p>
+<img alt="../_images/Tucson_Radiation_Comparison.png" src="../_images/Tucson_Radiation_Comparison.png" />
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="radiation.Radiation.get_reflected_SI">
+<span class="sig-name descname"><span class="pre">get_reflected_SI</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">zen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">el</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/radiation.html#Radiation.get_reflected_SI"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#radiation.Radiation.get_reflected_SI" title="Link to this definition"></a></dt>
+<dd><p>Calculates Reflected Solar Radiation from from the Earth’s Surface</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>zen</strong> (<em>float</em>) – Solar Angle (rad)</p></li>
+<li><p><strong>el</strong> (<em>float</em>) – Elevation (m)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The intensity solar radiation reflected by the Earth (W/m^2)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="radiation.Radiation.get_sky_IR">
+<span class="sig-name descname"><span class="pre">get_sky_IR</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">el</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/radiation.html#Radiation.get_sky_IR"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#radiation.Radiation.get_sky_IR" title="Link to this definition"></a></dt>
+<dd><p>Calculates Infared Radiation emitted the from Sky</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>el</strong> (<em>float</em>) – Elevation (m)</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Intensity of IR radiation emitted from sky (W/m^2)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="radiation.Radiation.get_trans_atm">
+<span class="sig-name descname"><span class="pre">get_trans_atm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">zen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">el</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/radiation.html#Radiation.get_trans_atm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#radiation.Radiation.get_trans_atm" title="Link to this definition"></a></dt>
+<dd><p>The amount of solar radiation that permeates through the atmosphere at a
+certain altitude, I_{sun} is driven by the atmospheric transmittance.</p>
+<div class="math notranslate nohighlight">
+\[\tau_{atm}= \frac{1}{2}(e^{-0.65AM}+e^{-0.095AM})\]</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>zen</strong> (<em>float</em>) – Solar Angle (rad)</p></li>
+<li><p><strong>el</strong> (<em>float</em>) – Elevation (m)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The atmospheric trasmittance (unitless)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="radiation.Radiation.get_zenith">
+<span class="sig-name descname"><span class="pre">get_zenith</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coord</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/radiation.html#Radiation.get_zenith"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#radiation.Radiation.get_zenith" title="Link to this definition"></a></dt>
+<dd><p>Calculates adjusted solar zenith angle at elevation</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>t</strong> (<em>Datetime</em>) – Lattitude (rad)</p></li>
+<li><p><strong>coord</strong> (<em>dict</em>) – Solar Hour Angle (rad)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The approximate solar zenith angle (rad)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="era5.html" class="btn btn-neutral float-left" title="ERA5" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="solve_states.html" class="btn btn-neutral float-right" title="solve_states" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Tristan Schuler.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

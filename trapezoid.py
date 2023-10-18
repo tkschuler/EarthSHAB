@@ -1,3 +1,10 @@
+"""
+trapezoid. shows an example of using a manual altitude profile to generate a balloon trajectory.
+
+This particular altitude profile is trapezoidal in shape with an ascent/descent velocity 2 and 3 m/s respectively and a float altitude
+that is specified in config_earth.
+"""
+
 from termcolor import colored
 import math
 import gmplot
@@ -6,19 +13,13 @@ import matplotlib.pyplot as plt
 import os
 
 import GFS
+import ERA5
 import radiation
 import config_earth
 
 
 if not os.path.exists('trajectories'):
     os.makedirs('trajectories')
-
-"""
-This file shows an example of using a manual altitude profile to generate a balloon trajectory.
-
-This particular altitude profile is trapezoidal in shape with an ascent/descent velocity 2 and 3 m/s respectively and a float altitude
-that is specified in config_earth.
-"""
 
 GMT = 7
 
@@ -28,9 +29,11 @@ start = config_earth.simulation['start_time']
 t = start
 min_alt = config_earth.simulation['min_alt']
 float = config_earth.simulation['float']
-dt = config_earth.dt
+dt = config_earth.simulation['dt']
 sim = config_earth.simulation["sim_time"]
-GFSrate = config_earth.GFS["GFSrate"]
+GFSrate = config_earth.forecast["GFSrate"]
+
+forecast_type = config_earth.forecast['forecast_type']
 
 simulation_time = sim*int(3600*(1/dt)) # Simulation time in seconds
 
@@ -42,7 +45,11 @@ lat = [coord["lat"]]
 lon = [coord["lon"]]
 
 
-gfs = GFS.GFS(coord)
+if forecast_type == "GFS":
+    gfs = GFS.GFS(coord)
+else:
+    gfs = ERA5.ERA5(coord)
+
 burst = False
 gmap1 = gmplot.GoogleMapPlotter(coord["lat"],coord["lon"],8)
 
@@ -75,7 +82,7 @@ for i in range(0,simulation_time):
         el_new = float
 
     if zen > math.radians(90):
-        el_new -= 3 *dtt
+        el_new -= 3 *dt #this used to say dtt
 
 
     if el_new < min_alt:

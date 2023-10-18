@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EarthSHAB Usage &mdash; EarthSHAB 1.1.0 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=fc837d61"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Downloading GFS Forecasts" href="downloadGFS.html" />
+    <link rel="prev" title="Installation Requirements" href="../installation.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            EarthSHAB
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation Requirements</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">EarthSHAB Usage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="downloadGFS.html">Downloading GFS Forecasts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="downloadERA5.html">Downloading ERA5 Forecasts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#configuration-file">Configuration File</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../API/index.html">EarthSHAB API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../citing.html">Citing EarthSHAB</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">EarthSHAB</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">EarthSHAB Usage</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/examples/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="earthshab-usage">
+<span id="examples-index"></span><h1>EarthSHAB Usage<a class="headerlink" href="#earthshab-usage" title="Link to this heading"></a></h1>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Downloading and Saving Forecasts:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="downloadGFS.html">Downloading GFS Forecasts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="downloadERA5.html">Downloading ERA5 Forecasts</a></li>
+</ul>
+</div>
+<p>These files give examples on how to use EarthSHAB.</p>
+<section id="configuration-file">
+<h2>Configuration File<a class="headerlink" href="#configuration-file" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">config.py</span></code> is the heart of any EarthSHAB simulation and the only file that needs to be updated to use EarthSHAB at the current release.  Many parameters can be adjusted for running EarthSHAB simulations and the parameters are grouped together into convienent categories:</p>
+<ul class="simple">
+<li><p><strong>balloon_properties:</strong> includes parameters for adjusting the balloon size and material propeties.  Currently only the ‘sphere’ shape is supported.  If using a standard 6m charcoal-coated SHAB balloon, the payload and envelope masses are the only parameters that need to be updated.</p></li>
+<li><p><strong>netcdf_gfs:</strong> includes parameters for reading and saving GFS netcdf forecasts from <a class="reference external" href="https://nomads.ncep.noaa.gov/">NOAA’s NOMADS server</a>. Currently only supporting forecasts with a resolution of 0.25 degrees for better trajectroy prediction accuracy.</p></li>
+<li><p><strong>netcdf_era5:</strong></p></li>
+<li><p><strong>simulation:</strong></p></li>
+<li><p><strong>forecast_type:</strong> Either GFS or ERA5.  For either to work, a corresponding netcdf file must be download and in the forecasts directory.</p></li>
+<li><p><strong>GFS.GFSRate:</strong> adjusts how often wind speeds are looked up (default is once per 60 seconds). The fastest look up rate is up to 1.0 s, which provides the highest fidelity predictions, but also takes significantly longer to run a simulation.</p></li>
+<li><p><strong>dt:</strong> is default to 1.0s integrating intervals.</p></li>
+<li><p><strong>earth_properties:</strong> include mostly constant proeprties for earth.  These values typically don’t need to be changed, however the ground emissivity and albedo might be changed if predicting balloon launches over oceans or snow covered locations.</p></li>
+</ul>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>If when increasing <code class="docutils literal notranslate"><span class="pre">dt</span></code>, nans are introduced,  this is a numerical integration issue that can be solved by decreasing dt. Most values over 2.5s cause this issue when running a simulation.</p>
+</div>
+</section>
+<section id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">main.py</span></code> performs a full-physics based simulation taking into account: balloon geometry and properties, radiation sources for the coordinate and altitude, dynamic force analysis, and weather forecasts.  The simulation outputs an altitude plot, balloon temperature, a 3d wind rose and atmospheric temperature profile for the starting location, and an interactive google maps trajectory.</p>
+<p><strong>New</strong> in v1.1, <code class="docutils literal notranslate"><span class="pre">main.py</span></code> supports comparing simulations (using either a GFS forecast or ERA5 renalysis) to a historical balloon flight. At this time, only balloon trajectories in the <em>aprs.fi</em> format are supported. Flights using APRS devices for real time tracking can be downloaded after landing from  <a class="reference external" href="https:aprs.fi">APRS.fi</a>.  To use this functionality, change <code class="docutils literal notranslate"><span class="pre">balloon_trajectory</span></code> in the configuration file from None to a filename.</p>
+<p><a class="reference internal" href="../_images/SHAB12-V.png"><img alt="pic0" src="../_images/SHAB12-V.png" style="width: 100%;" /></a></p>
+<p><code class="docutils literal notranslate"><span class="pre">predict.py</span></code> uses EarthSHAB to generate a family of altitude and trajectory predictions at different float altitudes. Estimating float altitudes for a standard charcoal SHAB balloon are challenging and can range from SHAB to SHAB even if all the <strong>balloon_properties</strong> are the same and the balloons are launches on the same day. This example produces a rainbow altitude plot and interactive google maps trajectory prediction. The float altitudes are adjusted by changing the payload mass in .25 increments to simulate varrying float altitudes.</p>
+<p><a class="reference internal" href="../_images/rainbow_trajectories_altitude.png"><img alt="pic1" src="../_images/rainbow_trajectories_altitude.png" style="width: 48%;" /></a> <a class="reference internal" href="../_images/rainbow_trajectories_map.PNG"><img alt="pic2" src="../_images/rainbow_trajectories_map.PNG" style="width: 48%;" /></a></p>
+<p><code class="docutils literal notranslate"><span class="pre">trajectory.py</span></code> provides a rough example of how to use EarthSHAB with a manual altitude profile to estimate wind-based trajectory predictions.  Alternatively, you can generate a csv file in the <em>aprs.fi</em> format and inclue it in <code class="docutils literal notranslate"><span class="pre">config.py</span></code>.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../installation.html" class="btn btn-neutral float-left" title="Installation Requirements" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="downloadGFS.html" class="btn btn-neutral float-right" title="Downloading GFS Forecasts" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Tristan Schuler.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

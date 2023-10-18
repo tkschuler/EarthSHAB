@@ -1,15 +1,19 @@
+"""
+sphere_balloon solves for the total heat transfer on the solar balloon.
+
+"""
+
 import math
 import numpy as np
 import radiation
 
 import config_earth
 
-"""
-sphere_balloon.py solves for the total heat transfer on the solar balloon.
-"""
 
 class Sphere_Balloon:
-    """Initializes atmospheric properties from the earth configuration file"""
+    """Initializes atmospheric properties from the earth configuration file
+
+    """
     Cp_air0 = config_earth.earth_properties['Cp_air0']
     Rsp_air = config_earth.earth_properties['Rsp_air']
     cv_air0 = config_earth.earth_properties['Cv_air0']
@@ -19,7 +23,9 @@ class Sphere_Balloon:
     SB = 5.670373E-8    # Stefan Boltzman Constant
 
     def __init__(self):
-        """Initializes all of the solar balloon paramaters from the configuration file"""
+        """Initializes all of the solar balloon paramaters from the configuration file
+
+        """
         self.d = config_earth.balloon_properties['d']
         self.emissEnv = config_earth.balloon_properties['emissEnv']
 
@@ -31,38 +37,45 @@ class Sphere_Balloon:
         self.emissEnv = e
 
     def get_viscocity(self,T):
-        """Calculates Kinematic Viscocity of Air at Temperature,T
+        r"""Calculates Kinematic Viscocity of Air at Temperature, T
+
+        .. math:: \mu_{air} = 1.458\cdot10^{-6}\frac{T_{atm}^{1.5}}{T_{atm}+110.4}
+
 
         :param T: Temperature (K)
         :type Ra: float
         :returns: mu, Kinematic Viscocity of Air
         :rtype: float
+
         """
         #print("viscocity",T)
         return 1.458E-6*(np.sign(T) * (np.abs(T)) ** (1.5))/(T+110.4) #numpy power does not allow fractional powers of negative numbers. This is the workaround
 
     def get_conduction(self,T):
-        """Calculates Thermal Diffusivity of Air at Temperature, T using Sutherland's Law of Thermal Diffusivity
+        r"""Calculates Thermal Diffusivity of Air at Temperature, T using Sutherland's Law of Thermal Diffusivity
+
+
+        .. math:: k_{air} = 0.0241(\frac{T_{atm}}{271.15})^{0.9}
 
         :param T: Temperature (K)
         :type Ra: float
         :returns: Thermal Diffusivity of Air (W/(m*K)
         :rtype: float
+
         """
-
-        #print("conduction",T)
-
-
 
         return 0.0241*(np.sign(T) * (np.abs(T/273.15)) ** (0.9))
 
     def get_Pr(self,T):
-        """Calculates Prantl Number
+        r"""Calculates Prantl Number
+
+        .. math:: Pr = \mu_{air}  \frac{C_{p,air}}{k}
 
         :param T: Temperature (K)
         :type Ra: float
         :returns: Prantl Number
         :rtype: float
+
         """
         k = self.get_conduction(T) #Thermal diffusivity
         Pr = self.get_viscocity(T)*Sphere_Balloon.Cp_air0/k
@@ -71,7 +84,26 @@ class Sphere_Balloon:
     #-------------------------------------------SOLVE FOR T_S------------------------------------------------------------------'''
 
     def get_Nu_ext(self,Ra, Re, Pr):
-        """Calculates External Nusselt Number
+        r"""Calculates External Nusselt Number.
+
+        Determine the external convection due to natural buoyancy
+
+        .. math:: Nu_{ext,n}=\begin{cases}
+            2+0.6Ra^{0.25}, & \text{$Ra<1.5\cdot10^8$}\\
+            0.1Ra^{0.34}, & \text{$Ra\geq1.5\cdot10^8$}
+            \end{cases}
+
+        Determine the external forced convection due to the balloon ascending
+
+        .. math:: Nu_{ext,f}=\begin{cases}
+            2+0.47Re^{\frac{1}{2}}Pr^{\frac{1}{3}}, & \text{$Re<5\cdot10^4$}\\
+            (0.0262Re^{0.34}-615)Pr^{\frac{1}{3}}, & \text{$Re\geq1.5\cdot10^8$}
+            \end{cases}
+
+        To transition between the two correlations:
+
+        .. math:: Nu_{ext} = max(Nu_{ext,n},Nu_{ext,f})
+
 
         :param Ra: Raleigh's number
         :type Ra: float
@@ -81,6 +113,7 @@ class Sphere_Balloon:
         :type Pr: float
         :returns: External Nusselt Number
         :rtype: float
+
         """
 
         Nu_n = 0.0
@@ -109,6 +142,7 @@ class Sphere_Balloon:
         :type el: float
         :returns: Power transferred from sphere to surrounding atmosphere due to convection(W)
         :rtype: float
+
         """
 
         rad = radiation.Radiation()
@@ -147,6 +181,7 @@ class Sphere_Balloon:
         :type v: float
         :returns: The sum of power input to the balloon surface (W)
         :rtype: float
+
         """
 
         q_conv_loss = -self.get_q_ext(T_s, el, v)
@@ -156,12 +191,19 @@ class Sphere_Balloon:
     #--------------------------------------------SOLVE FOR T INT-------------------------------------------------------------
 
     def get_Nu_int(sef,Ra):
-        """Calculates Internal Nusselt Number
+        r"""Calculates Internal Nusselt Number for internal convection between the balloon
+        envelope and internal gas
+
+        .. math:: Nu_{int}=\begin{cases}
+            2.5(2+0.6Ra^{\frac{1}{4}}), & \text{$Ra<1.35\cdot10^8$}\\
+            0.325Ra^{\frac{1}{3}}, & \text{$Ra\geq1.35\cdot10^8$}
+            \end{cases}
 
         :param Ra: Raleigh's number
         :type Ra: float
         :returns: Internal Nusselt Number
         :rtype: float
+
         """
 
         if Ra < 1.35E8:
@@ -180,6 +222,7 @@ class Sphere_Balloon:
         :type v: float
         :returns: Internal Heat Transfer (W)
         :rtype: float
+
         """
 
         rad = radiation.Radiation()
@@ -228,6 +271,7 @@ class Sphere_Balloon:
         :type v: float
         :returns: SUm of Internal Heat Transfer (W)
         :rtype: float
+
         """
         q_conv_int = self.get_q_int(T_s, T_i, el)
         return q_conv_int

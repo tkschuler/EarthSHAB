@@ -1,0 +1,16 @@
+version 1.1.0
+===============================
+* Added ERA5 reanalysis functionality
+* Added Documentation in readthedocs format
+* Updated the netcdf lookup scheme in GFS to be significantly faster
+* Added checks to see if simulation will go out of bounds or over time
+* Configuration file reorganization and update
+
+
+version 1.0.1
+===============================
+* Added predict.py and rainbow trajectory prediction for multiple float altitudes
+
+version 1.0.0
+===============================
+* The original EarthSHAB software

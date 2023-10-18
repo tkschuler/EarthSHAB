@@ -1,12 +1,13 @@
+"""
+radiation solves for radiation due to the enviorment for a particular datetime and altitude.
+
+"""
+
 import math
 import fluids
 import numpy as np
 
 import config_earth
-
-"""
-radiation3.py solves for radiation due to the enviorment for a particular datetime and altitude.
-"""
 
 class Radiation:
     # Constants
@@ -39,6 +40,19 @@ class Radiation:
         atm = fluids.atmosphere.ATMOSPHERE_1976(el)
         return atm.T
 
+    def getTempForecast(self, coord):
+        r""" Looks up the forecast temperature at the current coordinate and altitude
+
+        .. important:: TODO. This function is not operational yet. 
+
+        :param coord: current coordinate
+        :type coord: dict
+        :returns: atmospheric temperature (k)
+        :rtype: float
+
+        """
+        return temp
+
     def getPressure(self, el):
         atm = fluids.atmosphere.ATMOSPHERE_1976(el)
         return atm.P
@@ -52,10 +66,14 @@ class Radiation:
         return atm.g
 
     def get_SI0(self):
-        """ Incident solar radiation above Earth's atmosphere (W/m^2)
+        r""" Incident solar radiation above Earth's atmosphere (W/m^2)
+
+        .. math:: I_{sun,0}= I_0 \cdot [1+0.5(\frac{1+e}{1-e})^2-1) \cdot cos(f)]
+
 
         :returns: The incident solar radiation above Earths atm (W/m^2)
         :rtype: float
+
         """
 
         f = 2*math.pi*Radiation.Ls/365 #true anomaly
@@ -63,16 +81,12 @@ class Radiation:
         return Radiation.I0*(1.+0.5*e2*math.cos(f))
 
     def get_declination(self):
-        """Expression from http://en.wikipedia.org/wiki/Position_of_the_Sun
-
-        :returns: Approximate solar declination (rad)
-        :rtype: float
-        """
+        #This function is unused
 
         return -.4091*math.cos(2*math.pi*(Radiation.Ls+10)/365)
 
     def get_zenith(self, t, coord):
-        """ Calculates solar zenith angle
+        """ Calculates adjusted solar zenith angle at elevation
 
         :param t: Lattitude (rad)
         :type t: Datetime
@@ -80,6 +94,7 @@ class Radiation:
         :type coord: dict
         :returns: The approximate solar zenith angle (rad)
         :rtype: float
+
         """
 
         solpos = fluids.solar_position(t, coord["lat"], coord["lon"], Z = coord["alt"])
@@ -97,7 +112,9 @@ class Radiation:
         return adjusted_zen
 
     def get_air_mass(self,zen, el):
-        """Air Mass at elevation
+        r"""Air Mass at elevation
+
+        .. math:: AM = 1229+(614cos(\zeta)^2)^{\frac{1}{2}}-614cos(\zeta)
 
         :param zen: Solar Angle (rad)
         :type zen: float
@@ -105,6 +122,7 @@ class Radiation:
         :type el: float
         :returns: The approximate air mass (unitless)
         :rtype: float
+
         """
 
         p = self.getPressure(el) #pressure at current elevation
@@ -112,7 +130,10 @@ class Radiation:
         return am
 
     def get_trans_atm(self,zen,el):
-        """get zenith angle
+        r"""The amount of solar radiation that permeates through the atmosphere at a
+        certain altitude, I_{sun} is driven by the atmospheric transmittance.
+
+        .. math:: \tau_{atm}= \frac{1}{2}(e^{-0.65AM}+e^{-0.095AM})
 
         :param zen: Solar Angle (rad)
         :type zen: float
@@ -120,6 +141,7 @@ class Radiation:
         :type el: float
         :returns: The atmospheric trasmittance (unitless)
         :rtype: float
+
         """
 
         am = self.get_air_mass(zen, el)
@@ -135,6 +157,7 @@ class Radiation:
         :type el: float
         :returns: Tntensity of the direct solar radiation (W/m^2)
         :rtype: float
+
         """
 
         SI0 = self.get_SI0()
@@ -155,6 +178,7 @@ class Radiation:
         :type el: float
         :returns: The intensity of the diffuse solar radiation from the sky (W/m^2)
         :rtype: float
+
         """
 
         if(zen > math.pi/2.):
@@ -175,6 +199,7 @@ class Radiation:
         :type el: float
         :returns: The intensity solar radiation reflected by the Earth (W/m^2)
         :rtype: float
+
         """
 
         incident_SI = self.get_SI0()
@@ -193,6 +218,7 @@ class Radiation:
         :type el: float
         :returns: Intensity of IR radiation emitted from earth (W/m^2)
         :rtype: float
+
         """
         p = self.getPressure(el)#pressure at current elevation
         IR_trans = 1.716-0.5*(math.exp(-0.65*p/Radiation.P0) + math.exp(-0.095*p/Radiation.P0))
@@ -210,12 +236,18 @@ class Radiation:
         :type el: float
         :returns: Intensity of IR radiation emitted from sky (W/m^2)
         :rtype: float
+
         """
 
         return np.fmax(-0.03*el+300.,50.0)
 
     def get_rad_total(self,datetime,coord):
-        """Total Radiation as a function of elevation, time of day, and balloon surface area
+        """Calculates total radiation sources as a function of altitude, time, and balloon surface area.
+
+        The figure below shows how different altitudes effects the radiation sources on
+        a particular date and coordinate for Tucson Arizona (at sruface level and 25 km altitudes)
+
+        .. image:: ../../img/Tucson_Radiation_Comparison.png
 
         """
 

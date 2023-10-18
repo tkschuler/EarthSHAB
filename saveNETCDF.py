@@ -1,3 +1,10 @@
+"""
+saveNETCDF.py downloads a portion of the netCDF file for the specified day and
+area specified in earth_config.py.
+
+Archive forecast dataset retirval is not currently supported.
+"""
+
 import netCDF4 as nc4
 import config_earth
 from termcolor import colored
@@ -7,23 +14,16 @@ import sys
 import os
 
 coord = config_earth.simulation['start_coord']
-lat_range = config_earth.netcdf['lat_range']
-lon_range = config_earth.netcdf['lon_range']
-hours3 = config_earth.netcdf['hours3']
-hourstamp = config_earth.netcdf['hourstamp']
-res = config_earth.netcdf['res']
+lat_range = config_earth.netcdf_gfs['lat_range']
+lon_range = config_earth.netcdf_gfs['lon_range']
+download_days = config_earth.netcdf_gfs['download_days']
+hourstamp = config_earth.netcdf_gfs['hourstamp']
+res = config_earth.netcdf_gfs['res']
 
-nc_start = config_earth.netcdf['nc_start']
+nc_start = config_earth.netcdf_gfs['nc_start']
 
 if not os.path.exists('forecasts'):
     os.makedirs('forecasts')
-
-"""
-saveNETCDF.py downloads a portion of the netCDF file for the specified day and
-area specified in earth_config.py.
-
-Archive forecast dataset retirval is not currently supported.
-"""
 
 def closest(arr, k):
     """ Given an ordered array and a value, determines the index of the closest item
@@ -69,7 +69,7 @@ except:
     print(colored("NOAA DODS Server error with timestamp " + str(nc_start) + ". Data not downloaded.", "red"))
     sys.exit()
 
-nc_out = nc4.Dataset(config_earth.netcdf['nc_file'], 'w')
+nc_out = nc4.Dataset(config_earth.netcdf_gfs['nc_file'], 'w')
 
 for name, dimension in nc_in.dimensions.items():
     nc_out.createDimension(name, len(dimension) if not dimension.isunlimited() else None)
@@ -86,7 +86,7 @@ for name, variable in nc_in.variables.items():
         x = nc_out.createVariable(name, variable.datatype, variable.dimensions, zlib=True) #Without zlib the file will be MASSIVE
 
         #Download only a chunk of the data
-        for i in range(0,hours3):
+        for i in range(0,download_days*8+1):  #In intervals of 3 hours. hour_index of 8 is 8*3=24 hours. Add one more index to get full day range
             #print(lat_i,lon_i)
             data = nc_in.variables[name][i,0:34,lat_i-lat_range:lat_i+lat_range,lon_i-lon_range:lon_i+lon_range] #This array can only have a maximum of  536,870,912 elements, Need to dynamically add.
             nc_out.variables[name][i,0:34,lat_i-lat_range:lat_i+lat_range,lon_i-lon_range:lon_i+lon_range] = data
