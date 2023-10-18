@@ -33,11 +33,11 @@ class GFS:
 
         self.geod = Geodesic.WGS84
 
-        # Initialize min/max lat/lon index values from netcdf4 subset
-        #self.lat_min_idx = None
-        #self.lon_min_idx = None
-        #self.lat_max_idx = None
-        #self.lon_max_idx = None
+        time_arr = self.file.variables['time']
+
+        #Manually add time units, not imported with units formatted in saveNETCDF.py
+        self.time_convert = netCDF4.num2date(time_arr[:], units="days since 0001-01-01", has_year_zero=True)
+
 
         #Determine Index values from netcdf4 subset
         netcdf_ranges = self.file.variables['ugrdprs'][:,0,:,:]
@@ -46,18 +46,12 @@ class GFS:
         # smaller array of downloaded forecast subset
         self.lat  = self.file.variables['lat'][self.lat_min_idx:self.lat_max_idx]
         self.lon  = self.file.variables['lon'][self.lon_min_idx:self.lon_max_idx]
-        time_arr = self.file.variables['time']
-
-        #Manually add time units, not imported with units formatted in saveNETCDF.py
-        self.time_convert = netCDF4.num2date(time_arr[:], units="days since 0001-01-01", has_year_zero=True)
-
 
         # min/max lat/lon degree values from netcdf4 subset
         self.LAT_LOW  = self.file.variables['lat'][self.lat_min_idx]
         self.LON_LOW  = self.file.variables['lon'][self.lon_min_idx]
         self.LAT_HIGH = self.file.variables['lat'][self.lat_max_idx]
         self.LON_HIGH = self.file.variables['lon'][self.lon_max_idx]
-
 
         print("LAT RANGE: min: " + str(self.LAT_LOW), " (deg) max: " + str(self.LAT_HIGH) + " (deg) array size: " + str(self.lat_max_idx-self.lat_min_idx+1))
         print("LON RANGE: min: " + str(self.LON_LOW), " (deg) max: " + str(self.LON_HIGH) + " (deg) array size: " + str(self.lon_max_idx-self.lon_min_idx+1))
@@ -116,13 +110,16 @@ class GFS:
             self.lon_min_idx = lonrange.min()
             self.lon_max_idx = lonrange.max()
         else: #This might be broken for time
+            #Need to double check this for an entire world netcdf download
+            '''
             self.start_time_idx = 0
-            self.end_time_idx = len(self.time_convert)
+            self.end_time_idx = len(self.time_convert)-1
             lati, loni = netcdf_ranges.shape
             self.lat_min_idx = lati
             self.lat_max_idx = 0
             self.lon_max_idx = loni
             self.lon_min_idx = 0
+            '''
 
     def closest(self, arr, k):
         """ Given an ordered array and a value, determines the index of the closest item contained in the array.

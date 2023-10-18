@@ -41,7 +41,8 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../usage/installation.html">Installation Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">EarthSHAB Usage</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../API/index.html">EarthSHAB API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../citing.html">Citing EarthSHAB</a></li>
 </ul>
@@ -114,6 +115,22 @@
     <span class="k">def</span> <span class="nf">getTemp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">el</span><span class="p">):</span>
         <span class="n">atm</span> <span class="o">=</span> <span class="n">fluids</span><span class="o">.</span><span class="n">atmosphere</span><span class="o">.</span><span class="n">ATMOSPHERE_1976</span><span class="p">(</span><span class="n">el</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">atm</span><span class="o">.</span><span class="n">T</span>
+
+<div class="viewcode-block" id="Radiation.getTempForecast">
+<a class="viewcode-back" href="../API/radiation.html#radiation.Radiation.getTempForecast">[docs]</a>
+    <span class="k">def</span> <span class="nf">getTempForecast</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coord</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot; Looks up the forecast temperature at the current coordinate and altitude</span>
+
+<span class="sd">        .. important:: TODO. This function is not operational yet. </span>
+
+<span class="sd">        :param coord: current coordinate</span>
+<span class="sd">        :type coord: dict</span>
+<span class="sd">        :returns: atmospheric temperature (k)</span>
+<span class="sd">        :rtype: float</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">temp</span></div>
+
 
     <span class="k">def</span> <span class="nf">getPressure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">el</span><span class="p">):</span>
         <span class="n">atm</span> <span class="o">=</span> <span class="n">fluids</span><span class="o">.</span><span class="n">atmosphere</span><span class="o">.</span><span class="n">ATMOSPHERE_1976</span><span class="p">(</span><span class="n">el</span><span class="p">)</span>

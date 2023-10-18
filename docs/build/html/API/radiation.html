@@ -45,8 +45,8 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation Guide</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">EarthSHAB Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">EarthSHAB Usage</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">EarthSHAB API</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="GFS.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">GFS</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="era5.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ERA5</span></code></a></li>
@@ -91,6 +91,27 @@
 <dt class="sig sig-object py" id="radiation.Radiation">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">radiation.</span></span><span class="sig-name descname"><span class="pre">Radiation</span></span><a class="reference internal" href="../_modules/radiation.html#Radiation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#radiation.Radiation" title="Link to this definition"></a></dt>
 <dd><dl class="py method">
+<dt class="sig sig-object py" id="radiation.Radiation.getTempForecast">
+<span class="sig-name descname"><span class="pre">getTempForecast</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coord</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/radiation.html#Radiation.getTempForecast"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#radiation.Radiation.getTempForecast" title="Link to this definition"></a></dt>
+<dd><p>Looks up the forecast temperature at the current coordinate and altitude</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>TODO. This function is not operational yet.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>coord</strong> (<em>dict</em>) – current coordinate</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>atmospheric temperature (k)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="radiation.Radiation.get_SI0">
 <span class="sig-name descname"><span class="pre">get_SI0</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/radiation.html#Radiation.get_SI0"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#radiation.Radiation.get_SI0" title="Link to this definition"></a></dt>
 <dd><p>Incident solar radiation above Earth’s atmosphere (W/m^2)</p>

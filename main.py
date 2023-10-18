@@ -1,3 +1,12 @@
+""" This file shows an example of how to predict solar balloon trajectories and produces several plots
+as well as an html trajectory map that uses Google maps and can be opened in an internet browser.
+
+run saveNETCDF.py before running this file to download a forecast from NOAA.
+
+Maybe convert to this new library later https://unidata.github.io/python-training/workshop/Bonus/downloading-gfs-with-siphon/
+
+"""
+
 import math
 import solve_states
 import GFS
@@ -16,19 +25,10 @@ import copy
 import seaborn as sns
 import xarray as xr
 from netCDF4 import Dataset
-#import windmap
 
 import radiation
 import config_earth
 import windmap
-
-""" This file shows an example of how to predict solar balloon trajectories and produces several plots
-as well as an html trajectory map that uses Google maps and can be opened in an internet browser.
-
-run saveNETCDF.py before running this file to download a forecast from NOAA.
-
-Maybe convert to this new library later https://unidata.github.io/python-training/workshop/Bonus/downloading-gfs-with-siphon/
-"""
 
 if not os.path.exists('trajectories'):
     os.makedirs('trajectories')
@@ -239,10 +239,10 @@ if forecast_type == "GFS":
 
 elif forecast_type == "ERA5":
     region= zip(*[
-        (gfs.lat_bot_deg, gfs.lon_left_deg),
-        (gfs.lat_top_deg, gfs.lon_left_deg),
-        (gfs.lat_top_deg, gfs.lon_right_deg),
-        (gfs.lat_bot_deg, gfs.lon_right_deg)
+        (gfs.LAT_LOW, gfs.LON_LOW),
+        (gfs.LAT_HIGH, gfs.LON_LOW),
+        (gfs.LAT_HIGH, gfs.LON_HIGH),
+        (gfs.LAT_LOW, gfs.LON_HIGH)
     ])
     gmap1.plot(lat, lon,'red', edge_width = 2.5) # Simulated Trajectory
     gmap1.text(coord["lat"]-.2, coord["lon"]-.2, 'Simulated Trajectory with ERA5 Reanalysis', color='red')

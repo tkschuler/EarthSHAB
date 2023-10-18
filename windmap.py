@@ -79,24 +79,6 @@ class Windmap:
     def closest(self,arr, k):
         return min(range(len(arr)), key = lambda i: abs(arr[i]-k))
 
-
-        #Verify this function,  maybe include it in the other files era5 and gfs
-        #Can probably make this like the ERA5 one to clean up the code a bit
-    '''
-    def getHourIndex_gfs(self,start_time, nc_start):
-        print(self.gfs.time_convert)
-        hour_indices = np.linspace(0, 240, num=81)
-        hours = (start_time - nc_start).days * 24 + (start_time - nc_start).seconds / 3600
-        new_timestamp = start_time + timedelta(hours=hours)
-        hour_index = self.closest(hour_indices, hours)
-        new_timestamp = nc_start + timedelta(hours=hour_indices[hour_index])
-
-        print(colored("ERA5 simulation start time " + str(self.start_time) + " is not within range of " + str(hours[0]) + " - " + str(hours[-1]) , "red"))
-
-
-        return hour_index, new_timestamp
-    '''
-
     def time_in_range(self,start, end, x):
         """Return true if x is in the range [start, end]"""
         if start <= end:
@@ -308,8 +290,3 @@ class Windmap:
         #self.plotTempAlt(self.hour_index,self.LAT,self.LON)
         wind.file.close()
         plt.show()
-
-
-#wind = Windmap()
-
-#wind.makePlots()

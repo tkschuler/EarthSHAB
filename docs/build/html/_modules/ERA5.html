@@ -75,9 +75,8 @@
 <span></span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">This version was edited to integrate with EarthSHAB.</span>
 
-<span class="sd">Version 1.2 (02-25-2022)</span>
-<span class="sd">Authors: MR and CEM</span>
-<span class="sd">Edited and Integrated: Tristan Schuler</span>
+<span class="sd">Contributing authors: Craig Motell and Michael Rodriguez of NIWC Pacific</span>
+<span class="sd">Edited and integrated: Tristan Schuler</span>
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
@@ -91,19 +90,11 @@
 <span class="kn">from</span> <span class="nn">pytz</span> <span class="kn">import</span> <span class="n">timezone</span>
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
 
-<span class="kn">import</span> <span class="nn">config_earth</span> <span class="c1">#integrate with EARTHSAHB</span>
-
-<span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s1">&#39;era5.log&#39;</span><span class="p">,</span>
-                    <span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">,</span> <span class="c1"># Changed from Info for Demo</span>
-                    <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%(asctime)s</span><span class="s1"> | </span><span class="si">%(levelname)s</span><span class="s1"> | </span><span class="si">%(message)s</span><span class="s1">&#39;</span><span class="p">,</span>
-                    <span class="n">datefmt</span><span class="o">=</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M&quot;</span><span class="p">)</span>
+<span class="kn">import</span> <span class="nn">config_earth</span> <span class="c1">#integrate with EARTHSHAB</span>
 
 <div class="viewcode-block" id="ERA5">
 <a class="viewcode-back" href="../API/era5.html#ERA5.ERA5">[docs]</a>
 <span class="k">class</span> <span class="nc">ERA5</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;TODO: Write high level overview</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1">#def __init__(self, start_coord, end_coord, input_file, dt_sec, sim_time_hours, use_time):</span>
 <div class="viewcode-block" id="ERA5.__init__">
 <a class="viewcode-back" href="../API/era5.html#ERA5.ERA5.__init__">[docs]</a>
@@ -118,171 +109,27 @@
 
 <span class="sd">        .. note:: Similar to class GFS which stores NOAA GFS data from NOMAD server</span>
 
-
 <span class="sd">        .. seealso:: GFS</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
-
-
-
-
         <span class="bp">self</span><span class="o">.</span><span class="n">dt</span> <span class="o">=</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">simulation</span><span class="p">[</span><span class="s1">&#39;dt&#39;</span><span class="p">]</span>
-
-<span class="w">        </span><span class="sd">&#39;&#39;&#39;&#39;&#39;&#39;</span> <span class="c1">#</span>
-<span class="w">        </span><span class="sd">&#39;&#39;&#39; #</span>
-<span class="sd">        #CHANGES</span>
-<span class="sd">        file_path = os.path.realpath(__file__)</span>
-<span class="sd">        logging.debug(f&quot;Initializing ERA5 class in File path = {file_path}&quot;)</span>
-<span class="sd">        full_file_path = netcdf_prop.forecast_dir + input_file</span>
-<span class="sd">        &#39;&#39;&#39;</span>
-
-        <span class="n">file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">realpath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Initializing ERA5 class in File path = </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="n">full_file_path</span> <span class="o">=</span> <span class="s2">&quot;forecasts/&quot;</span> <span class="o">+</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">netcdf_era5</span><span class="p">[</span><span class="s1">&#39;filename&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sim_time</span> <span class="o">=</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">simulation</span><span class="p">[</span><span class="s1">&#39;sim_time&#39;</span><span class="p">]</span>
 
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; Extracting netCDF data from </span><span class="si">{</span><span class="n">full_file_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">file</span> <span class="o">=</span> <span class="n">netCDF4</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="n">full_file_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">file</span> <span class="o">=</span> <span class="n">netCDF4</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="s2">&quot;forecasts/&quot;</span> <span class="o">+</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">netcdf_era5</span><span class="p">[</span><span class="s2">&quot;filename&quot;</span><span class="p">])</span>  <span class="c1"># Only accepting manual uploads for now</span>
+
         <span class="k">except</span><span class="p">:</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Unable to locate netcdf file </span><span class="si">{</span><span class="n">full_file_path</span><span class="si">}</span><span class="s1">, terminating program&#39;</span><span class="p">)</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Unable to locate netcdf file </span><span class="si">{</span><span class="n">full_file_path</span><span class="si">}</span><span class="s1">, terminating program&#39;</span><span class="p">)</span>
-            <span class="nb">print</span><span class="p">(</span><span class="n">colored</span><span class="p">((</span><span class="sa">f</span><span class="s1">&#39;Unable to locate netcdf file </span><span class="si">{</span><span class="n">full_file_path</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">),</span><span class="s2">&quot;red&quot;</span><span class="p">))</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">colored</span><span class="p">((</span><span class="sa">f</span><span class="s1">&#39;Unable to locate netcdf file&#39;</span><span class="p">),</span><span class="s2">&quot;red&quot;</span><span class="p">))</span>
             <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">geod</span> <span class="o">=</span> <span class="n">Geodesic</span><span class="o">.</span><span class="n">WGS84</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">resolution_hr</span> <span class="o">=</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">netcdf_era5</span><span class="p">[</span><span class="s1">&#39;resolution_hr&#39;</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">num_model_hrs</span> <span class="o">=</span> <span class="n">sim_time_hours</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_time</span> <span class="o">=</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">simulation</span><span class="p">[</span><span class="s2">&quot;sim_time&quot;</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">start_coord</span> <span class="o">=</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">simulation</span><span class="p">[</span><span class="s2">&quot;start_coord&quot;</span><span class="p">]</span>
 
-<span class="w">        </span><span class="sd">&#39;&#39;&#39;&#39;&#39;&#39;</span> <span class="c1">#</span>
-<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">        #CHANGES</span>
-<span class="sd">        if use_time:</span>
-<span class="sd">            self.init_with_time(start_coord, end_coord, dt_sec, sim_time_hours)</span>
-<span class="sd">        else:</span>
-<span class="sd">            self.init_without_time(start_coord, end_coord, dt_sec, sim_time_hours)</span>
-<span class="sd">        &#39;&#39;&#39;</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">init_with_time</span><span class="p">()</span>
-
-<span class="w">        </span><span class="sd">&#39;&#39;&#39;&#39;&#39;&#39;</span> <span class="c1">#</span>
-<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">        #For Later updating with saveNETCDF4.py</span>
-<span class="sd">        print(self.file.data_model)</span>
-<span class="sd">        print(self.file)</span>
-<span class="sd">        for name in self.file.ncattrs():</span>
-<span class="sd">            print(&quot;Global attr {} = {}&quot;.format(name, getattr(self.file, name)))</span>
-<span class="sd">        &#39;&#39;&#39;</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_with_time</span><span class="p">()</span></div>
 
 
-
-<span class="w">    </span><span class="sd">&#39;&#39;&#39;THIS FUNCTION IS UNCESCCARY FOR EarthSHAB?&#39;&#39;&#39;</span>
-    <span class="c1">#def init_without_time(self, start_coord, end_coord, dt_sec, sim_time_hours): # modded the number of varibales for troubleshootin</span>
-<span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">    def init_without_time(self, start_coord, end_coord, dt_sec, sim_time_hours): # modded the number of varibales for troubleshootin</span>
-<span class="sd">        &quot;&quot;&quot; adds to class object containing information about an ERA5 but without any time</span>
-<span class="sd">        variables.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        start_coord : dict</span>
-<span class="sd">            Contains information about the starting location.</span>
-<span class="sd">        end_coord : dict</span>
-<span class="sd">            Contains information about the ending location, can contain</span>
-<span class="sd">            all None or empty values</span>
-<span class="sd">        dt_sec : float</span>
-<span class="sd">            Sampling rate of simulation in seconds</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        ERA5 : ERA5 Class Object</span>
-<span class="sd">            Initialize class objectwith our NetCDF data.</span>
-
-<span class="sd">        Notes</span>
-<span class="sd">        -----</span>
-<span class="sd">        Similar to class GFS which stores NOAA GFS data from NOMAD server</span>
-
-<span class="sd">        See Also</span>
-<span class="sd">        --------</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-<span class="sd">        logging.debug(&quot;Now saving model data independent of time. Happens when we use time averaged data.&quot;)</span>
-<span class="sd">        print(&quot;Now saving model data independent of time. Happens when we use time averaged data.&quot;)</span>
-
-
-<span class="sd">        balloon_launch_time = start_coord[&#39;timestamp&#39;]</span>
-<span class="sd">        balloon_last_time = end_coord[&#39;end_datetime&#39;]</span>
-
-<span class="sd">        logging.debug(f&quot;Ballon flight times are from {balloon_launch_time} to {balloon_last_time}&quot;)</span>
-<span class="sd">        logging.info(f&quot;Ballon flight times are from {balloon_launch_time} to {balloon_last_time}&quot;)</span>
-<span class="sd">        print(f&quot;Ballon flight times are from {balloon_launch_time} to {balloon_last_time}&quot;)</span>
-<span class="sd">        print(f&quot;Ballon flight times are from {balloon_launch_time} to {balloon_last_time}&quot;)</span>
-
-<span class="sd">        self.start_coord = start_coord</span>
-<span class="sd">        self.min_alt_m = start_coord[&#39;alt_m&#39;]</span>
-
-<span class="sd">        # Initialize min/max lat/lon index values from netcdf4 subset</span>
-
-<span class="sd">        # Determine Index values from netcdf4 subset</span>
-<span class="sd">        netcdf_ranges = self.file.variables[&#39;u&#39;][0, :, :]</span>
-<span class="sd">        self.determineRanges(netcdf_ranges)</span>
-<span class="sd">        logging.debug(f&quot;By default will use the following latitude index boundaries: {self.lat_max_idx}, {self.lat_min_idx}&quot;)</span>
-<span class="sd">        logging.debug(f&quot;In degrees this covers : {self.file.variables[&#39;latitude&#39;][self.lat_max_idx]} to  {self.file.variables[&#39;latitude&#39;][self.lat_min_idx-1]}&quot;)</span>
-<span class="sd">        logging.debug(f&quot;By default will use the following longitude index boundaries: {self.lon_min_idx}, {self.lon_max_idx}&quot;)</span>
-<span class="sd">        logging.debug(f&quot;In degrees this covers : {self.file.variables[&#39;longitude&#39;][self.lon_min_idx]} to  {self.file.variables[&#39;longitude&#39;][self.lon_max_idx-1]}&quot;)</span>
-<span class="sd">        print(f&quot;By default will use the following latitude index boundaries: {self.lat_max_idx}, {self.lat_min_idx}&quot;)</span>
-<span class="sd">        print(f&quot;In degrees this covers : {self.file.variables[&#39;latitude&#39;][self.lat_max_idx]} to  {self.file.variables[&#39;latitude&#39;][self.lat_min_idx-1]} degrees&quot;)</span>
-<span class="sd">        print(f&quot;By default will use the following longitude index boundaries: {self.lon_min_idx}, {self.lon_max_idx} degrees&quot;)</span>
-<span class="sd">        print(f&quot;In degrees this covers : {self.file.variables[&#39;longitude&#39;][self.lon_min_idx]} to  {self.file.variables[&#39;longitude&#39;][self.lon_max_idx-1]}&quot;)</span>
-
-<span class="sd">        # smaller array of downloaded forecast subset</span>
-<span class="sd">        self.test = self.file.variables[&#39;latitude&#39;]</span>
-<span class="sd">        logging.debug(f&quot;Current shape of the latitude variable: {self.file.variables[&#39;latitude&#39;].shape}&quot;)</span>
-<span class="sd">        self.lat = self.file.variables[&#39;latitude&#39;][self.lat_max_idx:self.lat_min_idx]</span>
-<span class="sd">        self.lon = self.file.variables[&#39;longitude&#39;][self.lon_min_idx:self.lon_max_idx]</span>
-<span class="sd">        logging.debug(f&quot;Final shape of the latitude variable: {self.lat.shape}&quot;)</span>
-
-<span class="sd">        # min/max lat/lon degree values from netcdf4 subset</span>
-<span class="sd">        self.lat_bot_deg = self.file.variables[&#39;latitude&#39;][self.lat_min_idx-1]</span>
-<span class="sd">        self.lon_left_deg = self.file.variables[&#39;longitude&#39;][self.lon_min_idx]</span>
-<span class="sd">        self.lat_top_deg = self.file.variables[&#39;latitude&#39;][self.lat_max_idx]</span>
-<span class="sd">        self.lon_right_deg = self.file.variables[&#39;longitude&#39;][self.lon_max_idx-1]</span>
-
-<span class="sd">        message = &quot;LAT RANGE - min:&quot; + str(self.lat_bot_deg) + &quot; max: &quot; + str(self.lat_top_deg) + &quot; size: &quot; + str(</span>
-<span class="sd">            abs(self.lat_min_idx - self.lat_max_idx))</span>
-<span class="sd">        logging.info(message)</span>
-<span class="sd">        message = &quot;LON RANGE - min:&quot; + str(self.lon_left_deg) + &quot; max: &quot; + str(self.lon_right_deg) + &quot; size: &quot; + str(</span>
-<span class="sd">            abs(self.lon_min_idx - self.lon_max_idx))</span>
-<span class="sd">        logging.info(message)</span>
-
-<span class="sd">        # Import the netcdf4 subset to speed up table lookup in this script</span>
-<span class="sd">        self.levels = self.file.variables[&#39;level&#39;][:]</span>
-<span class="sd">        level_dim, lat_dim, lon_dim = self.file.variables[&#39;u&#39;].shape</span>
-
-<span class="sd">        # currently, using balloon start and end time to get simulation points.</span>
-<span class="sd">        # should retest this method below to see if still works</span>
-<span class="sd">        if self.num_model_hrs != None:</span>
-<span class="sd">            simulation_points = int(self.num_model_hrs * int(3600 * (1 / dt_sec)))  # Simulation time in seconds</span>
-<span class="sd">        else:</span>
-<span class="sd">            simulation_points = None</span>
-
-
-<span class="sd">        g = 9.80665 # gravitation constant used to convert geopotential height to height</span>
-<span class="sd">        logging.debug(f&quot;Original model wind shape:  {self.file.variables[&#39;u&#39;].shape}&quot;)</span>
-<span class="sd">        self.ugdrps0 = self.file.variables[&#39;u&#39;][:, self.lat_max_idx:self.lat_min_idx,</span>
-<span class="sd">                       self.lon_min_idx:self.lon_max_idx]</span>
-<span class="sd">        logging.debug(f&quot;Reduced or final model wind shape:  {self.ugdrps0.shape}&quot;)</span>
-<span class="sd">        self.vgdrps0 = self.file.variables[&#39;v&#39;][:, self.lat_max_idx:self.lat_min_idx,</span>
-<span class="sd">                       self.lon_min_idx:self.lon_max_idx]</span>
-<span class="sd">        self.hgtprs = self.file.variables[&#39;z&#39;][:, self.lat_max_idx:self.lat_min_idx,</span>
-<span class="sd">                      self.lon_min_idx:self.lon_max_idx] / g</span>
-
-<span class="sd">        #self.temp0 = self.file.variables[&#39;t&#39;][start_time_idx:end_time_idx+1, :, self.lat_max_idx:self.lat_min_idx,</span>
-<span class="sd">        #             self.lon_min_idx:self.lon_max_idx]</span>
-
-<span class="sd">        logging.info(&quot;ERA5 Data Finished downloading.\n\n&quot;)</span>
-<span class="sd">    &#39;&#39;&#39;</span>
     <span class="c1">#def init_without_time(self, start_coord, end_coord, dt_sec, sim_time_hours): # modded the number of varibales for troubleshootin</span>
 <div class="viewcode-block" id="ERA5.init_with_time">
 <a class="viewcode-back" href="../API/era5.html#ERA5.ERA5.init_with_time">[docs]</a>
@@ -305,230 +152,59 @@
 
 <span class="sd">        &#39;&#39;&#39;</span>
 
-
-
-
-
-
-
-
-
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">time_arr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span>  <span class="c1"># do not cast to numpy array yet, time units are different than in GFS</span>
-        <span class="k">except</span><span class="p">:</span>
-            <span class="n">time_arr</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.00</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">time_convert</span> <span class="o">=</span> <span class="n">netCDF4</span><span class="o">.</span><span class="n">num2date</span><span class="p">(</span><span class="n">time_arr</span><span class="p">[:],</span> <span class="n">time_arr</span><span class="o">.</span><span class="n">units</span><span class="p">,</span> <span class="n">time_arr</span><span class="o">.</span><span class="n">calendar</span><span class="p">)</span>
-
-        <span class="n">time_model</span> <span class="o">=</span> <span class="p">[]</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">model_start_datetime</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_convert</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">model_end_datetime</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_convert</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-
-        <span class="n">balloon_launch_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_coord</span><span class="p">[</span><span class="s1">&#39;timestamp&#39;</span><span class="p">]</span>
-
         <span class="bp">self</span><span class="o">.</span><span class="n">start_time</span> <span class="o">=</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">simulation</span><span class="p">[</span><span class="s1">&#39;start_time&#39;</span><span class="p">]</span>
-        <span class="c1">#balloon_last_time = end_coord[&#39;timestamp&#39;]</span>
-        <span class="n">start_time_idx</span> <span class="o">=</span> <span class="mi">0</span>
-<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">        #CHANGES</span>
-<span class="sd">        logging.debug(f&quot;Original model start and times are {self.model_start_datetime} to {self.model_end_datetime}&quot;)</span>
-<span class="sd">        logging.debug(f&quot;Balloon flight times are from {balloon_launch_time} to {balloon_last_time}&quot;)</span>
-<span class="sd">        logging.info(f&quot;Model data spans the time from {self.time_convert[0]} to {self.time_convert[-1]}&quot;)</span>
-<span class="sd">        logging.info(f&quot;Balloon flight times are from {balloon_launch_time} to {balloon_last_time}&quot;)</span>
-<span class="sd">        print(f&quot;Model data spans the time from {self.time_convert[0]} to {self.time_convert[-1]}&quot;)</span>
-<span class="sd">        print(f&quot;Balloon flight times are from {balloon_launch_time} to {balloon_last_time}&quot;)</span>
-
-<span class="sd">        # Depending on the dates chosen, we can sometimes remove unused model data the is prior or after</span>
-<span class="sd">        # our simulation run as performed below</span>
-
-<span class="sd">        original = self.model_start_datetime</span>
-<span class="sd">        for i in range(0, len(self.time_convert)):</span>
-<span class="sd">            logging.debug(f&quot;Check if can remove model start times not used #{i}: model={self.time_convert[i]}, balloon start time: {balloon_launch_time}&quot;)</span>
-<span class="sd">            if self.time_convert[i] &gt; balloon_launch_time:</span>
-<span class="sd">                start_time_idx = i-1</span>
-<span class="sd">                logging.debug(f&quot;Set model time index start to {start_time_idx} with model time of {self.time_convert[start_time_idx]}&quot;)</span>
-
-<span class="sd">                if start_time_idx &lt; 0:</span>
-<span class="sd">                    start_time_idx = 0  # just make sure that your model data start isn&#39;t negative</span>
-<span class="sd">                    logging.debug(&quot;Resetting model start time to first instance of model data, did you get the right model data?&quot;)</span>
-
-<span class="sd">                self.model_start_datetime = self.time_convert[start_time_idx]</span>
-<span class="sd">                if original != self.model_start_datetime:</span>
-<span class="sd">                    logging.debug(f&quot;Changed model start time to {self.model_start_datetime} from {original}&quot;)</span>
-<span class="sd">                break</span>
-
-<span class="sd">        if balloon_last_time == None:</span>
-<span class="sd">            logging.debug(&quot;Because you did not specify a balloon last time, run until hits ground or out of model data...&quot;)</span>
-<span class="sd">            end_time_idx = len(self.time_convert) - 1</span>
-<span class="sd">        else:</span>
-<span class="sd">            end_time_idx = len(self.time_convert) - 1</span>
-<span class="sd">            original = end_time_idx</span>
-<span class="sd">            for i in range(start_time_idx, len(self.time_convert)):</span>
-<span class="sd">                logging.debug(f&quot;Check if can remove model times not used #{i}: {self.time_convert[i]}, end time: {balloon_last_time}&quot;)</span>
-<span class="sd">                if self.time_convert[i] &gt; balloon_last_time:</span>
-<span class="sd">                    end_time_idx = i</span>
-<span class="sd">                    self.model_end_datetime = self.time_convert[end_time_idx]</span>
-
-<span class="sd">                    logging.debug(f&quot;Set model time index end to {end_time_idx}, original was set to {original}&quot;)</span>
-<span class="sd">                    logging.debug(f&quot;Model end time set to: {self.model_end_datetime}&quot;)</span>
-<span class="sd">                    break</span>
-
-<span class="sd">        ok = self.ok_model_balloon_times(balloon_launch_time, self.model_start_datetime)</span>
-<span class="sd">        if ok is False:</span>
-<span class="sd">            sys.exit(2)</span>
-<span class="sd">        &#39;&#39;&#39;</span>
-        <span class="n">end_time_idx</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time_convert</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span> <span class="c1">#Only need this variable from above?</span>
-
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">start_time_idx</span><span class="p">,</span> <span class="n">end_time_idx</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
-            <span class="n">t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_convert</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-            <span class="n">dt</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">)</span>
-            <span class="n">time_model</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
-            <span class="c1">#epoch_time = time.mktime(t.timetuple()) will give an answer dependent on your time zone</span>
-            <span class="c1">#gmt = timezone(&#39;GMT&#39;) # already defined above</span>
-            <span class="c1">#naive_ts = datetime.strptime(dt,&quot;%Y-%m-%d %H:%M:%S&quot;)</span>
-            <span class="c1">#local_ts = gmt.localize(naive_ts)</span>
-            <span class="c1">#epoch_ts = local_ts.timestamp()</span>
-            <span class="c1">#epoch_model.append(int(epoch_ts))</span>
-
-        <span class="n">model_hours</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">datetime_epoch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_end_datetime</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">datetime_epoch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_start_datetime</span><span class="p">))</span><span class="o">/</span><span class="mi">3600</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">hour_index_check</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">diff_check</span> <span class="o">=</span> <span class="mf">0.0</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;First datetime </span><span class="si">{</span><span class="n">time_model</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">, Next datetime </span><span class="si">{</span><span class="n">time_model</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">, last datetime </span><span class="si">{</span><span class="n">time_model</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
-
-        <span class="c1">#self.start_coord = start_coord #don&#39;t need to define this again</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">min_alt_m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_coord</span><span class="p">[</span><span class="s1">&#39;alt&#39;</span><span class="p">]</span>
 
-        <span class="c1"># Initialize min/max lat/lon index values from netcdf4 subset</span>
-        <span class="c1">#lat_max_idx = netcdf_prop.netcdf[&quot;lat_top&quot;]</span>
-        <span class="c1">#lat_min_idx = netcdf_prop.netcdf[&quot;lat_bot&quot;]</span>
-        <span class="c1">#lon_min_idx = netcdf_prop.netcdf[&quot;lon_left&quot;]</span>
-        <span class="c1">#lon_max_idx = netcdf_prop.netcdf[&quot;lon_right&quot;]</span>
+        <span class="n">time_arr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span>
+        <span class="c1">#Convert from epoch to human readable time. Different than GFS for now.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_convert</span> <span class="o">=</span> <span class="n">netCDF4</span><span class="o">.</span><span class="n">num2date</span><span class="p">(</span><span class="n">time_arr</span><span class="p">[:],</span> <span class="n">time_arr</span><span class="o">.</span><span class="n">units</span><span class="p">,</span> <span class="n">time_arr</span><span class="o">.</span><span class="n">calendar</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_start_datetime</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_convert</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="c1">#reanalysis should be same time as gfs predictions for now</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_end_datetime</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_convert</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 
         <span class="c1"># Determine Index values from netcdf4 subset</span>
         <span class="n">netcdf_ranges</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">determineRanges</span><span class="p">(</span><span class="n">netcdf_ranges</span><span class="p">)</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;By default will use the following latitude index boundaries: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;In degrees this covers : </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;latitude&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span><span class="p">]</span><span class="si">}</span><span class="s2"> to  </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;latitude&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2"> degrees&quot;</span><span class="p">)</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;By default will use the following longitude index boundaries: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_min_idx</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span><span class="si">}</span><span class="s2"> degrees&quot;</span><span class="p">)</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;In degrees this covers : </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;longitude&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_min_idx</span><span class="p">]</span><span class="si">}</span><span class="s2"> to  </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;longitude&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
-<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">        print(f&quot;By default will use the following latitude index boundaries: {self.lat_max_idx}, {self.lat_min_idx}&quot;)</span>
-<span class="sd">        print(f&quot;In degrees this covers : {self.file.variables[&#39;latitude&#39;][self.lat_max_idx]} to  {self.file.variables[&#39;latitude&#39;][self.lat_min_idx-1]} degrees&quot;)</span>
-<span class="sd">        print(f&quot;By default will use the following longitude index boundaries: {self.lon_min_idx}, {self.lon_max_idx} degrees&quot;)</span>
-<span class="sd">        print(f&quot;In degrees this covers : {self.file.variables[&#39;longitude&#39;][self.lon_min_idx]} to  {self.file.variables[&#39;longitude&#39;][self.lon_max_idx-1]}&quot;)</span>
-<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c1"># smaller array of downloaded forecast subset</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;latitude&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lon</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;longitude&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_min_idx</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span><span class="p">]</span>
 
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;LAT RANGE: min:&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;latitude&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="s2">&quot; max: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;latitude&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span><span class="p">])</span> <span class="o">+</span> <span class="s2">&quot; size: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span><span class="p">))</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;LON RANGE: min:&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;longitude&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_min_idx</span><span class="p">]),</span> <span class="s2">&quot; max: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;longitude&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="s2">&quot; size: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_min_idx</span><span class="p">))</span>
-        <span class="nb">print</span><span class="p">()</span>
-
+        <span class="c1"># min/max lat/lon degree values from netcdf4 subset</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">LAT_LOW</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;latitude&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">LON_LOW</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;longitude&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_min_idx</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">LAT_HIGH</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;latitude&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">LON_HIGH</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;longitude&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 
-
-        <span class="c1"># smaller array of downloaded forecast subset</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">test</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;latitude&#39;</span><span class="p">]</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Current shape of the latitude variable: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;latitude&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">lat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;latitude&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">lon</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;longitude&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_min_idx</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span><span class="p">]</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Final shape of the latitude variable: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
-        <span class="c1"># min/max lat/lon degree values from netcdf4 subset</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">lat_bot_deg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;latitude&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">lon_left_deg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;longitude&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_min_idx</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">lat_top_deg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;latitude&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">lon_right_deg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;longitude&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-
-        <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;LAT RANGE - min:&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_bot_deg</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; max: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_top_deg</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; size: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span>
-            <span class="nb">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span><span class="p">))</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
-        <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;LON RANGE - min:&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_left_deg</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; max: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_right_deg</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; size: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span>
-            <span class="nb">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_min_idx</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span><span class="p">))</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;LAT RANGE: min:&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;latitude&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="s2">&quot; max: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;latitude&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span><span class="p">])</span> <span class="o">+</span> <span class="s2">&quot; size: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;LON RANGE: min:&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;longitude&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_min_idx</span><span class="p">]),</span> <span class="s2">&quot; max: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;longitude&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="s2">&quot; size: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_min_idx</span><span class="p">))</span>
 
         <span class="c1"># Import the netcdf4 subset to speed up table lookup in this script</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">levels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;level&#39;</span><span class="p">][:]</span>
-        <span class="n">time_dim</span><span class="p">,</span> <span class="n">level_dim</span><span class="p">,</span> <span class="n">lat_dim</span><span class="p">,</span> <span class="n">lon_dim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
-        <span class="n">hour_index</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># start simulating at netcdf file start time</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_model_hrs</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">simulation_points</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">datetime_epoch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_end_datetime</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">datetime_epoch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_start_datetime</span><span class="p">))</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">)</span>
-            <span class="n">end_index</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span> <span class="o">+</span> <span class="n">model_hours</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">end_index</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_model_hrs</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
-            <span class="n">simulation_points</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_model_hrs</span> <span class="o">*</span> <span class="nb">int</span><span class="p">(</span><span class="mi">3600</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">)))</span>  <span class="c1"># Simulation time in seconds</span>
-
-        <span class="k">if</span> <span class="n">end_index</span> <span class="o">&gt;</span> <span class="n">time_dim</span><span class="p">:</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Warning: Number of hours to simulate are set at </span><span class="si">{</span><span class="n">end_index</span><span class="si">}</span><span class="s2"> but your model data only contains </span><span class="si">{</span><span class="n">time_dim</span><span class="si">}</span><span class="s2"> hours. Will reduce to hours to match available model data&quot;</span><span class="p">)</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;Warning: Number of hours to simulate are set at </span><span class="si">{</span><span class="n">end_index</span><span class="si">}</span><span class="s2"> but your model data only contains </span><span class="si">{</span><span class="n">time_dim</span><span class="si">}</span><span class="s2"> hours. Will reduce to hours to match available model data&quot;</span><span class="p">)</span>
-            <span class="n">end_index</span> <span class="o">=</span> <span class="n">time_dim</span>
-
         <span class="n">g</span> <span class="o">=</span> <span class="mf">9.80665</span> <span class="c1"># gravitation constant used to convert geopotential height to height</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Original model wind shape:  </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">levels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;level&#39;</span><span class="p">][:]</span>
         <span class="c1">#these are typos, fix later.  Should be ugrdprs0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">ugdrps0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">][</span><span class="n">start_time_idx</span><span class="p">:</span><span class="n">end_time_idx</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span><span class="p">,</span>
-                       <span class="bp">self</span><span class="o">.</span><span class="n">lon_min_idx</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span><span class="p">]</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Reduced or final model wind shape:  </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ugdrps0</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">vgdrps0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">][</span><span class="n">start_time_idx</span><span class="p">:</span><span class="n">end_time_idx</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span><span class="p">,</span>
-                       <span class="bp">self</span><span class="o">.</span><span class="n">lon_min_idx</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">hgtprs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;z&#39;</span><span class="p">][</span><span class="n">start_time_idx</span><span class="p">:</span><span class="n">end_time_idx</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span><span class="p">,</span>
-                      <span class="bp">self</span><span class="o">.</span><span class="n">lon_min_idx</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span><span class="p">]</span> <span class="o">/</span> <span class="n">g</span> <span class="c1">#what is this divide by g???</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ugdrps0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">start_time_idx</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">end_time_idx</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lon_min_idx</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vgdrps0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">start_time_idx</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">end_time_idx</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lon_min_idx</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hgtprs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;z&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">start_time_idx</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">end_time_idx</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lon_min_idx</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span><span class="p">]</span> <span class="o">/</span> <span class="n">g</span> <span class="c1">#what is this divide by g???</span>
 
-
-        <span class="c1">#self.temp0 = self.file.variables[&#39;t&#39;][start_time_idx:end_time_idx+1, :, self.lat_max_idx:self.lat_min_idx,</span>
-        <span class="c1">#             self.lon_min_idx:self.lon_max_idx]</span>
-
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;ERA5 Data Finished downloading.</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
-
+        <span class="nb">print</span><span class="p">()</span>
 
         <span class="c1">#Check if number of hours will fit in simulation time</span>
         <span class="n">desired_simulation_end_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_time</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sim_time</span><span class="p">)</span>
-        <span class="n">diff_time</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time_convert</span><span class="p">[</span><span class="n">end_time_idx</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_time</span><span class="p">)</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()</span> <span class="c1">#total number of seconds between 2 timestamps</span>
+        <span class="n">diff_time</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time_convert</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">end_time_idx</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_time</span><span class="p">)</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()</span> <span class="c1">#total number of seconds between 2 timestamps</span>
 
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Sim start time: &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_time</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;NetCDF end time:&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_convert</span><span class="p">[</span><span class="n">end_time_idx</span><span class="p">])</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;NetCDF end time:&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_convert</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">end_time_idx</span><span class="p">])</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Max sim runtime:&quot;</span><span class="p">,</span> <span class="n">diff_time</span><span class="o">//</span><span class="mi">3600</span><span class="p">,</span> <span class="s2">&quot;hours&quot;</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Des sim runtime:&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_time</span><span class="p">,</span> <span class="s2">&quot;hours&quot;</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">()</span>
 
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">desired_simulation_end_time</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_convert</span><span class="p">[</span><span class="n">end_time_idx</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">desired_simulation_end_time</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_convert</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">end_time_idx</span><span class="p">]:</span>
             <span class="nb">print</span><span class="p">(</span><span class="n">colored</span><span class="p">(</span><span class="s2">&quot;Desired simulation run time of &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sim_time</span><span class="p">)</span>  <span class="o">+</span>
             <span class="s2">&quot; hours is out of bounds of downloaded forecast. &quot;</span> <span class="o">+</span>
             <span class="s2">&quot;Check simulation start time and/or download a new forecast.&quot;</span><span class="p">,</span> <span class="s2">&quot;red&quot;</span><span class="p">))</span>
             <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span></div>
 
-
-
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    #REMOVED THIS FUNCTION</span>
-<span class="sd">    def ok_model_balloon_times(self, balloon_launch_time, model_start_datetime):</span>
-<span class="sd">        &#39;&#39;&#39;</span>
-<span class="sd">        This function checks if we have model data to cover are expect flight times</span>
-
-<span class="sd">        :param balloon_launch_time:</span>
-<span class="sd">        :param model_start_datetime:</span>
-<span class="sd">        :return:</span>
-<span class="sd">        &#39;&#39;&#39;</span>
-<span class="sd">        logging.debug(&quot;For valid model data, the model start should be before or equal to your simulation start&quot;)</span>
-<span class="sd">        logging.debug(&quot;Further, cannot be more than one 59 minutes before&quot;)</span>
-<span class="sd">        logging.debug(f&quot;Model start date is {model_start_datetime}, simulation start is {balloon_launch_time}&quot;)</span>
-<span class="sd">        minutes_diff = (balloon_launch_time - model_start_datetime).total_seconds() / 60.0</span>
-<span class="sd">        logging.debug(f&quot;Difference in minutes is {minutes_diff}&quot;)</span>
-<span class="sd">        if minutes_diff &gt; 0 and minutes_diff &lt;= 59:</span>
-<span class="sd">            logging.debug(&quot;Model data is in correct time window and passes test.&quot;)</span>
-<span class="sd">            return True</span>
-<span class="sd">        else:</span>
-<span class="sd">            logging.error(&quot;Model data not cover time of balloon flight and program will exit.&quot;)</span>
-<span class="sd">            logging.error(f&quot;Model start date is {model_start_datetime}, simulation start is {balloon_launch_time}&quot;)</span>
-<span class="sd">            print(&quot;Model data not cover time of balloon flight and program will exit.&quot;)</span>
-<span class="sd">            print(f&quot;Model start date is {model_start_datetime}, simulation start is {balloon_launch_time}&quot;)</span>
-<span class="sd">            return False</span>
-<span class="sd">    &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="ERA5.determineRanges">
 <a class="viewcode-back" href="../API/era5.html#ERA5.ERA5.determineRanges">[docs]</a>
@@ -539,23 +215,23 @@
 <span class="sd">        resize your data being used.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Scraping given netcdf4 forecast file</span><span class="se">\n</span><span class="s2"> (&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2"> for subset size&quot;</span><span class="p">)</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Scraping given netcdf4 forecast file (&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; for subset size&quot;</span><span class="p">)</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">colored</span><span class="p">(</span><span class="s1">&#39;...&#39;</span><span class="p">,</span> <span class="s1">&#39;white&#39;</span><span class="p">,</span> <span class="n">attrs</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;blink&#39;</span><span class="p">]))</span>
 
-        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Shape of u data compent: </span><span class="si">{</span><span class="n">netcdf_ranges</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">results</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="o">~</span><span class="n">netcdf_ranges</span><span class="o">.</span><span class="n">mask</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">results</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Found missing data inside the latitude, longitude, grid will determine range and set new latitude, longitude boundary indexes.&quot;</span><span class="p">)</span>
-            <span class="n">rows</span><span class="p">,</span> <span class="n">columns</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="o">~</span><span class="n">netcdf_ranges</span><span class="o">.</span><span class="n">mask</span><span class="p">)</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Row values :&#39;</span><span class="p">,</span> <span class="p">(</span><span class="n">rows</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">rows</span><span class="o">.</span><span class="n">max</span><span class="p">()))</span>  <span class="c1"># print the min and max rows</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Column values :&#39;</span><span class="p">,</span> <span class="p">(</span><span class="n">columns</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">columns</span><span class="o">.</span><span class="n">max</span><span class="p">()))</span>  <span class="c1"># print the min and max columns</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span> <span class="o">=</span> <span class="n">rows</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span> <span class="o">=</span> <span class="n">rows</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">lon_min_idx</span> <span class="o">=</span> <span class="n">columns</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span> <span class="o">=</span> <span class="n">columns</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
-        <span class="k">else</span><span class="p">:</span>
+            <span class="n">timerange</span><span class="p">,</span> <span class="n">latrange</span><span class="p">,</span> <span class="n">lonrange</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="o">~</span><span class="n">netcdf_ranges</span><span class="o">.</span><span class="n">mask</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">start_time_idx</span> <span class="o">=</span> <span class="n">timerange</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">end_time_idx</span> <span class="o">=</span> <span class="n">timerange</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span> <span class="o">=</span> <span class="n">latrange</span><span class="o">.</span><span class="n">min</span><span class="p">()</span> <span class="c1">#Min/Max are switched compared to with ERA5</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span> <span class="o">=</span> <span class="n">latrange</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lon_min_idx</span> <span class="o">=</span> <span class="n">lonrange</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span> <span class="o">=</span> <span class="n">lonrange</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span> <span class="c1">#This might be broken for time</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">start_time_idx</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">end_time_idx</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time_convert</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span>
             <span class="n">lati</span><span class="p">,</span> <span class="n">loni</span> <span class="o">=</span> <span class="n">netcdf_ranges</span><span class="o">.</span><span class="n">shape</span>
+            <span class="c1">#THese are backwards???</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span> <span class="o">=</span> <span class="n">lati</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span> <span class="o">=</span> <span class="n">loni</span>
@@ -607,18 +283,6 @@
 
         <span class="k">return</span> <span class="n">i</span></div>
 
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    #Removed This Function</span>
-<span class="sd">    def getNearestAltbyIndexNoTime(self, lat_i, lon_i, alt_m):</span>
-<span class="sd">        &#39;&#39;&#39; Determines the nearest altitude based off of geopotential height of a .25 degree lat/lon area.</span>
-<span class="sd">            at a given latitude, longitude index. note, this version has no dimension</span>
-
-<span class="sd">            :returns integer index into nearest height</span>
-<span class="sd">        &#39;&#39;&#39;</span>
-<span class="sd">        i = self.closestIdx(self.hgtprs[:, lat_i, lon_i], alt_m)</span>
-
-<span class="sd">        return i</span>
-<span class="sd">    &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="ERA5.wind_alt_Interpolate">
 <a class="viewcode-back" href="../API/era5.html#ERA5.ERA5.wind_alt_Interpolate">[docs]</a>
@@ -626,6 +290,10 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Performs a 2 step linear interpolation to determine horizontal wind velocity.  First the altitude is interpolated between the two nearest</span>
 <span class="sd">        .25 degree lat/lon areas.  Once altitude is matched, a second linear interpolation is performed with respect to time.</span>
+
+<span class="sd">        .. note:: I performed a lot of clean up of this code from what Craig originally sent me.  I&#39;m not exactly sure what</span>
+<span class="sd">            about all the difference from GFS to ERA5 for this function.  I will do more cleaning and variable renaming in a later version.</span>
+<span class="sd">            The results are the same right now thoug.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -649,30 +317,22 @@
         <span class="c1">#we need to clean this up, ends up we check for the hour_index before we call this function</span>
         <span class="c1">#diff = coord[&quot;timestamp&quot;] - self.model_start_datetime</span>
         <span class="n">hour_index</span> <span class="o">=</span> <span class="p">(</span><span class="n">diff_time</span><span class="o">.</span><span class="n">days</span> <span class="o">*</span> <span class="mi">24</span> <span class="o">+</span> <span class="n">diff_time</span><span class="o">.</span><span class="n">seconds</span> <span class="o">/</span> <span class="mf">3600.</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolution_hr</span>
-        <span class="n">int_hr_idx</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">diff_check</span> <span class="o">=</span> <span class="n">diff_time</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">hour_index_check</span> <span class="o">=</span> <span class="n">int_hr_idx</span>
-        <span class="n">int_hr_idx2</span> <span class="o">=</span> <span class="n">int_hr_idx</span> <span class="o">+</span> <span class="mi">1</span>
 
         <span class="n">hgt_m</span> <span class="o">=</span> <span class="n">alt_m</span>
 
-        <span class="c1">#Check to see if we have exceeded available model time</span>
-        <span class="n">time_indices</span><span class="p">,</span> <span class="n">height_indices</span><span class="p">,</span> <span class="n">lat_indices</span><span class="p">,</span> <span class="n">lon_indices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vgdrps0</span><span class="o">.</span><span class="n">shape</span>
-        <span class="k">if</span> <span class="n">int_hr_idx2</span> <span class="o">&gt;=</span> <span class="n">time_indices</span><span class="p">:</span>
-            <span class="k">return</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
-
         <span class="c1"># First interpolate wind speeds between 2 closest time steps to match altitude estimates (hgtprs), which can change with time</span>
-        <span class="n">v_0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vgdrps0</span><span class="p">[</span><span class="n">int_hr_idx</span><span class="p">,</span> <span class="p">:,</span> <span class="n">lat_idx</span><span class="p">,</span> <span class="n">lon_idx</span><span class="p">]</span>  <span class="c1"># Round hour index to nearest int</span>
+        <span class="n">v_0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vgdrps0</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">),</span> <span class="p">:,</span> <span class="n">lat_idx</span><span class="p">,</span> <span class="n">lon_idx</span><span class="p">]</span>  <span class="c1"># Round hour index to nearest int</span>
         <span class="n">v_0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fill_missing_data</span><span class="p">(</span><span class="n">v_0</span><span class="p">)</span>  <span class="c1"># Fill the missing wind data if occurs at upper heights</span>
 
-        <span class="n">u_0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ugdrps0</span><span class="p">[</span><span class="n">int_hr_idx</span><span class="p">,</span> <span class="p">:,</span> <span class="n">lat_idx</span><span class="p">,</span> <span class="n">lon_idx</span><span class="p">]</span>
+        <span class="n">u_0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ugdrps0</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">),</span> <span class="p">:,</span> <span class="n">lat_idx</span><span class="p">,</span> <span class="n">lon_idx</span><span class="p">]</span>
         <span class="n">u_0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fill_missing_data</span><span class="p">(</span><span class="n">u_0</span><span class="p">)</span>
 
         <span class="c1">#t_0 = self.temp0[int_hr_idx, :, lat_idx, lon_idx]</span>
         <span class="c1">#t_0 = self.fill_missing_data(t_0)</span>
 
-        <span class="n">xp_0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hgtprs</span><span class="p">[</span><span class="n">int_hr_idx</span><span class="p">,</span> <span class="p">:,</span> <span class="n">lat_idx</span><span class="p">,</span> <span class="n">lon_idx</span><span class="p">]</span>
+        <span class="n">xp_0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hgtprs</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">),</span> <span class="p">:,</span> <span class="n">lat_idx</span><span class="p">,</span> <span class="n">lon_idx</span><span class="p">]</span>
         <span class="n">xp_0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fill_missing_data</span><span class="p">(</span><span class="n">xp_0</span><span class="p">)</span>
+
 
         <span class="c1">#f = interpolate.interp1d(xp_0, t_0, assume_sorted=False, fill_value=&quot;extrapolate&quot;)</span>
         <span class="c1">#t0_pt = f(hgt_m)</span>
@@ -682,13 +342,13 @@
         <span class="n">v0_pt</span> <span class="o">=</span> <span class="n">f</span><span class="p">(</span><span class="n">hgt_m</span><span class="p">)</span>
 
         <span class="c1"># Next interpolate the wind velocities with respect to time.</span>
-        <span class="n">v_1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vgdrps0</span><span class="p">[</span><span class="n">int_hr_idx2</span><span class="p">,</span> <span class="p">:,</span> <span class="n">lat_idx</span><span class="p">,</span> <span class="n">lon_idx</span><span class="p">]</span>
+        <span class="n">v_1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vgdrps0</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="n">lat_idx</span><span class="p">,</span> <span class="n">lon_idx</span><span class="p">]</span>
         <span class="n">v_1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fill_missing_data</span><span class="p">(</span><span class="n">v_1</span><span class="p">)</span>
-        <span class="n">u_1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ugdrps0</span><span class="p">[</span><span class="n">int_hr_idx2</span><span class="p">,</span> <span class="p">:,</span> <span class="n">lat_idx</span><span class="p">,</span> <span class="n">lon_idx</span><span class="p">]</span>
+        <span class="n">u_1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ugdrps0</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="n">lat_idx</span><span class="p">,</span> <span class="n">lon_idx</span><span class="p">]</span>
         <span class="n">u_1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fill_missing_data</span><span class="p">(</span><span class="n">u_1</span><span class="p">)</span>
         <span class="c1">#t_1 = self.temp0[int_hr_idx2, :, lat_idx, lon_idx]</span>
         <span class="c1">#t_1 = self.fill_missing_data(t_1)</span>
-        <span class="n">xp_1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hgtprs</span><span class="p">[</span><span class="n">int_hr_idx2</span><span class="p">,</span> <span class="p">:,</span> <span class="n">lat_idx</span><span class="p">,</span> <span class="n">lon_idx</span><span class="p">]</span>
+        <span class="n">xp_1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hgtprs</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">)</span> <span class="o">+</span><span class="mi">1</span> <span class="p">,</span> <span class="p">:,</span> <span class="n">lat_idx</span><span class="p">,</span> <span class="n">lon_idx</span><span class="p">]</span>
         <span class="n">xp_1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fill_missing_data</span><span class="p">(</span><span class="n">xp_1</span><span class="p">)</span>
 
         <span class="c1">#f = interpolate.interp1d(xp_1, t_1, assume_sorted=False, fill_value=&quot;extrapolate&quot; )</span>
@@ -699,62 +359,13 @@
         <span class="n">f</span> <span class="o">=</span> <span class="n">interpolate</span><span class="o">.</span><span class="n">interp1d</span><span class="p">(</span><span class="n">xp_1</span><span class="p">,</span> <span class="n">v_1</span><span class="p">,</span> <span class="n">assume_sorted</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="s2">&quot;extrapolate&quot;</span><span class="p">)</span>
         <span class="n">v1_pt</span> <span class="o">=</span> <span class="n">f</span><span class="p">(</span><span class="n">hgt_m</span><span class="p">)</span>
 
-        <span class="n">fp</span> <span class="o">=</span> <span class="p">[</span><span class="n">int_hr_idx</span><span class="p">,</span> <span class="n">int_hr_idx2</span><span class="p">]</span>
+        <span class="n">fp</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
         <span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">hour_index</span><span class="p">,</span> <span class="n">fp</span><span class="p">,</span> <span class="p">[</span><span class="n">u0_pt</span><span class="p">,</span> <span class="n">u1_pt</span><span class="p">])</span>
         <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">hour_index</span><span class="p">,</span> <span class="n">fp</span><span class="p">,</span> <span class="p">[</span><span class="n">v0_pt</span><span class="p">,</span> <span class="n">v1_pt</span><span class="p">])</span>
         <span class="c1">#t = np.interp(hour_index, fp, [t0_pt, t1_pt])</span>
 
         <span class="k">return</span> <span class="p">[</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">]</span></div>
 
-
-<span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">    #Removed THis Function</span>
-<span class="sd">    def wind_alt_InterpolateNoTime(self, alt_m, lat_idx, lon_idx):</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-<span class="sd">        Performs a 2 step linear interpolation to determine horizontal wind velocity.  First the altitude is interpolated between the two nearest</span>
-<span class="sd">        .25 degree lat/lon areas.  Once altitude is matched, a second linear interpolation is performed with respect to time.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        alt_m : float</span>
-<span class="sd">            Contains altitude of balloon object.</span>
-<span class="sd">        lon_idx : integer</span>
-<span class="sd">            Closest index into longitude array</span>
-<span class="sd">        lat_idx : integer</span>
-<span class="sd">            Closest index into latitude array</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            u : float</span>
-<span class="sd">                u component wind vector</span>
-<span class="sd">            v : float</span>
-<span class="sd">                v component wind vector</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-
-<span class="sd">        hgt_m = alt_m</span>
-
-
-<span class="sd">        # First interpolate wind speeds between 2 closest time steps to match altitude estimates (hgtprs), which can change with time</span>
-<span class="sd">        v_0 = self.vgdrps0[:, lat_idx, lon_idx]  # Round hour index to nearest int</span>
-<span class="sd">        v_0 = self.fill_missing_data(v_0)  # Fill the missing wind data if occurs at upper heights</span>
-
-<span class="sd">        u_0 = self.ugdrps0[:, lat_idx, lon_idx]</span>
-<span class="sd">        u_0 = self.fill_missing_data(u_0)</span>
-
-<span class="sd">        # t_0 = self.temp0[int_hr_idx, :, lat_idx, lon_idx]</span>
-<span class="sd">        # t_0 = self.fill_missing_data(t_0)</span>
-
-<span class="sd">        xp_0 = self.hgtprs[:, lat_idx, lon_idx]</span>
-<span class="sd">        xp_0 = self.fill_missing_data(xp_0)</span>
-
-<span class="sd">        # f = interpolate.interp1d(xp_0, t_0, assume_sorted=False, fill_value=&quot;extrapolate&quot;)</span>
-<span class="sd">        # t0_pt = f(hgt_m)</span>
-<span class="sd">        f = interpolate.interp1d(xp_0, u_0, assume_sorted=False, fill_value=&quot;extrapolate&quot;)</span>
-<span class="sd">        u0_pt = f(hgt_m)</span>
-<span class="sd">        f = interpolate.interp1d(xp_0, v_0, assume_sorted=False, fill_value=&quot;extrapolate&quot;)</span>
-<span class="sd">        v0_pt = f(hgt_m)</span>
-
-<span class="sd">        return [u0_pt, v0_pt]</span>
-<span class="sd">    &#39;&#39;&#39;</span>
 
 <div class="viewcode-block" id="ERA5.fill_missing_data">
 <a class="viewcode-back" href="../API/era5.html#ERA5.ERA5.fill_missing_data">[docs]</a>
@@ -787,17 +398,16 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
-
         <span class="n">diff_time</span> <span class="o">=</span> <span class="n">coord</span><span class="p">[</span><span class="s2">&quot;timestamp&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_start_datetime</span>
         <span class="n">hour_index</span> <span class="o">=</span> <span class="p">(</span><span class="n">diff_time</span><span class="o">.</span><span class="n">days</span> <span class="o">*</span> <span class="mi">24</span> <span class="o">+</span> <span class="n">diff_time</span><span class="o">.</span><span class="n">seconds</span> <span class="o">/</span> <span class="mf">3600.</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolution_hr</span>
         <span class="n">int_hr_idx</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">diff_check</span> <span class="o">=</span> <span class="n">diff_time</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">hour_index_check</span> <span class="o">=</span> <span class="n">int_hr_idx</span>
 
         <span class="n">lat_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getNearestLatIdx</span><span class="p">(</span><span class="n">coord</span><span class="p">[</span><span class="s2">&quot;lat&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span><span class="p">)</span>
         <span class="n">lon_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getNearestLonIdx</span><span class="p">(</span><span class="n">coord</span><span class="p">[</span><span class="s2">&quot;lon&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">lon_min_idx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span><span class="p">)</span>
         <span class="c1">#z = self.getNearestAltbyIndex(lat_idx, lon_idx, coord[&quot;alt_m&quot;])  # fix this for lower and Upper</span>
         <span class="n">z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getNearestAltbyIndex</span><span class="p">(</span><span class="n">int_hr_idx</span><span class="p">,</span> <span class="n">lat_idx</span><span class="p">,</span> <span class="n">lon_idx</span><span class="p">,</span> <span class="n">coord</span><span class="p">[</span><span class="s2">&quot;alt&quot;</span><span class="p">])</span>  <span class="c1"># fix this for lower and Upper</span>
+
+        <span class="n">x_wind_vel</span><span class="p">,</span> <span class="n">y_wind_vel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wind_alt_Interpolate</span><span class="p">(</span><span class="n">coord</span><span class="p">[</span><span class="s1">&#39;alt&#39;</span><span class="p">],</span> <span class="n">diff_time</span><span class="p">,</span> <span class="n">lat_idx</span><span class="p">,</span> <span class="n">lon_idx</span><span class="p">)</span>
 
         <span class="k">try</span><span class="p">:</span>
             <span class="n">x_wind_vel</span><span class="p">,</span> <span class="n">y_wind_vel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wind_alt_Interpolate</span><span class="p">(</span><span class="n">coord</span><span class="p">[</span><span class="s1">&#39;alt&#39;</span><span class="p">],</span> <span class="n">diff_time</span><span class="p">,</span> <span class="n">lat_idx</span><span class="p">,</span> <span class="n">lon_idx</span><span class="p">)</span>  <span class="c1"># for now hour index is 0</span>
@@ -805,21 +415,15 @@
                 <span class="k">return</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
                 <span class="c1"># x_wind_vel, y_wind_vel = self.wind_interpolate_by_index(coord, i, j, z)  # for now hour index is 0</span>
         <span class="k">except</span><span class="p">:</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Simulation Timestamp:    , </span><span class="si">{</span><span class="n">coord</span><span class="p">[</span><span class="s2">&quot;timestamp&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Model Forecast Start time: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">model_start_datetime</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Last valid difference: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">diff_check</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Last valid hour index </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">hour_index_check</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">colored</span><span class="p">(</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">colored</span><span class="p">(</span>
                 <span class="s2">&quot;Mismatch with simulation and forecast timstamps. Check simulation start time and/or download a new forecast.&quot;</span><span class="p">,</span>
                 <span class="s2">&quot;red&quot;</span><span class="p">))</span>
-
             <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
         <span class="n">bearing</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="n">y_wind_vel</span><span class="p">,</span> <span class="n">x_wind_vel</span><span class="p">))</span>
         <span class="n">bearing</span> <span class="o">=</span> <span class="mi">90</span> <span class="o">-</span> <span class="n">bearing</span>  <span class="c1"># perform 90 degree rotation for bearing from wind data</span>
         <span class="n">d</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">pow</span><span class="p">((</span><span class="n">math</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="n">y_wind_vel</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">math</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="n">x_wind_vel</span><span class="p">,</span> <span class="mi">2</span><span class="p">)),</span> <span class="mf">.5</span><span class="p">)</span> <span class="o">*</span> <span class="n">dt</span>  <span class="c1"># dt multiplier</span>
         <span class="n">g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">geod</span><span class="o">.</span><span class="n">Direct</span><span class="p">(</span><span class="n">coord</span><span class="p">[</span><span class="s2">&quot;lat&quot;</span><span class="p">],</span> <span class="n">coord</span><span class="p">[</span><span class="s2">&quot;lon&quot;</span><span class="p">],</span> <span class="n">bearing</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
-
 
         <span class="c1">#GFS is %360 here.  The files are organized a bit differently</span>
         <span class="k">if</span> <span class="n">g</span><span class="p">[</span><span class="s1">&#39;lat2&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">LAT_LOW</span> <span class="ow">or</span> <span class="n">g</span><span class="p">[</span><span class="s1">&#39;lat2&#39;</span><span class="p">]</span>  <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">LAT_HIGH</span> <span class="ow">or</span> <span class="p">(</span><span class="n">g</span><span class="p">[</span><span class="s1">&#39;lon2&#39;</span><span class="p">])</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">LON_LOW</span> <span class="ow">or</span> <span class="p">(</span><span class="n">g</span><span class="p">[</span><span class="s1">&#39;lon2&#39;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">LON_HIGH</span><span class="p">:</span>
@@ -834,65 +438,8 @@
             <span class="k">return</span> <span class="p">[</span><span class="n">g</span><span class="p">[</span><span class="s1">&#39;lat2&#39;</span><span class="p">],</span> <span class="n">g</span><span class="p">[</span><span class="s1">&#39;lon2&#39;</span><span class="p">],</span> <span class="n">x_wind_vel</span><span class="p">,</span> <span class="n">y_wind_vel</span><span class="p">,</span> <span class="n">bearing</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="p">[</span><span class="n">lat_idx</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">lon</span><span class="p">[</span><span class="n">lon_idx</span><span class="p">],</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">hgtprs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">lat_idx</span><span class="p">,</span> <span class="n">lon_idx</span><span class="p">]]</span></div>
 
-<span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">    def getNewCoordNoTime(self, coord, dt):</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-<span class="sd">        Determines the new coordinates of the balloon based on the effects of U and V wind components.</span>
-<span class="sd">        Here the model data does not have a time dimension so model value changes are only a function</span>
-<span class="sd">        of height (or level) and latitude, longitude.</span>
 
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        coord : dict</span>
-<span class="sd">            Contains current position, altitude and time of balloon object.</span>
-<span class="sd">        dt : float</span>
-<span class="sd">            Integration time</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            lat_new, lon_new, x_wind_vel, y_wind_vel, bearing, closest_lat, closest_lon, closest alt</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-
-<span class="sd">        #diff_time = coord[&quot;timestamp&quot;] - self.model_start_datetime</span>
-<span class="sd">        #hour_index = (diff_time.days * 24 + diff_time.seconds / 3600.) / self.resolution_hr</span>
-<span class="sd">        #int_hr_idx = int(hour_index)</span>
-<span class="sd">        #self.diff_check = diff_time</span>
-<span class="sd">        #self.hour_index_check = int_hr_idx</span>
-
-<span class="sd">        lat_idx = self.getNearestLatIdx(coord[&quot;lat&quot;], self.lat_max_idx, self.lat_min_idx)</span>
-<span class="sd">        lon_idx = self.getNearestLonIdx(coord[&quot;lon&quot;], self.lon_min_idx, self.lon_max_idx)</span>
-<span class="sd">        z = self.getNearestAltbyIndexNoTime(lat_idx, lon_idx, coord[&quot;alt_m&quot;])  # fix this for lower and Upper</span>
-
-<span class="sd">        try:</span>
-<span class="sd">            x_wind_vel, y_wind_vel = self.wind_alt_InterpolateNoTime(coord[&#39;alt_m&#39;], lat_idx, lon_idx)  # for now hour index is 0</span>
-<span class="sd">            if x_wind_vel == None:</span>
-<span class="sd">                return [None, None, None, None, None, None, None, None]</span>
-<span class="sd">                # x_wind_vel, y_wind_vel = self.wind_interpolate_by_index(coord, i, j, z)  # for now hour index is 0</span>
-<span class="sd">        except:</span>
-<span class="sd">            logging.error(f&#39;Simulation Timestamp:    , {coord[&quot;timestamp&quot;]}&#39;)</span>
-<span class="sd">            logging.error(f&quot;Last valid difference: {self.diff_check}&quot;)</span>
-<span class="sd">            logging.error(f&quot;Last valid hour index {self.hour_index_check}&quot;)</span>
-<span class="sd">            logging.error(colored(</span>
-<span class="sd">                &quot;Mismatch with simulation and forecast timstamps. Check simulation start time and/or download a new forecast.&quot;,</span>
-<span class="sd">                &quot;red&quot;))</span>
-
-<span class="sd">            sys.exit(1)</span>
-
-<span class="sd">        bearing = math.degrees(math.atan2(y_wind_vel, x_wind_vel))</span>
-<span class="sd">        bearing = 90 - bearing  # perform 90 degree rotation for bearing from wind data</span>
-<span class="sd">        d = math.pow((math.pow(y_wind_vel, 2) + math.pow(x_wind_vel, 2)), .5) * dt  # dt multiplier</span>
-<span class="sd">        g = self.geod.Direct(coord[&quot;lat&quot;], coord[&quot;lon&quot;], bearing, d)</span>
-
-<span class="sd">        if coord[&quot;alt_m&quot;] &lt;= self.min_alt_m:</span>
-<span class="sd">            # Balloon should remain stationary if it&#39;s reached the minimum altitude</span>
-<span class="sd">            return [coord[&#39;lat&#39;], coord[&#39;lon&#39;], x_wind_vel, y_wind_vel, bearing, self.lat[lat_idx], self.lon[lon_idx],</span>
-<span class="sd">                    self.hgtprs[z, lat_idx, lon_idx]]  # hgtprs doesn&#39;t matter here so is set to 0</span>
-<span class="sd">        else:</span>
-<span class="sd">            return [g[&#39;lat2&#39;], g[&#39;lon2&#39;], x_wind_vel, y_wind_vel, bearing, self.lat[lat_idx], self.lon[lon_idx],</span>
-<span class="sd">                    self.hgtprs[z, lat_idx, lon_idx]]</span>
-<span class="sd">    &#39;&#39;&#39;</span>
-
-    <span class="c1">#I don&#39;t remember why I made this function for Now</span>
+    <span class="c1">#This function is unused now after code cleanup, but leaving for now because Craig included it with the orginal code</span>
 <span class="w">    </span><span class="sd">&#39;&#39;&#39;CHECK THIS&#39;&#39;&#39;</span>
     <span class="k">def</span> <span class="nf">datetime_epoch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timedate_obj</span><span class="p">):</span>
         <span class="n">gmt</span> <span class="o">=</span> <span class="n">timezone</span><span class="p">(</span><span class="s1">&#39;GMT&#39;</span><span class="p">)</span>

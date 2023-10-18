@@ -83,7 +83,7 @@ for j in range(0,len(masses)):
 
     descent = False
     for i in range(0,simulation_time):
-        T_s_new,T_i_new,T_atm_new,el_new,v_new, q_rad, q_surf, q_int = e.solveVerticalTrajectory(t,T_s[i],T_i[i],el[i],v[i],coord,alt_sp,v_sp)
+        T_s_new,T_i_new,T_atm_new,el_new,v_new, q_rad, q_surf, q_int = e.solveVerticalTrajectory(t,T_s[i],T_i[i],el[i],v[i],coords[i],alt_sp,v_sp)
 
         # Correct for the infrared affects with low masses
         if v_new < -3.0 and el_new > 15000:

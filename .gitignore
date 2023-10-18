@@ -1,9 +1,2 @@
 # Ignore node_modules folder
 __pycache__
-
-balloon_data/*
-!balloon_data/SHAB15V-APRS.csv
-
-forecasts/*
-!forecasts/gfs_0p25_20220822_12.nc
-!forecasts/SHAB15V_ERA5_20220822_20220823.nc

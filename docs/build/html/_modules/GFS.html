@@ -111,11 +111,11 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">geod</span> <span class="o">=</span> <span class="n">Geodesic</span><span class="o">.</span><span class="n">WGS84</span>
 
-        <span class="c1"># Initialize min/max lat/lon index values from netcdf4 subset</span>
-        <span class="c1">#self.lat_min_idx = None</span>
-        <span class="c1">#self.lon_min_idx = None</span>
-        <span class="c1">#self.lat_max_idx = None</span>
-        <span class="c1">#self.lon_max_idx = None</span>
+        <span class="n">time_arr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span>
+
+        <span class="c1">#Manually add time units, not imported with units formatted in saveNETCDF.py</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_convert</span> <span class="o">=</span> <span class="n">netCDF4</span><span class="o">.</span><span class="n">num2date</span><span class="p">(</span><span class="n">time_arr</span><span class="p">[:],</span> <span class="n">units</span><span class="o">=</span><span class="s2">&quot;days since 0001-01-01&quot;</span><span class="p">,</span> <span class="n">has_year_zero</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
 
         <span class="c1">#Determine Index values from netcdf4 subset</span>
         <span class="n">netcdf_ranges</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;ugrdprs&#39;</span><span class="p">][:,</span><span class="mi">0</span><span class="p">,:,:]</span>
@@ -124,18 +124,12 @@
         <span class="c1"># smaller array of downloaded forecast subset</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">lat</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;lat&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">lon</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;lon&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_min_idx</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span><span class="p">]</span>
-        <span class="n">time_arr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span>
-
-        <span class="c1">#Manually add time units, not imported with units formatted in saveNETCDF.py</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">time_convert</span> <span class="o">=</span> <span class="n">netCDF4</span><span class="o">.</span><span class="n">num2date</span><span class="p">(</span><span class="n">time_arr</span><span class="p">[:],</span> <span class="n">units</span><span class="o">=</span><span class="s2">&quot;days since 0001-01-01&quot;</span><span class="p">,</span> <span class="n">has_year_zero</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
 
         <span class="c1"># min/max lat/lon degree values from netcdf4 subset</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">LAT_LOW</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;lat&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">LON_LOW</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;lon&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_min_idx</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">LAT_HIGH</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;lat&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">LON_HIGH</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;lon&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span><span class="p">]</span>
-
 
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;LAT RANGE: min: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">LAT_LOW</span><span class="p">),</span> <span class="s2">&quot; (deg) max: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">LAT_HIGH</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; (deg) array size: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;LON RANGE: min: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">LON_LOW</span><span class="p">),</span> <span class="s2">&quot; (deg) max: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">LON_HIGH</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; (deg) array size: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">lon_min_idx</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span>
@@ -197,13 +191,16 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">lon_min_idx</span> <span class="o">=</span> <span class="n">lonrange</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span> <span class="o">=</span> <span class="n">lonrange</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span> <span class="c1">#This might be broken for time</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">start_time_idx</span> <span class="o">=</span> <span class="mi">0</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">end_time_idx</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time_convert</span><span class="p">)</span>
-            <span class="n">lati</span><span class="p">,</span> <span class="n">loni</span> <span class="o">=</span> <span class="n">netcdf_ranges</span><span class="o">.</span><span class="n">shape</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">lat_min_idx</span> <span class="o">=</span> <span class="n">lati</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">lat_max_idx</span> <span class="o">=</span> <span class="mi">0</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">lon_max_idx</span> <span class="o">=</span> <span class="n">loni</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">lon_min_idx</span> <span class="o">=</span> <span class="mi">0</span></div>
+            <span class="c1">#Need to double check this for an entire world netcdf download</span>
+<span class="w">            </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">            self.start_time_idx = 0</span>
+<span class="sd">            self.end_time_idx = len(self.time_convert)-1</span>
+<span class="sd">            lati, loni = netcdf_ranges.shape</span>
+<span class="sd">            self.lat_min_idx = lati</span>
+<span class="sd">            self.lat_max_idx = 0</span>
+<span class="sd">            self.lon_max_idx = loni</span>
+<span class="sd">            self.lon_min_idx = 0</span>
+<span class="sd">            &#39;&#39;&#39;</span></div>
 
 
 <div class="viewcode-block" id="GFS.closest">

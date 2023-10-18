@@ -14,6 +14,7 @@ EarthSHAB relies on the following libraries:
 	- seaborn
 	- scipy
 	- pytz
+	- xarray
 
 
 

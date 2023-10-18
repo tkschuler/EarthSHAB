@@ -155,7 +155,8 @@ class SolveStates:
         tm_air = rho_int*self.vol*self.Cp_air0
 
         #Numerically integrate change in Surface Temperature
-        coord["alt"] = el
+        coord["alt"] = el #Change this when using GFS
+        #print(el, coord["alt"])
         q_rad  = rad.get_rad_total(t,coord)
         q_surf = bal.get_sum_q_surf(q_rad, T_s, el, v)
         q_int  = bal.get_sum_q_int(T_s, T_i, el)

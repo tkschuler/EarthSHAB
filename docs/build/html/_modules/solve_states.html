@@ -242,7 +242,8 @@
         <span class="n">tm_air</span> <span class="o">=</span> <span class="n">rho_int</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">vol</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">Cp_air0</span>
 
         <span class="c1">#Numerically integrate change in Surface Temperature</span>
-        <span class="n">coord</span><span class="p">[</span><span class="s2">&quot;alt&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">el</span>
+        <span class="n">coord</span><span class="p">[</span><span class="s2">&quot;alt&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">el</span> <span class="c1">#Change this when using GFS</span>
+        <span class="c1">#print(el, coord[&quot;alt&quot;])</span>
         <span class="n">q_rad</span>  <span class="o">=</span> <span class="n">rad</span><span class="o">.</span><span class="n">get_rad_total</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="n">coord</span><span class="p">)</span>
         <span class="n">q_surf</span> <span class="o">=</span> <span class="n">bal</span><span class="o">.</span><span class="n">get_sum_q_surf</span><span class="p">(</span><span class="n">q_rad</span><span class="p">,</span> <span class="n">T_s</span><span class="p">,</span> <span class="n">el</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
         <span class="n">q_int</span>  <span class="o">=</span> <span class="n">bal</span><span class="o">.</span><span class="n">get_sum_q_int</span><span class="p">(</span><span class="n">T_s</span><span class="p">,</span> <span class="n">T_i</span><span class="p">,</span> <span class="n">el</span><span class="p">)</span>

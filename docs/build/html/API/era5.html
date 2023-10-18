@@ -86,14 +86,12 @@
   <section id="module-ERA5">
 <span id="era5"></span><h1><a class="reference internal" href="#module-ERA5" title="ERA5"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ERA5</span></code></a><a class="headerlink" href="#module-ERA5" title="Link to this heading"></a></h1>
 <p>This version was edited to integrate with EarthSHAB.</p>
-<p>Version 1.2 (02-25-2022)
-Authors: MR and CEM
-Edited and Integrated: Tristan Schuler</p>
+<p>Contributing authors: Craig Motell and Michael Rodriguez of NIWC Pacific
+Edited and integrated: Tristan Schuler</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="ERA5.ERA5">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ERA5.</span></span><span class="sig-name descname"><span class="pre">ERA5</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start_coord</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ERA5.html#ERA5"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ERA5.ERA5" title="Link to this definition"></a></dt>
-<dd><p>TODO: Write high level overview</p>
-<dl class="py method">
+<dd><dl class="py method">
 <dt class="sig sig-object py" id="ERA5.ERA5.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start_coord</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ERA5.html#ERA5.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ERA5.ERA5.__init__" title="Link to this definition"></a></dt>
 <dd><p>Create a class object containing information about an ERA5. Along the way,
@@ -128,11 +126,6 @@ indexes.</p>
 as indicated by NaN, then this function will return your actual shape size so you can
 resize your data being used.</p>
 </dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ERA5.ERA5.dt">
-<span class="sig-name descname"><span class="pre">dt</span></span><a class="headerlink" href="#ERA5.ERA5.dt" title="Link to this definition"></a></dt>
-<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="ERA5.ERA5.fill_missing_data">
@@ -191,16 +184,17 @@ variables.</p>
 <p>Similar to class GFS which stores NOAA GFS data from NOMAD server</p>
 </dd></dl>
 
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ERA5.ERA5.start_coord">
-<span class="sig-name descname"><span class="pre">start_coord</span></span><a class="headerlink" href="#ERA5.ERA5.start_coord" title="Link to this definition"></a></dt>
-<dd></dd></dl>
-
 <dl class="py method">
 <dt class="sig sig-object py" id="ERA5.ERA5.wind_alt_Interpolate">
 <span class="sig-name descname"><span class="pre">wind_alt_Interpolate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">alt_m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">diff_time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lat_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lon_idx</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ERA5.html#ERA5.wind_alt_Interpolate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ERA5.ERA5.wind_alt_Interpolate" title="Link to this definition"></a></dt>
 <dd><p>Performs a 2 step linear interpolation to determine horizontal wind velocity.  First the altitude is interpolated between the two nearest
 .25 degree lat/lon areas.  Once altitude is matched, a second linear interpolation is performed with respect to time.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>I performed a lot of clean up of this code from what Craig originally sent me.  I’m not exactly sure what
+about all the difference from GFS to ERA5 for this function.  I will do more cleaning and variable renaming in a later version.
+The results are the same right now thoug.</p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">

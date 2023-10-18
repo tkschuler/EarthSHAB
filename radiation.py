@@ -40,6 +40,19 @@ class Radiation:
         atm = fluids.atmosphere.ATMOSPHERE_1976(el)
         return atm.T
 
+    def getTempForecast(self, coord):
+        r""" Looks up the forecast temperature at the current coordinate and altitude
+
+        .. important:: TODO. This function is not operational yet. 
+
+        :param coord: current coordinate
+        :type coord: dict
+        :returns: atmospheric temperature (k)
+        :rtype: float
+
+        """
+        return temp
+
     def getPressure(self, el):
         atm = fluids.atmosphere.ATMOSPHERE_1976(el)
         return atm.P

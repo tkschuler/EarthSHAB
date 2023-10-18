@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import os
 
 import GFS
+import ERA5
 import radiation
 import config_earth
 
@@ -32,6 +33,8 @@ dt = config_earth.simulation['dt']
 sim = config_earth.simulation["sim_time"]
 GFSrate = config_earth.forecast["GFSrate"]
 
+forecast_type = config_earth.forecast['forecast_type']
+
 simulation_time = sim*int(3600*(1/dt)) # Simulation time in seconds
 
 # Initialize trajectroy variables
@@ -42,7 +45,11 @@ lat = [coord["lat"]]
 lon = [coord["lon"]]
 
 
-gfs = GFS.GFS(coord)
+if forecast_type == "GFS":
+    gfs = GFS.GFS(coord)
+else:
+    gfs = ERA5.ERA5(coord)
+
 burst = False
 gmap1 = gmplot.GoogleMapPlotter(coord["lat"],coord["lon"],8)
 
