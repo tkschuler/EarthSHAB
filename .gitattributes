@@ -1,0 +1,4 @@
+docs/** linguist-vendored
+forecasts/** linguist-vendored
+trajectories/** linguist-vendored
+balloon_data/** linguist-vendored
