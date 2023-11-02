@@ -123,6 +123,7 @@ class Windmap:
         :rtype: array
 
         """
+
         # Calculate altitude
         bearing = np.arctan2(v,u)
         bearing = np.unwrap(bearing)
@@ -135,7 +136,7 @@ class Windmap:
         return [bearing, r , colors, cmap]
 
 
-    def getWind(self,hour_index,lat_i,lon_i):
+    def getWind(self,hour_index,lat_i,lon_i, interpolation_frequency = 1):
         """ Calculates a wind vector estimate at a particular 3D coordinate and timestamp
         using a 2-step linear interpolation approach.
 
@@ -179,16 +180,192 @@ class Windmap:
         cs_u = CubicSpline(h, u)
         cs_v = CubicSpline(h, v)
         if config_earth.forecast['forecast_type'] == "GFS":
-            h_new = np.arange(0, 50000, 10) # New altitude range
+            h_new = np.arange(0, h[-1], interpolation_frequency) # New altitude range
         elif config_earth.forecast['forecast_type'] == "ERA5":
-            h_new = np.arange(0, 50000, 10) # New altitude range
+            h_new = np.arange(0, h[-1], interpolation_frequency) # New altitude range
         u = cs_u(h_new)
         v = cs_v(h_new)
 
         return self.windVectorToBearing(u, v, h_new)
 
 
-    def plotWindVelocity(self,hour_index,lat,lon):
+    def plotWind2(self,hour_index,lat,lon, num_interpolations = 100):
+        """ Calculates a wind vector estimate at a particular 3D coordinate and timestamp
+        using a 2-step linear interpolation approach.
+
+        I believe this is more accurate than linear interpolating the U-V wind components. Using arctan2
+        creates a non-linear distribution of points, however they should still be accurate. arctan2 causes issues
+        when there are 180 degree opposing winds because it is undefined, and the speed goes to 0 and back up to the new speed.
+
+        Therefore instead we interpolate the wind speed and direction, and use an angle wrapping check to see if the shortest
+        distance around the circle crosses the 0/360 degree axis. This prevents speed down to 0, as well as undefined regions.
+
+        1. Get closest timesteps (t0 and t1) and lat/lon indexes for desired time
+        2. Convert the entire altitude range at t0 and t1 U-V wind vector components to wind speed and direction (rad and m/s)
+        3. Perform a linear interpolation of wind speed and direction. Fill in num_iterations
+
+        :param hour_index: Time index from forecast file
+        :type hour_index: int
+        :param lat: Latitude coordinate [deg]
+        :type lat_i: float
+        :param lon_i: Longitude coordinate [deg]
+        :type lon_i: cloast
+        :returns: 3D windrose plot
+        :rtype: matplotlib.plot
+
+        """
+
+        if config_earth.forecast['forecast_type'] == "GFS":
+            lat_i = self.gfs.getNearestLat(lat, -90, 90.01 ) #I think instead of min max this is because download netcdf downloads the whole world, but many of the spots are empty.
+            lon_i = self.gfs.getNearestLon(lon, 0, 360 )
+
+        elif config_earth.forecast['forecast_type'] == "ERA5":
+            lat_i = self.era5.getNearestLatIdx(lat, self.era5.lat_min_idx, self.era5.lat_max_idx)
+            lon_i = self.era5.getNearestLonIdx(lon, self.era5.lon_min_idx, self.era5.lon_max_idx)
+
+
+        g = 9.80665 # gravitation constant used to convert geopotential height to height
+
+        u = self.ugrdprs[hour_index,:,lat_i,lon_i]
+        v = self.vgrdprs[hour_index,:,lat_i,lon_i]
+        h = self.hgtprs[hour_index,:,lat_i,lon_i]
+
+        # Remove missing data
+        u = u.filled(np.nan)
+        v = v.filled(np.nan)
+        nans = ~np.isnan(u)
+        u= u[nans]
+        v= v[nans]
+        h = h[nans]
+
+        #for ERA5, need to reverse all array so h is increasing.
+        if config_earth.forecast['forecast_type'] == "ERA5":
+            u = np.flip(u)
+            v = np.flip(v)
+            h = np.flip(h)
+            h = h / g #have to do this for ERA5
+
+        bearing, r , colors, cmap = self.windVectorToBearing(u, v, h)
+
+        # Create interpolated altitudes and corresponding wind data
+        interpolated_altitudes = []
+        interpolated_speeds = []
+        interpolated_directions_deg = []
+
+
+        for i in range(len(h) - 1):
+
+            #Do some angle wrapping checks
+            interp_dir_deg = 0
+            angle1 = np.degrees(bearing[i]) %360
+            angle2 = np.degrees(bearing[i + 1]) %360
+            angular_difference = abs(angle2-angle1)
+
+            if angular_difference > 180:
+                if (angle2 > angle1):
+                    angle1 += 360
+                else:
+                    angle2 += 360
+
+
+            for j in range(num_interpolations + 1):
+                alpha = j / num_interpolations
+                interp_alt = h[i] + alpha * (h[i + 1] - h[i])
+                interp_speed = np.interp(interp_alt, [h[i], h[i + 1]], [r[i], r[i + 1]])
+
+                interp_dir_deg = np.interp(interp_alt, [h[i], h[i + 1]], [angle1, angle2]) % 360 #make sure in the range (0, 360)
+
+                interpolated_altitudes.append(interp_alt)
+                interpolated_speeds.append(interp_speed)
+                interpolated_directions_deg.append(interp_dir_deg)
+
+        fig = plt.figure(figsize=(10, 8))
+        ax1 = fig.add_subplot(111, projection='polar')
+
+        if config_earth.forecast['forecast_type'] == "GFS":
+            sc = ax1.scatter(np.radians(interpolated_directions_deg), interpolated_altitudes, c=interpolated_speeds, cmap='winter', s=2)
+            ax1.title.set_text("GFS 3D Windrose for (" + str(self.LAT) + ", " + str(self.LON) + ") on " + str(self.new_timestamp))
+
+        elif config_earth.forecast['forecast_type'] == "ERA5":
+            sc = ax1.scatter(np.radians(interpolated_directions_deg), interpolated_altitudes, c=interpolated_speeds, cmap='winter', s=2)
+            ax1.title.set_text("ERA5 3D Windrose for (" + str(self.LAT) + ", " + str(self.LON) + ") on " + str(self.new_timestamp))
+
+        cbar = plt.colorbar(sc, label='Wind Speed (m/s)')
+        #plt.scatter(np.radians(interpolated_directions_deg), interpolated_altitudes)
+
+        # Set title
+        fig.suptitle("Wind Interpolation using Wind Speed and Directio Linear Interpolation")
+        #plt.title('Windmap with Wind Angles Interpolated')
+
+    '''
+    def plotWindOLD(self,hour_index,lat,lon, num_interpolations = 100):
+
+        if config_earth.forecast['forecast_type'] == "GFS":
+            lat_i = self.gfs.getNearestLat(lat, -90, 90.01 ) #I think instead of min max this is because download netcdf downloads the whole world, but many of the spots are empty.
+            lon_i = self.gfs.getNearestLon(lon, 0, 360 )
+
+        elif config_earth.forecast['forecast_type'] == "ERA5":
+            lat_i = self.era5.getNearestLatIdx(lat, self.era5.lat_min_idx, self.era5.lat_max_idx)
+            lon_i = self.era5.getNearestLonIdx(lon, self.era5.lon_min_idx, self.era5.lon_max_idx)
+
+
+        g = 9.80665 # gravitation constant used to convert geopotential height to height
+
+        u = self.ugrdprs[hour_index,:,lat_i,lon_i]
+        v = self.vgrdprs[hour_index,:,lat_i,lon_i]
+        h = self.hgtprs[hour_index,:,lat_i,lon_i]
+
+        # Remove missing data
+        u = u.filled(np.nan)
+        v = v.filled(np.nan)
+        nans = ~np.isnan(u)
+        u= u[nans]
+        v= v[nans]
+        h = h[nans]
+
+        #for ERA5, need to reverse all array so h is increasing.
+        if config_earth.forecast['forecast_type'] == "ERA5":
+            u = np.flip(u)
+            v = np.flip(v)
+            h = np.flip(h)
+            h = h / g #have to do this for ERA5
+
+
+        # Create interpolated altitudes and corresponding wind data
+        interpolated_altitudes = []
+        interpolated_u = []
+        interpolated_v = []
+
+        for i in range(len(h) - 1):
+            for j in range(num_interpolations + 1):
+                alpha = j / num_interpolations
+                interp_alt = h[i] + alpha * (h[i + 1] - h[i])
+                interp_u = np.interp(interp_alt, [h[i], h[i + 1]], [u[i], u[i + 1]])
+                interp_v = np.interp(interp_alt, [h[i], h[i + 1]], [v[i], v[i + 1]])
+
+                interpolated_altitudes.append(interp_alt)
+                interpolated_u.append(interp_u)
+                interpolated_v.append(interp_v)
+
+        bearing, r , colors, cmap = self.windVectorToBearing(interpolated_u, interpolated_v, interpolated_altitudes)
+        #bearing, r , colors, cmap = self.windVectorToBearing(np.full(len(interpolated_altitudes), 3), np.full(len(interpolated_altitudes), 2), interpolated_altitudes)
+
+
+        fig = plt.figure(figsize=(8, 8))
+        ax = fig.add_subplot(111, projection='polar')
+
+        # Create a scatter plot where radius is altitude, angle is wind direction (in radians), and color represents wind speed
+        sc = ax.scatter(bearing, colors, c=r, cmap='winter', s=2)
+        cbar = plt.colorbar(sc, label='Wind Speed (m/s)')
+
+        #plt.scatter(np.radians(interpolated_directions_deg), interpolated_altitudes)
+
+        # Set title
+        fig.suptitle("Wind Interpolation using OLDDDDDDDD")
+        #plt.title('Windmap with Wind Angles Interpolated')
+    '''
+
+    def plotWindVelocity(self,hour_index,lat,lon, interpolation_frequency = 1):
         """ Plots a 3D Windrose for a particular coordinate and timestamp from a downloaded forecast.
 
         :param hour_index: Time index from forecast file
@@ -208,26 +385,23 @@ class Windmap:
         if config_earth.forecast['forecast_type'] == "GFS":
             lat_i = self.gfs.getNearestLat(lat, -90, 90.01 ) #I think instead of min max this is because download netcdf downloads the whole world, but many of the spots are empty.
             lon_i = self.gfs.getNearestLon(lon, 0, 360 )
-            bearing1, r1 , colors1, cmap1 = self.getWind(hour_index,lat_i,lon_i)
+            bearing1, r1 , colors1, cmap1 = self.getWind(hour_index,lat_i,lon_i, interpolation_frequency)
 
         elif config_earth.forecast['forecast_type'] == "ERA5":
             lat_i = self.era5.getNearestLatIdx(lat, self.era5.lat_min_idx, self.era5.lat_max_idx)
             lon_i = self.era5.getNearestLonIdx(lon, self.era5.lon_min_idx, self.era5.lon_max_idx)
-            bearing1, r1 , colors1, cmap1 = self.getWind(hour_index,lat_i,lon_i)
+            bearing1, r1 , colors1, cmap1 = self.getWind(hour_index,lat_i,lon_i, interpolation_frequency)
 
         # Plot figure and legend
         fig = plt.figure(figsize=(10, 8))
+        fig.suptitle("Wind Interpolation using  Spline and U-V wind components")
         ax1 = fig.add_subplot(111, projection='polar')
         if config_earth.forecast['forecast_type'] == "GFS":
-            #sc1 = ax1.scatter(bearing0, colors0, c=r0, cmap='rainbow', alpha=0.75, s = 2)
-            sc2 = ax1.scatter(bearing1[0:3000], colors1[0:3000], c=r1[0:3000], cmap='winter', alpha=0.75, s = 2)
+            sc2 = ax1.scatter(bearing1, colors1, c=r1, cmap='winter', alpha=0.75, s = 2)
             ax1.title.set_text("GFS 3D Windrose for (" + str(self.LAT) + ", " + str(self.LON) + ") on " + str(self.new_timestamp))
 
-
         elif config_earth.forecast['forecast_type'] == "ERA5":
-            #This is hardcoded for now
-            #sc1 = ax1.scatter(bearing0[0:50000], colors0[0:50000], c=r0[0:50000], cmap='rainbow', alpha=0.75, s = 2)
-            sc2 = ax1.scatter(bearing1[0:3000], colors1[0:3000], c=r1[0:3000], cmap='winter', alpha=0.75, s = 2)
+            sc2 = ax1.scatter(bearing1, colors1, c=r1, cmap='winter', alpha=0.75, s = 2)
             ax1.title.set_text("ERA5 3D Windrose for (" + str(self.LAT) + ", " + str(self.LON) + ") on " + str(self.new_timestamp))
 
         #ax1.set_xticks([0,9,90,180, 180,270,270,360]) #Fixes the FixedLocator Warning for the line below
@@ -242,9 +416,7 @@ class Windmap:
         plt.plot(self.vgrdprs[hour_index,:,lat_i,lon_i], self.hgtprs[hour_index,:,lat_i,lon_i])
         plt.title("U V Wind Plot")
 
-        #ax1.title.set_text("3D Windrose for (" + str(self.LAT) + ", " + str(self.LON) + ") on " + str(self.new_timestamp))
-
-
+    """
         #Update this
     def plotTempAlt(self,hour_index,lat,lon):
         if config_earth.forecast['forecast_type'] == "ERA5":
@@ -280,13 +452,21 @@ class Windmap:
         plt.ylabel("Altitude (m)")
         plt.title('Atmospheric Temperature Profile for (' + str(self.LAT) + ", " + str(self.LON) + ") on " + str(self.new_timestamp))
 
+
+
         plt.plot(T,h, label = "GFS Forecast")
         plt.plot(T_atm,el, label = "ISA Model")
         plt.legend(loc='upper right')
+    """
 
     def makePlots(self):
-        self.plotWindVelocity(self.hour_index,self.LAT,self.LON)
-        #self.getWind_ERA5(self.hour_index,self.LAT,self.LON)
-        #self.plotTempAlt(self.hour_index,self.LAT,self.LON)
+        print(self.hour_index)
+        self.plotWindVelocity(self.hour_index,self.LAT,self.LON, interpolation_frequency = 100)
+        self.plotWind2(self.hour_index,self.LAT,self.LON, num_interpolations = 10)
+        #self.plotWindOLD(self.hour_index,self.LAT,self.LON, num_interpolations = 100)
         wind.file.close()
         plt.show()
+
+
+#wind = Windmap()
+#wind.makePlots()

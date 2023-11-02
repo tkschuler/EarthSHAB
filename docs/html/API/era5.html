@@ -134,6 +134,13 @@ resize your data being used.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="ERA5.ERA5.get2NearestAltIdxs">
+<span class="sig-name descname"><span class="pre">get2NearestAltIdxs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">h</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alt_m</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ERA5.html#ERA5.get2NearestAltIdxs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ERA5.ERA5.get2NearestAltIdxs" title="Link to this definition"></a></dt>
+<dd><p>Determines 2 nearest indexes for altitude for interpolating angles.
+It does index wrap from 0 to -1, which is taken care of in <cite>ERA5.interpolateBearing()</cite></p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="ERA5.ERA5.getNearestAltbyIndex">
 <span class="sig-name descname"><span class="pre">getNearestAltbyIndex</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">int_hr_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lat_i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lon_i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alt_m</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ERA5.html#ERA5.getNearestAltbyIndex"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ERA5.ERA5.getNearestAltbyIndex" title="Link to this definition"></a></dt>
 <dd><p>Determines the nearest altitude based off of geo potential height of a .25 degree lat/lon area.
@@ -185,9 +192,33 @@ variables.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="ERA5.ERA5.interpolateBearing">
+<span class="sig-name descname"><span class="pre">interpolateBearing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">h</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alt_m</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ERA5.html#ERA5.interpolateBearing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ERA5.ERA5.interpolateBearing" title="Link to this definition"></a></dt>
+<dd><p>Given altitude, u_velocity and v_velocity arrays as well as a desired altitude, perform a linear interpolation
+between the 2 altitudes (h0 and h1) while accounting for possible 0/360degree axis crossover.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ERA5.ERA5.interpolateBearingTime">
+<span class="sig-name descname"><span class="pre">interpolateBearingTime</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bearing0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">speed0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bearing1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">speed1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hour_index</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ERA5.html#ERA5.interpolateBearingTime"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ERA5.ERA5.interpolateBearingTime" title="Link to this definition"></a></dt>
+<dd><p>Similar to <cite>ERA5.interpolateBearing()</cite> however bearings and speeds are already known
+and linearly then interpolated with respect to time (t0 and t1)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ERA5.ERA5.windVectorToBearing">
+<span class="sig-name descname"><span class="pre">windVectorToBearing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ERA5.html#ERA5.windVectorToBearing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ERA5.ERA5.windVectorToBearing" title="Link to this definition"></a></dt>
+<dd><p>Helper function to conver u-v wind components to bearing and speed.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="ERA5.ERA5.wind_alt_Interpolate">
 <span class="sig-name descname"><span class="pre">wind_alt_Interpolate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">alt_m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">diff_time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lat_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lon_idx</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ERA5.html#ERA5.wind_alt_Interpolate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ERA5.ERA5.wind_alt_Interpolate" title="Link to this definition"></a></dt>
-<dd><p>Performs a 2 step linear interpolation to determine horizontal wind velocity.  First the altitude is interpolated between the two nearest
+<dd><div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This function is no longer used.  Use wind_alt_Interpolate2 which does 2 different types of interpolation to choose from.</p>
+</div>
+<p>Performs a 2 step linear interpolation to determine horizontal wind velocity.  First the altitude is interpolated between the two nearest
 .25 degree lat/lon areas.  Once altitude is matched, a second linear interpolation is performed with respect to time.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -206,6 +237,38 @@ The results are the same right now thoug.</p>
 <dt>u<span class="classifier">float</span></dt><dd><p>u component wind vector</p>
 </dd>
 <dt>v<span class="classifier">float</span></dt><dd><p>v component wind vector</p>
+</dd>
+</dl>
+</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ERA5.ERA5.wind_alt_Interpolate2">
+<span class="sig-name descname"><span class="pre">wind_alt_Interpolate2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">alt_m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">diff_time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lat_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lon_idx</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ERA5.html#ERA5.wind_alt_Interpolate2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ERA5.ERA5.wind_alt_Interpolate2" title="Link to this definition"></a></dt>
+<dd><p>Performs two different types of a 2 step linear interpolation to determine horizontal wind velocity.  First the altitude is interpolated between the two nearest
+.25 degree lat/lon areas.  Once altitude is matched, a second linear interpolation is performed with respect to time.</p>
+<p>The old method performs the linear interpolation using u-v wind Components
+the new method performs the linear interpolation using wind bearing and speed.</p>
+<p>Both are calculated in this function. The examples use the new method (bearing and wind), which should be slightly more accurate.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>alt_m</strong> (<em>float</em>) – Contains current altitude of balloon object.</p></li>
+<li><p><strong>diff_time</strong> – This parameter is calculated in two different places, need to clean up this parameter</p></li>
+<li><p><strong>lon_idx</strong> (<em>integer</em>) – Closest index into longitude array</p></li>
+<li><p><strong>lat_idx</strong> (<em>integer</em>) – Closest index into latitude array</p></li>
+<li><p><strong>note:</strong> (<em>..</em>) – <strong>TODO</strong>:</p></li>
+<li><p><strong>Returns</strong> – <dl class="simple">
+<dt>u_new<span class="classifier">float</span></dt><dd><p>u component wind vector (bearing/speed interpolation)</p>
+</dd>
+<dt>v_new<span class="classifier">float</span></dt><dd><p>v component wind vector (bearing/speed interpolation)</p>
+</dd>
+<dt>u_old<span class="classifier">float</span></dt><dd><p>u component wind vector (u-v component interpolation)</p>
+</dd>
+<dt>v_old<span class="classifier">float</span></dt><dd><p>v component wind vector (u-v component interpolation)</p>
 </dd>
 </dl>
 </p></li>

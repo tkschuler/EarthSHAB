@@ -35,7 +35,7 @@ if not os.path.exists('trajectories'):
 
 scriptstartTime = tm.time()
 
-GMT = 7 # MST
+GMT = 7 #0 # UTC MST
 dt = config_earth.simulation['dt']
 coord = config_earth.simulation['start_coord']
 t = config_earth.simulation['start_time']
@@ -91,6 +91,11 @@ el = [min_alt]
 v= [0.]
 coords = [coord]
 
+x_winds_old = [0]
+y_winds_old = [0]
+x_winds_new = [0]
+y_winds_new = [0]
+
 ttt = [t - pd.Timedelta(hours=GMT)] #Just for visualizing plot better]
 data_loss = False
 burst = False
@@ -121,7 +126,7 @@ for i in range(0,sim_time):
 
 
     if i % GFSrate == 0:
-        lat_new,lon_new,x_wind_vel,y_wind_vel,bearing,nearest_lat, nearest_lon, nearest_alt = gfs.getNewCoord(coords[i],dt*GFSrate)  #(coord["lat"],coord["lon"],0,0,0,0,0,0)
+        lat_new,lon_new,x_wind_vel,y_wind_vel, x_wind_vel_old, y_wind_vel_old, bearing,nearest_lat, nearest_lon, nearest_alt = gfs.getNewCoord(coords[i],dt*GFSrate)  #(coord["lat"],coord["lon"],0,0,0,0,0,0)
     coord_new  =	{
                       "lat": lat_new,                # (deg) Latitude
                       "lon": lon_new,                # (deg) Longitude
@@ -132,6 +137,11 @@ for i in range(0,sim_time):
     coords.append(coord_new)
     lat.append(lat_new)
     lon.append(lon_new)
+
+    x_winds_old.append(x_wind_vel_old)
+    y_winds_old.append(y_wind_vel_old)
+    x_winds_new.append(x_wind_vel)
+    y_winds_new.append(y_wind_vel)
 
     rad = radiation.Radiation()
     zen = rad.get_zenith(t, coord_new)
@@ -177,7 +187,7 @@ if balloon_trajectory != None:
 
     for i in range(0,len(alt_aprs)-1):
 
-        lat_new,lon_new,x_wind_vel,y_wind_vel,bearing,nearest_lat, nearest_lon, nearest_alt = gfs.getNewCoord(coords_aprs[i],dt_aprs[i])
+        lat_new,lon_new,x_wind_vel,y_wind_vel, x_wind_vel_old, y_wind_vel_old, bearing,nearest_lat, nearest_lon, nearest_alt = gfs.getNewCoord(coords_aprs[i],dt_aprs[i])
 
         t = t + pd.Timedelta(seconds=dt_aprs[i+1])
         ttt_aprs.append(t - pd.Timedelta(hours=GMT))
@@ -223,6 +233,33 @@ plt.xlabel('Datetime (MST)')
 plt.ylabel('Temperature (K)')
 plt.legend(loc='upper right')
 plt.title('Solar Balloon Temperature - Earth')
+
+
+def windVectorToBearing(u, v):
+    bearing = np.arctan2(v,u)
+    speed = np.power((np.power(u,2)+np.power(v,2)),.5)
+    return [bearing, speed]
+
+'''
+plt.figure()
+plt.plot(ttt, x_winds_new, label = "X winds New", color = "blue")
+plt.plot(ttt, x_winds_old, label = "X winds Old", color = "cyan")
+
+plt.plot(ttt, y_winds_new, label = "Y winds New", color = "red")
+plt.plot(ttt, y_winds_old, label = "Y winds Old", color = "orange")
+'''
+
+plt.legend(loc='upper right')
+plt.title('Wind Interpolation Comparison')
+
+#Winds Figure
+plt.figure()
+if any(x_winds_old):
+    plt.plot(ttt, np.degrees(windVectorToBearing(x_winds_old, y_winds_old)[0]), label = "Bearing old", color = "blue")
+plt.plot(ttt, np.degrees(windVectorToBearing(x_winds_new, y_winds_new)[0]), label = "Bearing New", color = "red")
+plt.legend(loc='upper right')
+plt.title('Wind Interpolation Comparison')
+
 
 # Outline Downloaded NOAA forecast subset:
 
@@ -271,6 +308,8 @@ executionTime = (tm.time() - scriptstartTime)
 print('\nSimulation executed in ' + str(executionTime) + ' seconds.')
 
 windmap = windmap.Windmap()
-windmap.plotWindVelocity(windmap.hour_index,windmap.LAT,windmap.LON)
+#windmap.plotWindVelocity(windmap.hour_index,windmap.LAT,windmap.LON)
+windmap.plotWind2(windmap.hour_index,windmap.LAT,windmap.LON)
+#windmap.plotWindOLD(windmap.hour_index,windmap.LAT,windmap.LON)
 
 plt.show()

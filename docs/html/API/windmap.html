@@ -98,7 +98,7 @@ various altitudes in a visual format</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="windmap.Windmap.getWind">
-<span class="sig-name descname"><span class="pre">getWind</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hour_index</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lat_i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lon_i</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/windmap.html#Windmap.getWind"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#windmap.Windmap.getWind" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">getWind</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hour_index</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lat_i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lon_i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interpolation_frequency</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/windmap.html#Windmap.getWind"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#windmap.Windmap.getWind" title="Link to this definition"></a></dt>
 <dd><p>Calculates a wind vector estimate at a particular 3D coordinate and timestamp
 using a 2-step linear interpolation approach.</p>
 <p>Currently using scipy.interpolat.CubicSpline instead of np.interp like in GFS and ERA5.</p>
@@ -121,8 +121,40 @@ using a 2-step linear interpolation approach.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="windmap.Windmap.plotWind2">
+<span class="sig-name descname"><span class="pre">plotWind2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hour_index</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_interpolations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/windmap.html#Windmap.plotWind2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#windmap.Windmap.plotWind2" title="Link to this definition"></a></dt>
+<dd><p>Calculates a wind vector estimate at a particular 3D coordinate and timestamp
+using a 2-step linear interpolation approach.</p>
+<p>I believe this is more accurate than linear interpolating the U-V wind components. Using arctan2
+creates a non-linear distribution of points, however they should still be accurate. arctan2 causes issues
+when there are 180 degree opposing winds because it is undefined, and the speed goes to 0 and back up to the new speed.</p>
+<p>Therefore instead we interpolate the wind speed and direction, and use an angle wrapping check to see if the shortest
+distance around the circle crosses the 0/360 degree axis. This prevents speed down to 0, as well as undefined regions.</p>
+<ol class="arabic simple">
+<li><p>Get closest timesteps (t0 and t1) and lat/lon indexes for desired time</p></li>
+<li><p>Convert the entire altitude range at t0 and t1 U-V wind vector components to wind speed and direction (rad and m/s)</p></li>
+<li><p>Perform a linear interpolation of wind speed and direction. Fill in num_iterations</p></li>
+</ol>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>hour_index</strong> (<em>int</em>) – Time index from forecast file</p></li>
+<li><p><strong>lat</strong> – Latitude coordinate [deg]</p></li>
+<li><p><strong>lon_i</strong> (<em>cloast</em>) – Longitude coordinate [deg]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>3D windrose plot</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>matplotlib.plot</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="windmap.Windmap.plotWindVelocity">
-<span class="sig-name descname"><span class="pre">plotWindVelocity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hour_index</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lon</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/windmap.html#Windmap.plotWindVelocity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#windmap.Windmap.plotWindVelocity" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">plotWindVelocity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hour_index</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interpolation_frequency</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/windmap.html#Windmap.plotWindVelocity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#windmap.Windmap.plotWindVelocity" title="Link to this definition"></a></dt>
 <dd><p>Plots a 3D Windrose for a particular coordinate and timestamp from a downloaded forecast.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>

@@ -272,6 +272,25 @@
         <span class="k">return</span> <span class="n">i</span></div>
 
 
+<div class="viewcode-block" id="ERA5.get2NearestAltIdxs">
+<a class="viewcode-back" href="../API/era5.html#ERA5.ERA5.get2NearestAltIdxs">[docs]</a>
+    <span class="k">def</span> <span class="nf">get2NearestAltIdxs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">alt_m</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Determines 2 nearest indexes for altitude for interpolating angles.</span>
+<span class="sd">        It does index wrap from 0 to -1, which is taken care of in `ERA5.interpolateBearing()`</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">h_nearest</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">closestIdx</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">alt_m</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">alt_m</span> <span class="o">&gt;</span> <span class="n">h</span><span class="p">[</span><span class="n">h_nearest</span><span class="p">]:</span>
+            <span class="n">h_idx0</span> <span class="o">=</span> <span class="n">h_nearest</span>
+            <span class="n">h_idx1</span> <span class="o">=</span> <span class="n">h_nearest</span> <span class="o">+</span><span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">h_idx0</span> <span class="o">=</span> <span class="n">h_nearest</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="n">h_idx1</span> <span class="o">=</span> <span class="n">h_nearest</span>
+
+        <span class="k">return</span> <span class="n">h_idx0</span><span class="p">,</span> <span class="n">h_idx1</span></div>
+
+
 <div class="viewcode-block" id="ERA5.getNearestAltbyIndex">
 <a class="viewcode-back" href="../API/era5.html#ERA5.ERA5.getNearestAltbyIndex">[docs]</a>
     <span class="k">def</span> <span class="nf">getNearestAltbyIndex</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">int_hr_idx</span><span class="p">,</span> <span class="n">lat_i</span><span class="p">,</span> <span class="n">lon_i</span><span class="p">,</span> <span class="n">alt_m</span><span class="p">):</span>
@@ -279,6 +298,7 @@
 <span class="sd">            at a given latitude, longitude index</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
+
         <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">closestIdx</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hgtprs</span><span class="p">[</span><span class="n">int_hr_idx</span><span class="p">,</span> <span class="p">:,</span> <span class="n">lat_i</span><span class="p">,</span> <span class="n">lon_i</span><span class="p">],</span> <span class="n">alt_m</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">i</span></div>
@@ -288,6 +308,8 @@
 <a class="viewcode-back" href="../API/era5.html#ERA5.ERA5.wind_alt_Interpolate">[docs]</a>
     <span class="k">def</span> <span class="nf">wind_alt_Interpolate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alt_m</span><span class="p">,</span> <span class="n">diff_time</span><span class="p">,</span> <span class="n">lat_idx</span><span class="p">,</span> <span class="n">lon_idx</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        .. warning:: This function is no longer used.  Use wind_alt_Interpolate2 which does 2 different types of interpolation to choose from.</span>
+
 <span class="sd">        Performs a 2 step linear interpolation to determine horizontal wind velocity.  First the altitude is interpolated between the two nearest</span>
 <span class="sd">        .25 degree lat/lon areas.  Once altitude is matched, a second linear interpolation is performed with respect to time.</span>
 
@@ -314,6 +336,8 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
+        <span class="c1">#This function is deprecated and no longer used!</span>
+
         <span class="c1">#we need to clean this up, ends up we check for the hour_index before we call this function</span>
         <span class="c1">#diff = coord[&quot;timestamp&quot;] - self.model_start_datetime</span>
         <span class="n">hour_index</span> <span class="o">=</span> <span class="p">(</span><span class="n">diff_time</span><span class="o">.</span><span class="n">days</span> <span class="o">*</span> <span class="mi">24</span> <span class="o">+</span> <span class="n">diff_time</span><span class="o">.</span><span class="n">seconds</span> <span class="o">/</span> <span class="mf">3600.</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolution_hr</span>
@@ -327,15 +351,9 @@
         <span class="n">u_0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ugdrps0</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">),</span> <span class="p">:,</span> <span class="n">lat_idx</span><span class="p">,</span> <span class="n">lon_idx</span><span class="p">]</span>
         <span class="n">u_0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fill_missing_data</span><span class="p">(</span><span class="n">u_0</span><span class="p">)</span>
 
-        <span class="c1">#t_0 = self.temp0[int_hr_idx, :, lat_idx, lon_idx]</span>
-        <span class="c1">#t_0 = self.fill_missing_data(t_0)</span>
-
         <span class="n">xp_0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hgtprs</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">),</span> <span class="p">:,</span> <span class="n">lat_idx</span><span class="p">,</span> <span class="n">lon_idx</span><span class="p">]</span>
         <span class="n">xp_0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fill_missing_data</span><span class="p">(</span><span class="n">xp_0</span><span class="p">)</span>
 
-
-        <span class="c1">#f = interpolate.interp1d(xp_0, t_0, assume_sorted=False, fill_value=&quot;extrapolate&quot;)</span>
-        <span class="c1">#t0_pt = f(hgt_m)</span>
         <span class="n">f</span> <span class="o">=</span> <span class="n">interpolate</span><span class="o">.</span><span class="n">interp1d</span><span class="p">(</span><span class="n">xp_0</span><span class="p">,</span> <span class="n">u_0</span><span class="p">,</span> <span class="n">assume_sorted</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="s2">&quot;extrapolate&quot;</span><span class="p">)</span>
         <span class="n">u0_pt</span> <span class="o">=</span> <span class="n">f</span><span class="p">(</span><span class="n">hgt_m</span><span class="p">)</span>
         <span class="n">f</span> <span class="o">=</span> <span class="n">interpolate</span><span class="o">.</span><span class="n">interp1d</span><span class="p">(</span><span class="n">xp_0</span><span class="p">,</span> <span class="n">v_0</span><span class="p">,</span> <span class="n">assume_sorted</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="s2">&quot;extrapolate&quot;</span><span class="p">)</span>
@@ -351,8 +369,6 @@
         <span class="n">xp_1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hgtprs</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">)</span> <span class="o">+</span><span class="mi">1</span> <span class="p">,</span> <span class="p">:,</span> <span class="n">lat_idx</span><span class="p">,</span> <span class="n">lon_idx</span><span class="p">]</span>
         <span class="n">xp_1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fill_missing_data</span><span class="p">(</span><span class="n">xp_1</span><span class="p">)</span>
 
-        <span class="c1">#f = interpolate.interp1d(xp_1, t_1, assume_sorted=False, fill_value=&quot;extrapolate&quot; )</span>
-
         <span class="c1">#t1_pt = f(hgt_m)</span>
         <span class="n">f</span> <span class="o">=</span> <span class="n">interpolate</span><span class="o">.</span><span class="n">interp1d</span><span class="p">(</span><span class="n">xp_1</span><span class="p">,</span> <span class="n">u_1</span><span class="p">,</span> <span class="n">assume_sorted</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="s2">&quot;extrapolate&quot;</span><span class="p">)</span>
         <span class="n">u1_pt</span> <span class="o">=</span> <span class="n">f</span><span class="p">(</span><span class="n">hgt_m</span><span class="p">)</span>
@@ -362,9 +378,95 @@
         <span class="n">fp</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
         <span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">hour_index</span><span class="p">,</span> <span class="n">fp</span><span class="p">,</span> <span class="p">[</span><span class="n">u0_pt</span><span class="p">,</span> <span class="n">u1_pt</span><span class="p">])</span>
         <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">hour_index</span><span class="p">,</span> <span class="n">fp</span><span class="p">,</span> <span class="p">[</span><span class="n">v0_pt</span><span class="p">,</span> <span class="n">v1_pt</span><span class="p">])</span>
-        <span class="c1">#t = np.interp(hour_index, fp, [t0_pt, t1_pt])</span>
 
         <span class="k">return</span> <span class="p">[</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="ERA5.wind_alt_Interpolate2">
+<a class="viewcode-back" href="../API/era5.html#ERA5.ERA5.wind_alt_Interpolate2">[docs]</a>
+    <span class="k">def</span> <span class="nf">wind_alt_Interpolate2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alt_m</span><span class="p">,</span> <span class="n">diff_time</span><span class="p">,</span> <span class="n">lat_idx</span><span class="p">,</span> <span class="n">lon_idx</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Performs two different types of a 2 step linear interpolation to determine horizontal wind velocity.  First the altitude is interpolated between the two nearest</span>
+<span class="sd">        .25 degree lat/lon areas.  Once altitude is matched, a second linear interpolation is performed with respect to time.</span>
+
+<span class="sd">        The old method performs the linear interpolation using u-v wind Components</span>
+<span class="sd">        the new method performs the linear interpolation using wind bearing and speed.</span>
+
+<span class="sd">        Both are calculated in this function. The examples use the new method (bearing and wind), which should be slightly more accurate.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        alt_m : float</span>
+<span class="sd">            Contains current altitude of balloon object.</span>
+<span class="sd">        diff_time: ?</span>
+<span class="sd">            This parameter is calculated in two different places, need to clean up this parameter</span>
+<span class="sd">        lon_idx : integer</span>
+<span class="sd">            Closest index into longitude array</span>
+<span class="sd">        lat_idx : integer</span>
+<span class="sd">            Closest index into latitude array</span>
+
+<span class="sd">        .. note::  **TODO**:  Make these variable names more descriptive.  Maybe make a dictionary return value instead.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            u_new : float</span>
+<span class="sd">                u component wind vector (bearing/speed interpolation)</span>
+<span class="sd">            v_new : float</span>
+<span class="sd">                v component wind vector (bearing/speed interpolation)</span>
+<span class="sd">            u_old : float</span>
+<span class="sd">                u component wind vector (u-v component interpolation)</span>
+<span class="sd">            v_old : float</span>
+<span class="sd">                v component wind vector (u-v component interpolation)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">hour_index</span> <span class="o">=</span> <span class="p">(</span><span class="n">diff_time</span><span class="o">.</span><span class="n">days</span> <span class="o">*</span> <span class="mi">24</span> <span class="o">+</span> <span class="n">diff_time</span><span class="o">.</span><span class="n">seconds</span> <span class="o">/</span> <span class="mf">3600.</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolution_hr</span>
+
+        <span class="c1"># First interpolate wind speeds between 2 closest time steps to match altitude estimates (hgtprs), which can change with time</span>
+
+        <span class="c1">#t0</span>
+        <span class="n">v_0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vgdrps0</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">),</span> <span class="p">:,</span> <span class="n">lat_idx</span><span class="p">,</span> <span class="n">lon_idx</span><span class="p">]</span>  <span class="c1"># Round hour index to nearest int</span>
+        <span class="n">v_0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fill_missing_data</span><span class="p">(</span><span class="n">v_0</span><span class="p">)</span>  <span class="c1"># Fill the missing wind data if occurs at upper heights</span>
+
+        <span class="n">u_0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ugdrps0</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">),</span> <span class="p">:,</span> <span class="n">lat_idx</span><span class="p">,</span> <span class="n">lon_idx</span><span class="p">]</span>
+        <span class="n">u_0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fill_missing_data</span><span class="p">(</span><span class="n">u_0</span><span class="p">)</span>
+
+        <span class="n">h0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hgtprs</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">),</span> <span class="p">:,</span> <span class="n">lat_idx</span><span class="p">,</span> <span class="n">lon_idx</span><span class="p">]</span>
+        <span class="n">h0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fill_missing_data</span><span class="p">(</span><span class="n">h0</span><span class="p">)</span>
+
+        <span class="n">u0_pt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">alt_m</span><span class="p">,</span><span class="n">h0</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span><span class="n">u_0</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="c1">#reverse order for ERA5</span>
+        <span class="n">v0_pt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">alt_m</span><span class="p">,</span><span class="n">h0</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span><span class="n">v_0</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="c1">#reverse order for ERA5</span>
+
+        <span class="n">bearing_t0</span><span class="p">,</span> <span class="n">speed_t0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interpolateBearing</span><span class="p">(</span><span class="n">h0</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">u_0</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">v_0</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">alt_m</span><span class="p">)</span>
+
+        <span class="c1">#t1</span>
+
+        <span class="n">v_1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vgdrps0</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="n">lat_idx</span><span class="p">,</span> <span class="n">lon_idx</span><span class="p">]</span>
+        <span class="n">v_1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fill_missing_data</span><span class="p">(</span><span class="n">v_1</span><span class="p">)</span>
+
+        <span class="n">u_1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ugdrps0</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="n">lat_idx</span><span class="p">,</span> <span class="n">lon_idx</span><span class="p">]</span>
+        <span class="n">u_1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fill_missing_data</span><span class="p">(</span><span class="n">u_1</span><span class="p">)</span>
+
+        <span class="n">h1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hgtprs</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">)</span> <span class="o">+</span><span class="mi">1</span> <span class="p">,</span> <span class="p">:,</span> <span class="n">lat_idx</span><span class="p">,</span> <span class="n">lon_idx</span><span class="p">]</span>
+        <span class="n">h1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fill_missing_data</span><span class="p">(</span><span class="n">h1</span><span class="p">)</span>
+
+        <span class="n">u1_pt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">alt_m</span><span class="p">,</span><span class="n">h1</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span><span class="n">u_1</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">v1_pt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">alt_m</span><span class="p">,</span><span class="n">h1</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span><span class="n">v_1</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="n">bearing_t1</span><span class="p">,</span> <span class="n">speed_t1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interpolateBearing</span><span class="p">(</span><span class="n">h1</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">u_1</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">v_1</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">alt_m</span><span class="p">)</span>
+
+        <span class="c1">#interpolate between 2 timesteps (t0, t1)</span>
+        <span class="c1">#old Method (u-v wind components linear interpolation):</span>
+        <span class="n">fp</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="n">u_old</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">hour_index</span><span class="p">,</span> <span class="n">fp</span><span class="p">,</span> <span class="p">[</span><span class="n">u0_pt</span><span class="p">,</span> <span class="n">u1_pt</span><span class="p">])</span>
+        <span class="n">v_old</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">hour_index</span><span class="p">,</span> <span class="n">fp</span><span class="p">,</span> <span class="p">[</span><span class="n">v0_pt</span><span class="p">,</span> <span class="n">v1_pt</span><span class="p">])</span>
+
+        <span class="c1">#New Method (Bearing/speed  linear interpolation):</span>
+        <span class="n">bearing_interpolated</span><span class="p">,</span> <span class="n">speed_interpolated</span> <span class="o">=</span>  <span class="bp">self</span><span class="o">.</span><span class="n">interpolateBearingTime</span><span class="p">(</span><span class="n">bearing_t0</span><span class="p">,</span> <span class="n">speed_t0</span><span class="p">,</span> <span class="n">bearing_t1</span><span class="p">,</span> <span class="n">speed_t1</span><span class="p">,</span> <span class="n">hour_index</span> <span class="p">)</span>
+
+        <span class="n">u_new</span> <span class="o">=</span> <span class="n">speed_interpolated</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">bearing_interpolated</span><span class="p">))</span>
+        <span class="n">v_new</span> <span class="o">=</span> <span class="n">speed_interpolated</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">bearing_interpolated</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="n">u_new</span><span class="p">,</span> <span class="n">v_new</span><span class="p">,</span> <span class="n">u_old</span><span class="p">,</span> <span class="n">v_old</span><span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="ERA5.fill_missing_data">
@@ -378,6 +480,81 @@
         <span class="n">nans</span><span class="p">,</span> <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="k">lambda</span> <span class="n">z</span><span class="p">:</span> <span class="n">z</span><span class="o">.</span><span class="n">nonzero</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">data</span><span class="p">[</span><span class="n">nans</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">x</span><span class="p">(</span><span class="n">nans</span><span class="p">),</span> <span class="n">x</span><span class="p">(</span><span class="o">~</span><span class="n">nans</span><span class="p">),</span> <span class="n">data</span><span class="p">[</span><span class="o">~</span><span class="n">nans</span><span class="p">])</span>
         <span class="k">return</span> <span class="n">data</span></div>
+
+
+<div class="viewcode-block" id="ERA5.windVectorToBearing">
+<a class="viewcode-back" href="../API/era5.html#ERA5.ERA5.windVectorToBearing">[docs]</a>
+    <span class="k">def</span> <span class="nf">windVectorToBearing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Helper function to conver u-v wind components to bearing and speed.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">bearing</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">v</span><span class="p">,</span><span class="n">u</span><span class="p">)</span>
+        <span class="n">speed</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">u</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span><span class="o">+</span><span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">v</span><span class="p">,</span><span class="mi">2</span><span class="p">)),</span><span class="mf">.5</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="n">bearing</span><span class="p">,</span> <span class="n">speed</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="ERA5.interpolateBearing">
+<a class="viewcode-back" href="../API/era5.html#ERA5.ERA5.interpolateBearing">[docs]</a>
+    <span class="k">def</span> <span class="nf">interpolateBearing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">alt_m</span> <span class="p">):</span> <span class="c1">#h, bearing0, speed0, bearing1, speed1):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Given altitude, u_velocity and v_velocity arrays as well as a desired altitude, perform a linear interpolation</span>
+<span class="sd">        between the 2 altitudes (h0 and h1) while accounting for possible 0/360degree axis crossover.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">h_idx0</span><span class="p">,</span> <span class="n">h_idx1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get2NearestAltIdxs</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">alt_m</span><span class="p">)</span>
+
+        <span class="c1">#Check to make sure altitude isn&#39;t outside bounds of altitude array for interpolating</span>
+        <span class="k">if</span> <span class="n">h_idx0</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">h_idx0</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">if</span> <span class="n">h_idx1</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span> <span class="c1">#this one should most likely never trigger because altitude forecasts go so high.</span>
+            <span class="n">h_idx1</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+        <span class="n">bearing0</span><span class="p">,</span> <span class="n">speed0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">windVectorToBearing</span><span class="p">(</span><span class="n">u</span><span class="p">[</span><span class="n">h_idx0</span><span class="p">],</span> <span class="n">v</span><span class="p">[</span><span class="n">h_idx0</span><span class="p">])</span>
+        <span class="n">bearing1</span><span class="p">,</span> <span class="n">speed1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">windVectorToBearing</span><span class="p">(</span><span class="n">u</span><span class="p">[</span><span class="n">h_idx1</span><span class="p">],</span> <span class="n">v</span><span class="p">[</span><span class="n">h_idx1</span><span class="p">])</span>
+
+        <span class="n">interp_dir_deg</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">angle1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span><span class="n">bearing0</span><span class="p">)</span> <span class="o">%</span><span class="mi">360</span>
+        <span class="n">angle2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span><span class="n">bearing1</span><span class="p">)</span> <span class="o">%</span><span class="mi">360</span>
+        <span class="n">angular_difference</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">angle2</span><span class="o">-</span><span class="n">angle1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">angular_difference</span> <span class="o">&gt;</span> <span class="mi">180</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">angle2</span> <span class="o">&gt;</span> <span class="n">angle1</span><span class="p">):</span>
+                <span class="n">angle1</span> <span class="o">+=</span> <span class="mi">360</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">angle2</span> <span class="o">+=</span> <span class="mi">360</span>
+
+        <span class="n">interp_speed</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">alt_m</span><span class="p">,</span> <span class="p">[</span><span class="n">h</span><span class="p">[</span><span class="n">h_idx0</span><span class="p">],</span> <span class="n">h</span><span class="p">[</span><span class="n">h_idx1</span><span class="p">]],</span> <span class="p">[</span><span class="n">speed0</span><span class="p">,</span> <span class="n">speed1</span><span class="p">])</span>
+        <span class="n">interp_dir_deg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">alt_m</span><span class="p">,</span> <span class="p">[</span><span class="n">h</span><span class="p">[</span><span class="n">h_idx0</span><span class="p">],</span> <span class="n">h</span><span class="p">[</span><span class="n">h_idx1</span><span class="p">]],</span> <span class="p">[</span><span class="n">angle1</span><span class="p">,</span> <span class="n">angle2</span><span class="p">])</span> <span class="o">%</span> <span class="mi">360</span> <span class="c1">#make sure in the range (0, 360)</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="n">interp_dir_deg</span><span class="p">,</span> <span class="n">interp_speed</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ERA5.interpolateBearingTime">
+<a class="viewcode-back" href="../API/era5.html#ERA5.ERA5.interpolateBearingTime">[docs]</a>
+    <span class="k">def</span> <span class="nf">interpolateBearingTime</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bearing0</span><span class="p">,</span> <span class="n">speed0</span><span class="p">,</span> <span class="n">bearing1</span><span class="p">,</span> <span class="n">speed1</span><span class="p">,</span> <span class="n">hour_index</span> <span class="p">):</span> <span class="c1">#h, bearing0, speed0, bearing1, speed1):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Similar to `ERA5.interpolateBearing()` however bearings and speeds are already known</span>
+<span class="sd">        and linearly then interpolated with respect to time (t0 and t1)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">interp_dir_deg</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">angle1</span> <span class="o">=</span> <span class="n">bearing0</span> <span class="o">%</span><span class="mi">360</span>
+        <span class="n">angle2</span> <span class="o">=</span> <span class="n">bearing1</span> <span class="o">%</span><span class="mi">360</span>
+        <span class="n">angular_difference</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">angle2</span><span class="o">-</span><span class="n">angle1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">angular_difference</span> <span class="o">&gt;</span> <span class="mi">180</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">angle2</span> <span class="o">&gt;</span> <span class="n">angle1</span><span class="p">):</span>
+                <span class="n">angle1</span> <span class="o">+=</span> <span class="mi">360</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">angle2</span> <span class="o">+=</span> <span class="mi">360</span>
+
+        <span class="n">fp</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">hour_index</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="n">interp_speed</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">hour_index</span><span class="p">,</span> <span class="n">fp</span><span class="p">,</span> <span class="p">[</span><span class="n">speed0</span><span class="p">,</span> <span class="n">speed1</span><span class="p">])</span>
+        <span class="n">interp_dir_deg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">hour_index</span><span class="p">,</span> <span class="n">fp</span><span class="p">,</span> <span class="p">[</span><span class="n">angle1</span><span class="p">,</span> <span class="n">angle2</span><span class="p">])</span> <span class="o">%</span> <span class="mi">360</span> <span class="c1">#make sure in the range (0, 360)</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="n">interp_dir_deg</span><span class="p">,</span> <span class="n">interp_speed</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="ERA5.getNewCoord">
@@ -407,13 +584,16 @@
         <span class="c1">#z = self.getNearestAltbyIndex(lat_idx, lon_idx, coord[&quot;alt_m&quot;])  # fix this for lower and Upper</span>
         <span class="n">z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getNearestAltbyIndex</span><span class="p">(</span><span class="n">int_hr_idx</span><span class="p">,</span> <span class="n">lat_idx</span><span class="p">,</span> <span class="n">lon_idx</span><span class="p">,</span> <span class="n">coord</span><span class="p">[</span><span class="s2">&quot;alt&quot;</span><span class="p">])</span>  <span class="c1"># fix this for lower and Upper</span>
 
-        <span class="n">x_wind_vel</span><span class="p">,</span> <span class="n">y_wind_vel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wind_alt_Interpolate</span><span class="p">(</span><span class="n">coord</span><span class="p">[</span><span class="s1">&#39;alt&#39;</span><span class="p">],</span> <span class="n">diff_time</span><span class="p">,</span> <span class="n">lat_idx</span><span class="p">,</span> <span class="n">lon_idx</span><span class="p">)</span>
+
+        <span class="c1">#for Debugging outside try catch block below.  Delete when done.</span>
+        <span class="c1">#x_wind_vel, y_wind_vel, x_wind_vel_old, y_wind_vel_old = self.wind_alt_Interpolate2(coord[&#39;alt&#39;], diff_time, lat_idx, lon_idx)</span>
 
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">x_wind_vel</span><span class="p">,</span> <span class="n">y_wind_vel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wind_alt_Interpolate</span><span class="p">(</span><span class="n">coord</span><span class="p">[</span><span class="s1">&#39;alt&#39;</span><span class="p">],</span> <span class="n">diff_time</span><span class="p">,</span> <span class="n">lat_idx</span><span class="p">,</span> <span class="n">lon_idx</span><span class="p">)</span>  <span class="c1"># for now hour index is 0</span>
+            <span class="c1">#x_wind_vel, y_wind_vel = self.wind_alt_Interpolate(coord[&#39;alt&#39;], diff_time, lat_idx, lon_idx)  # for now hour index is 0</span>
+            <span class="c1">#x_wind_vel_old, y_wind_vel_old  = None, None</span>
+            <span class="n">x_wind_vel</span><span class="p">,</span> <span class="n">y_wind_vel</span><span class="p">,</span> <span class="n">x_wind_vel_old</span><span class="p">,</span> <span class="n">y_wind_vel_old</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wind_alt_Interpolate2</span><span class="p">(</span><span class="n">coord</span><span class="p">[</span><span class="s1">&#39;alt&#39;</span><span class="p">],</span> <span class="n">diff_time</span><span class="p">,</span> <span class="n">lat_idx</span><span class="p">,</span> <span class="n">lon_idx</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">x_wind_vel</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">return</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
-                <span class="c1"># x_wind_vel, y_wind_vel = self.wind_interpolate_by_index(coord, i, j, z)  # for now hour index is 0</span>
         <span class="k">except</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="n">colored</span><span class="p">(</span>
                 <span class="s2">&quot;Mismatch with simulation and forecast timstamps. Check simulation start time and/or download a new forecast.&quot;</span><span class="p">,</span>
@@ -432,10 +612,10 @@
 <span class="w">        </span><span class="sd">&#39;&#39;&#39;Changed to alt instead of alt_m&#39;&#39;&#39;</span>
         <span class="k">if</span> <span class="n">coord</span><span class="p">[</span><span class="s2">&quot;alt&quot;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_alt_m</span><span class="p">:</span>
             <span class="c1"># Balloon should remain stationary if it&#39;s reached the minimum altitude</span>
-            <span class="k">return</span> <span class="p">[</span><span class="n">coord</span><span class="p">[</span><span class="s1">&#39;lat&#39;</span><span class="p">],</span> <span class="n">coord</span><span class="p">[</span><span class="s1">&#39;lon&#39;</span><span class="p">],</span> <span class="n">x_wind_vel</span><span class="p">,</span> <span class="n">y_wind_vel</span><span class="p">,</span> <span class="n">bearing</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="p">[</span><span class="n">lat_idx</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">lon</span><span class="p">[</span><span class="n">lon_idx</span><span class="p">],</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">coord</span><span class="p">[</span><span class="s1">&#39;lat&#39;</span><span class="p">],</span> <span class="n">coord</span><span class="p">[</span><span class="s1">&#39;lon&#39;</span><span class="p">],</span> <span class="n">x_wind_vel</span><span class="p">,</span> <span class="n">y_wind_vel</span><span class="p">,</span> <span class="n">x_wind_vel_old</span><span class="p">,</span> <span class="n">y_wind_vel_old</span><span class="p">,</span> <span class="n">bearing</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="p">[</span><span class="n">lat_idx</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">lon</span><span class="p">[</span><span class="n">lon_idx</span><span class="p">],</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">hgtprs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">lat_idx</span><span class="p">,</span> <span class="n">lon_idx</span><span class="p">]]</span>  <span class="c1"># hgtprs doesn&#39;t matter here so is set to 0</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="p">[</span><span class="n">g</span><span class="p">[</span><span class="s1">&#39;lat2&#39;</span><span class="p">],</span> <span class="n">g</span><span class="p">[</span><span class="s1">&#39;lon2&#39;</span><span class="p">],</span> <span class="n">x_wind_vel</span><span class="p">,</span> <span class="n">y_wind_vel</span><span class="p">,</span> <span class="n">bearing</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="p">[</span><span class="n">lat_idx</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">lon</span><span class="p">[</span><span class="n">lon_idx</span><span class="p">],</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">g</span><span class="p">[</span><span class="s1">&#39;lat2&#39;</span><span class="p">],</span> <span class="n">g</span><span class="p">[</span><span class="s1">&#39;lon2&#39;</span><span class="p">],</span> <span class="n">x_wind_vel</span><span class="p">,</span> <span class="n">y_wind_vel</span><span class="p">,</span> <span class="n">x_wind_vel_old</span><span class="p">,</span> <span class="n">y_wind_vel_old</span><span class="p">,</span> <span class="n">bearing</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="p">[</span><span class="n">lat_idx</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">lon</span><span class="p">[</span><span class="n">lon_idx</span><span class="p">],</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">hgtprs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">lat_idx</span><span class="p">,</span> <span class="n">lon_idx</span><span class="p">]]</span></div>
 
 

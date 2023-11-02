@@ -90,7 +90,7 @@ class GFS:
         -lat
         -lon
 
-        note:: the levels variable is uncessary for knowing the ranges for, because they vary from
+        .. note:: the levels variable is uncessary for knowing the ranges for, because they vary from
             coordinate to coordinate, and all levels in the array are always be used.
 
         """
@@ -155,6 +155,22 @@ class GFS:
         i = self.closest(self.hgtprs[int(hour_index),:,lat_i,lon_i], alt)
         return i
 
+    def get2NearestAltIdxs(self, h, alt_m):
+        """ Determines 2 nearest indexes for altitude for interpolating angles.
+        It does index wrap from 0 to -1, which is taken care of in `ERA5.interpolateBearing()`
+
+        """
+        h_nearest = self.closest(h, alt_m)
+
+        if alt_m > h[h_nearest]:
+            h_idx0 = h_nearest
+            h_idx1 = h_nearest +1
+        else:
+            h_idx0 = h_nearest - 1
+            h_idx1 = h_nearest
+
+        return h_idx0, h_idx1
+
     def wind_alt_Interpolate(self, coord):
         """
         This function performs a 2-step linear interpolation to determine horizontal wind velocity at a
@@ -216,6 +232,129 @@ class GFS:
 
         return[u,v]
 
+    def wind_alt_Interpolate2(self, coord):
+
+        diff = coord["timestamp"] - self.gfs_time
+        hour_index = (diff.days*24 + diff.seconds / 3600.)/3
+
+        lat_i = self.getNearestLat(coord["lat"],self.LAT_LOW,self.LAT_HIGH)
+        lon_i = self.getNearestLon(coord["lon"],self.LON_LOW,self.LON_HIGH)
+
+
+        z_low = self.getNearestAlt(hour_index,coord["lat"],coord["lon"],coord["alt"]) #fix this for lower and Upper
+
+
+        # First interpolate wind speeds between 2 closest time steps to match altitude estimates (hgtprs), which can change with time
+        #t0
+        v_0 = self.vgdrps0[int(hour_index),:,lat_i,lon_i] # Round hour index to nearest int
+        v_0 = self.fill_missing_data(v_0) # Fill the missing wind data. With netcdf4 there are always 3 missing values at the higher elevations
+
+        u_0 = self.ugdrps0[int(hour_index),:,lat_i,lon_i]
+        u_0 = self.fill_missing_data(u_0)
+
+        h0 = self.hgtprs[int(hour_index),:,lat_i,lon_i]
+        h0 = self.fill_missing_data(h0)
+
+        u0 = np.interp(coord["alt"],h0,u_0)
+        v0 = np.interp(coord["alt"],h0,v_0)
+
+        bearing_t0, speed_t0 = self.interpolateBearing(h0, u_0, v_0, coord["alt"])
+
+        #t1
+
+        v_1 = self.vgdrps0[int(hour_index)+1,:,lat_i,lon_i]
+        v_1 = self.fill_missing_data(v_1)
+
+        u_1 = self.ugdrps0[int(hour_index)+1,:,lat_i,lon_i]
+        u_1 = self.fill_missing_data(u_1)
+
+        h1 = self.hgtprs[int(hour_index)+1,:,lat_i,lon_i]
+        h1 = self.fill_missing_data(h1)
+
+        u1 = np.interp(coord["alt"],h1,u_1) # Round hour index to next timestep
+        v1 = np.interp(coord["alt"],h1,v_1)
+
+        bearing_t1, speed_t1 = self.interpolateBearing(h1, u_1, v_1, coord["alt"])
+
+
+        #Old Method
+        u_old = np.interp(hour_index,[int(hour_index),int(hour_index)+1],[u0,u1])
+        v_old = np.interp(hour_index,[int(hour_index),int(hour_index)+1],[v0,v1])
+
+        #New Method (Bearing/speed  linear interpolation):
+        bearing_interpolated, speed_interpolated =  self.interpolateBearingTime(bearing_t0, speed_t0, bearing_t1, speed_t1, hour_index )
+
+        u_new = speed_interpolated * np.cos(np.radians(bearing_interpolated))
+        v_new = speed_interpolated * np.sin(np.radians(bearing_interpolated))
+
+        return [u_new, v_new, u_old, v_old]
+
+    def windVectorToBearing(self, u, v):
+        """Helper function to conver u-v wind components to bearing and speed.
+
+        """
+        bearing = np.arctan2(v,u)
+        speed = np.power((np.power(u,2)+np.power(v,2)),.5)
+
+        return [bearing, speed]
+
+    def interpolateBearing(self, h, u, v, alt_m ): #h, bearing0, speed0, bearing1, speed1):
+        """Given altitude, u_velocity and v_velocity arrays as well as a desired altitude, perform a linear interpolation
+        between the 2 altitudes (h0 and h1) while accounting for possible 0/360degree axis crossover.
+
+        """
+
+        h_idx0, h_idx1 = self.get2NearestAltIdxs(h, alt_m)
+
+        #Check to make sure altitude isn't outside bounds of altitude array for interpolating
+        if h_idx0 == -1:
+            h_idx0 = 0
+
+        if h_idx1 == 0: #this one should most likely never trigger because altitude forecasts go so high.
+            h_idx1 = -1
+
+        bearing0, speed0 = self.windVectorToBearing(u[h_idx0], v[h_idx0])
+        bearing1, speed1 = self.windVectorToBearing(u[h_idx1], v[h_idx1])
+
+        interp_dir_deg = 0
+        angle1 = np.degrees(bearing0) %360
+        angle2 = np.degrees(bearing1) %360
+        angular_difference = abs(angle2-angle1)
+
+        if angular_difference > 180:
+            if (angle2 > angle1):
+                angle1 += 360
+            else:
+                angle2 += 360
+
+        interp_speed = np.interp(alt_m, [h[h_idx0], h[h_idx1]], [speed0, speed1])
+        interp_dir_deg = np.interp(alt_m, [h[h_idx0], h[h_idx1]], [angle1, angle2]) % 360 #make sure in the range (0, 360)
+
+        return (interp_dir_deg, interp_speed)
+
+    def interpolateBearingTime(self, bearing0, speed0, bearing1, speed1, hour_index ): #h, bearing0, speed0, bearing1, speed1):
+        """Similar to `ERA5.interpolateBearing()` however bearings and speeds are already known
+        and linearly then interpolated with respect to time (t0 and t1)
+
+        """
+
+        interp_dir_deg = 0
+        angle1 = bearing0 %360
+        angle2 = bearing1 %360
+        angular_difference = abs(angle2-angle1)
+
+        if angular_difference > 180:
+            if (angle2 > angle1):
+                angle1 += 360
+            else:
+                angle2 += 360
+
+        fp = [int(hour_index), int(hour_index) + 1]
+        interp_speed = np.interp(hour_index, fp, [speed0, speed1])
+        interp_dir_deg = np.interp(hour_index, fp, [angle1, angle2]) % 360 #make sure in the range (0, 360)
+
+        return (interp_dir_deg, interp_speed)
+
     def fill_missing_data(self, data):
         """Helper function to fill in linearly interpolate and fill in missing data
 
@@ -245,7 +384,11 @@ class GFS:
         #Get wind estimate for current coordiante
 
         #add some error handling here?
-        x_wind_vel,y_wind_vel = self.wind_alt_Interpolate(coord)
+        #old option:
+        #x_wind_vel,y_wind_vel = self.wind_alt_Interpolate(coord)
+        #x_wind_vel_old, y_wind_vel_old = None, None
+
+        x_wind_vel,y_wind_vel, x_wind_vel_old, y_wind_vel_old = self.wind_alt_Interpolate2(coord)
 
         bearing = math.degrees(math.atan2(y_wind_vel,x_wind_vel))
         bearing = 90 - bearing # perform 90 degree rotation for bearing from wind data
@@ -257,9 +400,9 @@ class GFS:
 
         if coord["alt"] <= self.min_alt:
             # Balloon should remain stationary if it's reached the minimum altitude
-            return [coord['lat'],coord['lon'],x_wind_vel,y_wind_vel,bearing, self.lat[i], self.lon[j], self.hgtprs[0,z,i,j]] # hgtprs doesn't matter here so is set to 0
+            return [coord['lat'],coord['lon'],x_wind_vel,y_wind_vel, x_wind_vel_old, y_wind_vel_old, bearing, self.lat[i], self.lon[j], self.hgtprs[0,z,i,j]] # hgtprs doesn't matter here so is set to 0
         else:
-            return [g['lat2'],g['lon2'],x_wind_vel,y_wind_vel,bearing, self.lat[i], self.lon[j], self.hgtprs[0,z,i,j]]
+            return [g['lat2'],g['lon2'],x_wind_vel,y_wind_vel, x_wind_vel_old, y_wind_vel_old, bearing, self.lat[i], self.lon[j], self.hgtprs[0,z,i,j]]
 
         if g['lat2'] < self.LAT_LOW or g['lat2'] > self.LAT_HIGH or g['lon2'] < self.LON_LOW or g['lon2'] > self.LON_HIGH:
             print(colored("WARNING: Trajectory is out of bounds of downloaded netcdf forecast", "yellow"))
