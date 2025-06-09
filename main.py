@@ -53,26 +53,6 @@ balloon_trajectory = config_earth.simulation['balloon_trajectory']
 forecast_type = config_earth.forecast['forecast_type']
 atm = fluids.atmosphere.ATMOSPHERE_1976(min_alt)
 
-'''
-#Some netcdf testing stuff
-rootgrp = Dataset(config_earth.netcdf_gfs['nc_file'], "r", format="NETCDF4")
-#rootgrp = Dataset("forecasts/" + config_earth.netcdf_era5['filename'], "r", format="NETCDF4")
-print(rootgrp.data_model)
-print(rootgrp.groups)
-print(rootgrp.dimensions)
-print(rootgrp.variables)
-for name in rootgrp.ncattrs():
-    print("Global attr {} = {}".format(name, getattr(rootgrp, name)))
-
-sdfs
-
-data = xr.open_dataset(config_earth.netcdf_gfs['nc_file'])
-data = xr.open_dataset("forecasts/" + config_earth.netcdf_era5['filename'])
-data2 = data.to_array()
-
-print (data)
-print(data.attrs)
-'''
 
 #Get trajectory name from config file for Google Maps:
 if balloon_trajectory != None:

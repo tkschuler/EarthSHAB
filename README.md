@@ -7,26 +7,20 @@ lightweight material that absorbs visual light and emits low levels of thermal r
 
 EarthSHAB is an open source software platform for predicting the flight paths of solar balloon on Earth, adapted from [MarsSHAB](https://github.com/tkschuler/SolarBalloon), developed at the University of Arizona. Altitude profiles for a SHAB flight are generated using heat transfer modeling and dynamic analysis. By incorporating weather forecasts from NOAA, complete 3D SHAB trajectories can also be predicted.  
 
-## Dependencies
+## Installation
 
-EarthSHAB relies on the following libraries:
+This simulation has been tested to run on Ubuntu 22.04 and Python 3.9.
 
+
+For easy install on WSL and Ubuntu use:
 ```
-fluids
-geographiclib
-gmplot
-netCDF4
-numpy
-pandas
-termcolor
-backports.datetime_fromisoformat
-seaborn
-scipy
-pytz
-xarray
+pip install -r requirements.txt
 ```
 
-This simulation has been tested to run on Ubuntu 20.04 and Python 3.9.  Older versions of python 3 may still work, as well as newer version of Ubuntu, however they are untested. 
+Setup Environment:
+```
+pip install -e .
+```
 
 ## Examples
 
