@@ -65,15 +65,53 @@ print(colored(url,"cyan"))
 # Open input file in read (r), and output file in write (w) mode:
 try:
     nc_in = nc4.Dataset(url)
+
 except:
     print(colored("NOAA DODS Server error with timestamp " + str(nc_start) + ". Data not downloaded.", "red"))
     sys.exit()
 
+
+#Some print statistics:
+# Get dimensions directly from dataset
+num_lats = len(nc_in.dimensions['lat'])
+num_lons = len(nc_in.dimensions['lon'])
+
+#print netcdf structre
+print("GFS NetCDF structure:")
+
+print(f"Number of latitude points: {num_lats}")
+print(f"Number of longitude points: {num_lons}")
+
+lat_vals = nc_in.variables['lat'][:]
+lon_vals = nc_in.variables['lon'][:]
+
+print(f"Lat min: {lat_vals.min()}, Lat max: {lat_vals.max()}")
+print(f"Lon min: {lon_vals.min()}, Lon max: {lon_vals.max()}\n\n")
+
+print("Download/Fill Data dimesnions")
+lat_start_i = max(0, lat_i - lat_range)
+lat_end_i = min(num_lats, lat_i + lat_range)
+
+lon_start_i = max(0, lon_i - lon_range)
+lon_end_i = min(num_lons, lon_i + lon_range)
+
+print(f"Clipped lat indices: {lat_start_i}-{lat_end_i}, size: {lat_end_i - lat_start_i}")
+print(f"Clipped lon indices: {lon_start_i}-{lon_end_i}, size: {lon_end_i - lon_start_i}")
+
+# Print corresponding lat/lon degree bounds
+print(f"Lat degrees: {lat_vals[lat_start_i]} to {lat_vals[lat_end_i-1]}")
+print(f"Lon degrees: {lon_vals[lon_start_i]} to {lon_vals[lon_end_i-1]}\n\n")
+
+
+
+# Create output netCDF file
 nc_out = nc4.Dataset(config_earth.netcdf_gfs['nc_file'], 'w')
 
+# Create dimensions in output file
 for name, dimension in nc_in.dimensions.items():
     nc_out.createDimension(name, len(dimension) if not dimension.isunlimited() else None)
 
+# Create coordinate variables in output file
 for name, variable in nc_in.variables.items():
     if name in coords:
         x = nc_out.createVariable(name, variable.datatype, variable.dimensions)
@@ -87,7 +125,7 @@ for name, variable in nc_in.variables.items():
 
         #Download only a chunk of the data
         for i in range(0,download_days*8+1):  #In intervals of 3 hours. hour_index of 8 is 8*3=24 hours. Add one more index to get full day range
-            #print(lat_i,lon_i)
-            data = nc_in.variables[name][i,0:34,lat_i-lat_range:lat_i+lat_range,lon_i-lon_range:lon_i+lon_range] #This array can only have a maximum of  536,870,912 elements, Need to dynamically add.
-            nc_out.variables[name][i,0:34,lat_i-lat_range:lat_i+lat_range,lon_i-lon_range:lon_i+lon_range] = data
-            print("Downloaded and added to output file ", name, ' hour index - ', i, ' time - ', i*3)
+            data = nc_in.variables[name][i,0:34,lat_start_i:lat_end_i,lon_start_i:lon_end_i] #This array can only have a maximum of  536,870,912 elements, Need to dynamically add.
+            nc_out.variables[name][i,0:34,lat_start_i:lat_end_i,lon_start_i:lon_end_i] = data
+            #print("Downloaded and added to output file ", name, ' hour index - ', i, ' time - ', i*3)
+            print(f"{name} hour index {i}: downloaded data shape {data.shape}")

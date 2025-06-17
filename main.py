@@ -21,6 +21,7 @@ import os
 import numpy as np
 import re
 import copy
+import sys
 
 import seaborn as sns
 import xarray as xr
@@ -52,6 +53,11 @@ hourstamp = config_earth.netcdf_gfs['hourstamp']
 balloon_trajectory = config_earth.simulation['balloon_trajectory']
 forecast_type = config_earth.forecast['forecast_type']
 atm = fluids.atmosphere.ATMOSPHERE_1976(min_alt)
+
+def wrap_lon(lon):
+    """Convert longitude from 0-360 to -180 to 180"""
+    #lon = lon % 360
+    return np.where(lon > 180, lon - 360, lon)
 
 
 #Get trajectory name from config file for Google Maps:
@@ -241,24 +247,76 @@ plt.legend(loc='upper right')
 plt.title('Wind Interpolation Comparison')
 
 
+
+
+def draw_bounding_box(min_lat, min_lon, max_lat, max_lon):
+    """
+    Draws a rectangular bounding box on a Google Map and saves it as an HTML file.
+
+    Args:
+        min_lat (float): Minimum latitude (southern boundary).
+        min_lon (float): Minimum longitude (western boundary).
+        max_lat (float): Maximum latitude (northern boundary).
+        max_lon (float): Maximum longitude (eastern boundary).
+    """
+    
+    # Build polygon points (bounding box)
+    lats = []
+    lons = []
+
+    # Bottom edge
+    for lon in range(int(min_lon), int(max_lon) + 1, 10):
+        lats.append(min_lat)
+        lons.append(lon)
+
+    # Right edge
+    for lat in range(int(min_lat), int(max_lat) + 1, 10):
+        lats.append(lat)
+        lons.append(max_lon)
+
+    # Top edge
+    for lon in range(int(max_lon), int(min_lon) - 1, -10):
+        lats.append(max_lat)
+        lons.append(lon)
+
+    # Left edge
+    for lat in range(int(max_lat), int(min_lat) - 1, -10):
+        lats.append(lat)
+        lons.append(min_lon)
+
+    # Draw polygon
+    gmap1.polygon(lats, lons, 'cornflowerblue', edge_width=5, alpha= .2)
+
+    # Save map
+
+
+
 # Outline Downloaded NOAA forecast subset:
 
 if forecast_type == "GFS":
+    '''
     region= zip(*[
-        (gfs.LAT_LOW, gfs.LON_LOW),
-        (gfs.LAT_HIGH, gfs.LON_LOW),
-        (gfs.LAT_HIGH, gfs.LON_HIGH),
-        (gfs.LAT_LOW, gfs.LON_HIGH)
+        (gfs.LAT_LOW, 0),
+        (gfs.LAT_HIGH, 0),
+        (gfs.LAT_HIGH, wrap_lon(gfs.lon).max()),
+        (gfs.LAT_LOW, wrap_lon(gfs.lon).max())
     ])
+    print(wrap_lon(gfs.lon).min(), wrap_lon(gfs.lon).max())
+    print(gfs.LAT_LOW, wrap_lon(gfs.LON_LOW), gfs.LAT_HIGH, wrap_lon(gfs.LON_HIGH))
+    print("hello")
+    
+    gmap1.polygon(*region, color='cornflowerblue', edge_width=5, alpha= .2) #plot region
+    '''
+
     gmap1.plot(lat, lon,'blue', edge_width = 2.5) # Simulated Trajectory
     gmap1.text(coord["lat"]-.2, coord["lon"]-.2, 'Simulated Trajectory with GFS Forecast', color='blue')
-    gmap1.polygon(*region, color='cornflowerblue', edge_width=5, alpha= .2) #plot region
+    draw_bounding_box(gfs.LAT_LOW, wrap_lon(gfs.lon).min(), gfs.LAT_HIGH, wrap_lon(gfs.lon).max())
 
 elif forecast_type == "ERA5":
     region= zip(*[
         (gfs.LAT_LOW, gfs.LON_LOW),
-        (gfs.LAT_HIGH, gfs.LON_LOW),
-        (gfs.LAT_HIGH, gfs.LON_HIGH),
+        (80, gfs.LON_LOW),
+        (80, gfs.LON_HIGH),
         (gfs.LAT_LOW, gfs.LON_HIGH)
     ])
     gmap1.plot(lat, lon,'red', edge_width = 2.5) # Simulated Trajectory
