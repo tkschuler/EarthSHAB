@@ -126,7 +126,7 @@ gmap1.draw( "trajectories/SHAB_trapezoid_" + str(t.year) + "_" + str(t.month) + 
 
 
 
-plt.style.use('seaborn-pastel')
+#plt.style.use('seaborn-pastel')
 fig, ax = plt.subplots(figsize=(12,10))
 ax.plot(ttt,el)
 plt.xlabel('Datetime (MST)')

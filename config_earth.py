@@ -34,8 +34,8 @@ balloon_properties = dict(
 #balloon_trajectory = "balloon_data/SHAB5V_APRS_Processed.csv"  # Only Accepting Files in the Standard APRS.fi format for now
 
 #SHAB14-V Example for EarthSHAB software
-forecast_start_time =  "2022-08-22 12:00:00" # Forecast start time, should match a downloaded forecast in the forecasts directory
-start_time = datetime.fromisoformat("2022-08-22 14:01:00") # Simulation start time. The end time needs to be within the downloaded forecast
+forecast_start_time =  "2026-03-25 12:00:00" # Forecast start time, should match a downloaded forecast in the forecasts directory
+start_time = datetime.fromisoformat("2026-03-25 14:01:00") # Simulation start time. The end time needs to be within the downloaded forecast
 balloon_trajectory = "balloon_data/SHAB14V-APRS.csv"  # Only Accepting Files in the Standard APRS.fi format for now
 
 #Hawaii
