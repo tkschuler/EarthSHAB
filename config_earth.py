@@ -38,6 +38,7 @@ forecast_start_time =  "2026-04-01 12:00:00" # Forecast start time, should match
 start_time = datetime.fromisoformat("2026-04-01 14:01:00") # Simulation start time. The end time needs to be within the downloaded forecast
 balloon_trajectory = "balloon_data/SHAB14V-APRS.csv"  # Only Accepting Files in the Standard APRS.fi format for now
 
+
 #Hawaii
 #forecast_start_time = "2023-04-18 00:00:00" # Forecast start time, should match a downloaded forecast
 #start_time = datetime.fromisoformat("2023-04-18 18:00:00") # Simulation start time. The end time needs to be within the downloaded forecast

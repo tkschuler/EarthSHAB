@@ -38,14 +38,6 @@ class GFS:
         #Manually add time units, not imported with units formatted in saveNETCDF.py
         self.time_convert = netCDF4.num2date(time_arr[:], units="days since 0001-01-01", has_year_zero=True)
 
-        first_time = self.time_convert[0]
-
-        print("time type:", type(first_time))
-        print("time example:", first_time)
-
-        self.using_cftime = type(first_time).__module__.startswith("cftime")
-        print("using_cftime:", self.using_cftime)
-
 
         #Determine Index values from netcdf4 subset
         netcdf_ranges = self.file.variables['ugrdprs'][:,0,:,:]
@@ -75,30 +67,7 @@ class GFS:
 
         #Check if number of hours will fit in simulation time
         desired_simulation_end_time = self.start_time + timedelta(hours=self.sim_time)
-        
-        end_time = self.time_convert[self.end_time_idx]
-
-        if self.using_cftime:
-            time_var = self.file.variables["time"]
-            time_units = getattr(time_var, "units", "days since 0001-01-01")
-            time_calendar = getattr(time_var, "calendar", "standard")
-
-            end_num = netCDF4.date2num(end_time, units=time_units, calendar=time_calendar)
-            start_num = netCDF4.date2num(self.start_time, units=time_units, calendar=time_calendar)
-
-            unit_str = time_units.lower()
-            if unit_str.startswith("seconds"):
-                diff_time = float(end_num - start_num)
-            elif unit_str.startswith("minutes"):
-                diff_time = float(end_num - start_num) * 60.0
-            elif unit_str.startswith("hours"):
-                diff_time = float(end_num - start_num) * 3600.0
-            elif unit_str.startswith("days"):
-                diff_time = float(end_num - start_num) * 86400.0
-            else:
-                raise ValueError(f"Unsupported time units: {time_units}")
-        else:
-            diff_time = (end_time - self.start_time).total_seconds()
+        diff_time = (self.time_convert[self.end_time_idx] - self.start_time).total_seconds() #total number of seconds between 2 timestamps
 
         print("Sim start time: ", self.start_time)
         print("NetCDF end time:", self.time_convert[self.end_time_idx])
@@ -106,29 +75,11 @@ class GFS:
         print("Des sim runtime:", self.sim_time, "hours")
         print()
 
-        end_time = self.time_convert[self.end_time_idx]
-
-        if self.using_cftime:
-            time_var = self.file.variables["time"]
-            time_units = getattr(time_var, "units", "days since 0001-01-01")
-            time_calendar = getattr(time_var, "calendar", "standard")
-
-            desired_num = netCDF4.date2num(
-                desired_simulation_end_time,
-                units=time_units,
-                calendar=time_calendar
-            )
-            end_num = netCDF4.date2num(
-                end_time,
-                units=time_units,
-                calendar=time_calendar
-            )
-
-            if not desired_num <= end_num:
-                print("WARNING: simulation end time is beyond available forecast")
-        else:
-            if not desired_simulation_end_time <= end_time:
-                print("WARNING: simulation end time is beyond available forecast")
+        if not desired_simulation_end_time <= self.time_convert[self.end_time_idx]:
+            print(colored("Desired simulation run time of " + str(self.sim_time)  +
+            " hours is out of bounds of downloaded forecast. " +
+            "Check simulation start time and/or download a new forecast.", "red"))
+            sys.exit()
 
 
     def determineRanges(self,netcdf_ranges):
