@@ -171,6 +171,56 @@ def _grib_to_dataset(grib_path):
     merged = xr.merge(isobaric_ds, compat="override")
     return merged
 
+def _validate_requested_nc_start(nc_start, availability_lag_hours=4):
+    """
+    Validate the user-requested forecast cycle from config.
+
+    Rules:
+    - nc_start must be exactly on a GFS cycle hour: 00, 06, 12, or 18 UTC
+    - it must not be older than NOAA's retention window
+    - it must not be too recent / in the future relative to expected upload lag
+
+    availability_lag_hours:
+        Approximate delay after cycle time before files are likely available.
+        3-4 hours is common; defaulting to 4 is safer.
+    """
+    run_date = nc_start.replace(minute=0, second=0, microsecond=0)
+
+    if run_date.hour not in (0, 6, 12, 18):
+        raise ValueError(
+            f"netcdf_gfs['nc_start'] must be a GFS cycle hour "
+            f"(00, 06, 12, 18 UTC), got {run_date}"
+        )
+
+    now_utc = datetime.datetime.utcnow().replace(tzinfo=None)
+
+    # Too old
+    GFS_RETENTION_DAYS = 9
+    oldest_available = (now_utc - datetime.timedelta(days=GFS_RETENTION_DAYS)).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    if run_date < oldest_available:
+        raise ValueError(
+            f"netcdf_gfs['nc_start']={run_date} is older than NOAA retention window. "
+            f"Oldest likely available is about {oldest_available}."
+        )
+
+    # Too new / likely not uploaded yet
+    latest_likely_available = now_utc - datetime.timedelta(hours=availability_lag_hours)
+    latest_cycle_hour = (latest_likely_available.hour // 6) * 6
+    latest_cycle_dt = latest_likely_available.replace(
+        hour=latest_cycle_hour, minute=0, second=0, microsecond=0
+    )
+
+    if run_date > latest_cycle_dt:
+        raise ValueError(
+            f"netcdf_gfs['nc_start']={run_date} is too recent to reliably exist yet. "
+            f"With an assumed ~{availability_lag_hours} hour upload lag, the latest likely "
+            f"available cycle is about {latest_cycle_dt}."
+        )
+
+    return run_date
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Main download routine
@@ -193,10 +243,10 @@ def download_gfs_grib_to_netcdf():
     out_path = Path(out_filename)
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
-    start_time = simulation["start_time"]
-    run_date = _adjust_run_date(start_time)
+    # Use nc_start as the requested forecast cycle
+    run_date = _validate_requested_nc_start(forecast_start_time, availability_lag_hours=4)
     date_str = run_date.strftime("%Y%m%d")
-    cycle_hour = forecast_start_time.hour #run_date.hour
+    cycle_hour = run_date.hour
 
     total_hours = download_days * 24
     forecast_hours = list(range(0, total_hours + 1, 3))
@@ -207,7 +257,7 @@ def download_gfs_grib_to_netcdf():
     print(f"  Bounding box: lat {lat_center}±{lat_range/2}°, "
           f"lon {lon_center}±{lon_range/2}°")
     print(f"  Output      : {out_path}\n")
-    print(f"Start Time: {start_time} UTC")
+    #print(f"Start Time: {start_time} UTC")
 
     hourly_datasets = []
 
