@@ -188,6 +188,7 @@ def download_gfs_grib_to_netcdf():
     lon_range = netcdf_gfs["lon_range"]
     download_days = netcdf_gfs["download_days"]
     out_filename = netcdf_gfs["nc_file"]
+    forecast_start_time = netcdf_gfs["nc_start"]
 
     out_path = Path(out_filename)
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -195,7 +196,7 @@ def download_gfs_grib_to_netcdf():
     start_time = simulation["start_time"]
     run_date = _adjust_run_date(start_time)
     date_str = run_date.strftime("%Y%m%d")
-    cycle_hour = run_date.hour
+    cycle_hour = forecast_start_time.hour #run_date.hour
 
     total_hours = download_days * 24
     forecast_hours = list(range(0, total_hours + 1, 3))
