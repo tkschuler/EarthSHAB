@@ -1,3 +1,13 @@
+version 1.2.0
+===============================
+* New saveNETCDF.py script with discontinuation of NOAA's OpenDAP Server
+    * Also works with AWS GFS Script (slightly different results due to formatting/conversion)
+* Now supports Python==3.11 and many newer dependencies 
+* Added some intial forecast processing test cases between GFS sources
+* Added Edge Case Handling for GFS boundary loopups to match ERA5 behavior
+* Note: GFS download from NOAA vs AWS has slight differences
+
+
 version 1.1.0
 ===============================
 * Added ERA5 reanalysis functionality

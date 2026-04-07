@@ -43,9 +43,33 @@ class GFS:
         netcdf_ranges = self.file.variables['ugrdprs'][:,0,:,:]
         self.determineRanges(netcdf_ranges)
 
-        # smaller array of downloaded forecast subset
-        self.lat  = self.file.variables['lat'][self.lat_min_idx:self.lat_max_idx]
-        self.lon  = self.file.variables['lon'][self.lon_min_idx:self.lon_max_idx]
+        self.lat = np.asarray(
+        self.file.variables['lat'][self.lat_min_idx:self.lat_max_idx + 1],
+            dtype=float
+        )
+        self.lon = np.asarray(
+            self.file.variables['lon'][self.lon_min_idx:self.lon_max_idx + 1],
+            dtype=float
+        )
+
+        self.ugdrps0 = self.file.variables['ugrdprs'][
+            self.start_time_idx:self.end_time_idx + 1,
+            :,
+            self.lat_min_idx:self.lat_max_idx + 1,
+            self.lon_min_idx:self.lon_max_idx + 1
+        ]
+        self.vgdrps0 = self.file.variables['vgrdprs'][
+            self.start_time_idx:self.end_time_idx + 1,
+            :,
+            self.lat_min_idx:self.lat_max_idx + 1,
+            self.lon_min_idx:self.lon_max_idx + 1
+        ]
+        self.hgtprs = self.file.variables['hgtprs'][
+            self.start_time_idx:self.end_time_idx + 1,
+            :,
+            self.lat_min_idx:self.lat_max_idx + 1,
+            self.lon_min_idx:self.lon_max_idx + 1
+        ]
 
         # min/max lat/lon degree values from netcdf4 subset
         self.LAT_LOW  = self.file.variables['lat'][self.lat_min_idx]
@@ -58,9 +82,6 @@ class GFS:
 
         # Import the netcdf4 subset to speed up table lookup in this script
         self.levels = self.file.variables['lev'][:]
-        self.ugdrps0 = self.file.variables['ugrdprs'][self.start_time_idx:self.end_time_idx+1,:,self.lat_min_idx:self.lat_max_idx,self.lon_min_idx:self.lon_max_idx]
-        self.vgdrps0 = self.file.variables['vgrdprs'][self.start_time_idx:self.end_time_idx+1,:,self.lat_min_idx:self.lat_max_idx,self.lon_min_idx:self.lon_max_idx]
-        self.hgtprs  = self.file.variables['hgtprs'][self.start_time_idx:self.end_time_idx+1,:,self.lat_min_idx:self.lat_max_idx,self.lon_min_idx:self.lon_max_idx]
 
         #print("Data downloaded.\n\n")
         print()
@@ -125,23 +146,19 @@ class GFS:
         """
         return min(range(len(arr)), key = lambda i: abs(arr[i]-k))
 
-    def getNearestLat(self,lat,min,max):
-        """ Determines the nearest lattitude (to .25 degrees)
-
+    def getNearestLat(self, lat, min_unused=None, max_unused=None):
         """
-        arr = np.arange(start=min, stop=max, step=self.res)
-        i = self.closest(arr, lat)
-        return i
-
-    def getNearestLon(self,lon,min,max):
-        """ Determines the nearest longitude (to .25 degrees)
-
+        Determine the nearest latitude index using the actual stored latitude array.
         """
+        return self.closest(self.lat, float(lat))
 
-        lon = lon % 360 #convert from -180-180 to 0-360
-        arr = np.arange(start=min, stop=max, step=self.res)
-        i = self.closest(arr, lon)
-        return i
+    def getNearestLon(self, lon, min_unused=None, max_unused=None):
+        """
+        Determine the nearest longitude index using the actual stored longitude array.
+        GFS longitudes are stored in 0..360, so normalize the query the same way.
+        """
+        lon_360 = float(lon) % 360.0
+        return self.closest(self.lon, lon_360)
 
     def getNearestAlt(self,hour_index,lat,lon,alt):
         """ Determines the nearest altitude based off of geo potential height of a .25 degree lat/lon area.

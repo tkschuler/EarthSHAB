@@ -41,6 +41,8 @@ import pandas as pd
 # ── EarthSHAB config ──────────────────────────────────────────────────────────
 from config_earth import netcdf_gfs, simulation
 
+xr.set_options(use_new_combine_kwarg_defaults=True) # cfgrib may raise FutureWarnings about combine_attrs; this silences them for now...
+
 # ── Pressure levels available in GFS 0.25° pgrb2 isobaric data ───────────────
 PRESSURE_LEVELS_MB = [
     1000, 975, 950, 925, 900, 850, 800, 750, 700, 650,
@@ -345,7 +347,7 @@ def download_gfs_grib_to_netcdf():
     encoding["time"] = {"_FillValue": None}  # Remove _FillValue from the time variable
     combined.to_netcdf(str(out_path), encoding=encoding)
     print(f"\nDone!  Saved to: {out_path}")
-    print(f"  Dimensions : {dict(combined.dims)}")
+    print(f"  Dimensions : {dict(combined.sizes)}")
     print(f"  Variables  : {list(combined.data_vars)}")
     print(f"  Time values (Julian dates): {julian_dates}")
     return str(out_path)

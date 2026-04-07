@@ -13,30 +13,36 @@ import pandas as pd
 from matplotlib.pyplot import cm
 import matplotlib as mpl
 import os
-import sys
 import seaborn as sns
 
 import solve_states
 import GFS
+import ERA5
 import radiation
 import windmap
+import numpy as np
+
+coord = config_earth.simulation['start_coord']
 
 if config_earth.forecast['forecast_type'] == "ERA5":
-    print(colored("WARNING: Switch forecast type to GFS. This example is for predicting future flights", "yellow"))
-    sys.exit()
+    print(colored("WARNING: Using ERA5. This example is for predicting future flights", "yellow"))
+    gfs = ERA5.ERA5(coord)
+    #sys.exit()
+elif config_earth.forecast['forecast_type'] == "GFS":
+    print(colored("Running GFS Prediction Example", "green"))
+    gfs = GFS.GFS(coord)
 
 if not os.path.exists('trajectories'):
     os.makedirs('trajectories')
 
-coord = config_earth.simulation['start_coord']
 nc_start = config_earth.netcdf_gfs["nc_start"]
-gfs = GFS.GFS(coord)
 gmap1 = gmplot.GoogleMapPlotter(coord["lat"], coord["lon"], 10)
 hourstamp = config_earth.netcdf_gfs['hourstamp']
 
 masses = [0, .25, .5, .75, 1, 1.25, 1.5, 1.75, 2]
 
-color = cmap = cm.get_cmap('rainbow_r', len(masses))
+cmap = mpl.colormaps['rainbow_r']
+colors = cmap(np.linspace(0, 1, len(masses)))
 
 sns.set_style("darkgrid")
 plt.rcParams.update({'font.size': 14})
@@ -139,11 +145,10 @@ for j in range(0,len(masses)):
                             " Nearest Alt: " + str(nearest_alt)),"cyan"))
 
     #Plots
-    plt.plot(ttt,el, mpl.colors.rgb2hex(color(j)))
+    plt.plot(ttt, el, mpl.colors.rgb2hex(colors[j]))
 
     # Google Plotting of Trajectory
-    gmap1.plot(lat, lon,mpl.colors.rgb2hex(color(j)), edge_width = 2.5)
-
+    gmap1.plot(lat, lon,mpl.colors.rgb2hex(colors[j]), edge_width = 2.5)
 
 # Plotting
 
