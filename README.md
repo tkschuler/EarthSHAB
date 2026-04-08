@@ -1,4 +1,4 @@
-[![Python 3.9](https://img.shields.io/badge/python-3.9-blue.svg)](https://www.python.org/downloads/release/python-390/)
+[![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-3110/)
 
 # EarthSHAB
 
@@ -9,16 +9,28 @@ EarthSHAB is an open source software platform for predicting the flight paths of
 
 ## Installation
 
-This simulation has been tested to run on Ubuntu 22.04 and Python 3.9.
 
+**1. Clone the repository**
+```
+git clone https://github.com/tkschuler/EarthSHAB.git
+cd EarthSHAB
+```
 
-For easy install on WSL and Ubuntu use:
+**2. Create a virtual environment (optional but recommended)**
+
+It's reccomended to install cfgrib with conda rather than pip
+
+Using ``conda``:
+```
+conda create -n earthshab python=3.11 pip
+conda activate earthshab
+conda install conda-forge::cfgrib
+```
+
+**3. Install dependencies**
+
 ```
 pip install -r requirements.txt
-```
-
-Setup Environment:
-```
 pip install -e .
 ```
 
