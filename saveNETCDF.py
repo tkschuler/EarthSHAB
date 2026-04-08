@@ -35,6 +35,42 @@ import xarray as xr
 import cfgrib
 import netCDF4 as nc
 from pathlib import Path
+saveNETCDF.py  –  EarthSHAB GFS forecast downloader (GRIB-filter edition)
+==========================================================================
+NOAA retired the OpenDAP/DODS interface that EarthSHAB originally used.
+This replacement fetches the same data through NOAA's GRIB-filter service
+(https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25.pl), saves each
+forecast hour as a temporary GRIB2 file, and merges everything into a
+single NetCDF-4 file whose structure matches what GFS.py already expects.
+
+Variables downloaded (all on isobaric pressure levels):
+  UGRD  – U-component of wind  (m/s)
+  VGRD  – V-component of wind  (m/s)
+  TMP   – Temperature          (K)
+  HGT   – Geopotential height  (gpm)
+
+Requirements (add to requirements.txt):
+  cfgrib        – pip install cfgrib
+  eccodes       – conda install -c conda-forge eccodes   (or apt/brew)
+  xarray        – already in EarthSHAB requirements
+  netCDF4       – already in EarthSHAB requirements
+  requests      – usually available; pip install requests
+
+Usage:
+  python saveNETCDF.py
+  (uses config_earth.py for lat/lon centre, range, date, and download_days)
+"""
+
+import os
+import time
+import datetime
+import tempfile
+import requests
+import numpy as np
+import xarray as xr
+import cfgrib
+import netCDF4 as nc
+from pathlib import Path
 from termcolor import colored
 import pandas as pd
 
@@ -78,6 +114,27 @@ def _build_url(date_str, cycle_hour, forecast_hour, lat_range, lon_range,
     center_lat/lon: centre of the bounding box; lon in [-180, 180]
     NOTE: GRIB filter requires longitudes in [-180, 180], NOT [0, 360].
     """
+    fhh = f"{int(forecast_hour):03d}"
+    cyc = f"{int(cycle_hour):02d}"
+
+    # Bounding box – clamp to valid globe extents and round to 4 dp
+    top    = round(min( 90.0, center_lat + lat_range / 2.0), 4)
+    bottom = round(max(-90.0, center_lat - lat_range / 2.0), 4)
+    left   = round(max(-180.0, center_lon - lon_range / 2.0), 4)
+    right  = round(min( 180.0, center_lon + lon_range / 2.0), 4)
+
+    level_str = _level_params(PRESSURE_LEVELS_MB)
+
+    params = (
+        f"file=gfs.t{cyc}z.pgrb2.0p25.f{fhh}"
+        f"&{level_str}"
+        f"&var_UGRD=on&var_VGRD=on&var_TMP=on&var_HGT=on"
+        f"&subregion="
+        f"&toplat={top}&leftlon={left}&rightlon={right}&bottomlat={bottom}"
+        f"&dir=%2Fgfs.{date_str}%2F{cyc}%2Fatmos"
+    )
+    return f"{FILTER_BASE}?{params}"
+
     fhh = f"{int(forecast_hour):03d}"
     cyc = f"{int(cycle_hour):02d}"
 
