@@ -36,16 +36,6 @@ These examples can all be run with the included GFS and ERA forecasts as well as
 
 <img src = "img/rainbow_trajectories_map.PNG" />
 
-
-## Author
-
-* **Tristan Schuler** - *U.S. Naval Research Laboratory, University of Arizona*
-* Additional Contributions: **Craig Motell** - *NIWC Pacific*
-
-## Acknowledgments
-
-Hat Tip to [Bovine Aerospace](https://bovineaerospace.wordpress.com/), who developed an initial solar balloon model in C++. This code was adapted from their [repo](https://github.com/tunawhiskers/balloon_trajectory).
-
 ## Citing EarthSHAB
 
 If EarthSHAB played an important role in your research, then please cite the following publication

@@ -1,7 +1,4 @@
-.. EarthSHAB documentation master file, created by
-   sphinx-quickstart on Thu Oct 12 10:15:53 2023.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+.. EarthSHAB documentation master file
 
 .. toctree::
    :maxdepth: 1
@@ -12,13 +9,22 @@
    examples/index
    API/index
    citing
-   
+
 
 EarthSHAB
 =========
 
-EarthSHAB is an open source software platform for predicting the flight paths of solar balloon on Earth, adapted from `MarsSHAB <https://github.com/tkschuler/MarsSHAB>`_, developed at the University of Arizona. Altitude profiles for a SHAB flight are generated using heat transfer modeling and dynamic analysis. By incorporating weather forecasts from NOAA, complete 3D SHAB trajectories can also be predicted.
+EarthSHAB is an open-source platform for **simulating, predicting, and analyzing solar high-altitude balloon (SHAB) trajectories** using real atmospheric data.
+The software combines **physics, numerical weather data, and trajectory modeling** to simulate how balloons move through complex wind fields.
 
+Originally adapted from `MarsSHAB <https://github.com/tkschuler/MarsSHAB>`_, EarthSHAB has evolved into a full-stack toolkit for:
+
+- Earth-based balloon trajectory prediction  
+- Integration with global weather datasets (ERA5, GFS)  
+- 3D trajectory simulation with altitude-controlled dynamics  
+- Visualization, analysis, and mission planning workflows  
+
+EarthSHAB combines **atmospheric physics, numerical weather data, and trajectory modeling** to simulate how solar balloons move through complex wind fields.
 
 
 Indices and tables

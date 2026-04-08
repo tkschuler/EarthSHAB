@@ -1,20 +1,20 @@
+
+
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>windmap &mdash; EarthSHAB 1.1.0 documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <!--[if lt IE 9]>
-    <script src="../_static/js/html5shiv.min.js"></script>
-  <![endif]-->
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
   
-        <script src="../_static/jquery.js?v=5d32c60e"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="../_static/documentation_options.js?v=fc837d61"></script>
-        <script src="../_static/doctools.js?v=888ff710"></script>
-        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=fc837d61"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" /> 
@@ -80,27 +80,27 @@
 <span class="sd">&quot;&quot;&quot;</span>
 
 
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
-<span class="kn">import</span> <span class="nn">matplotlib</span> <span class="k">as</span> <span class="nn">mpl</span>
-<span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">ticker</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">mpl</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">matplotlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">ticker</span>
 <span class="c1">#import netCDF4</span>
-<span class="kn">from</span> <span class="nn">termcolor</span> <span class="kn">import</span> <span class="n">colored</span>
-<span class="kn">from</span> <span class="nn">scipy.interpolate</span> <span class="kn">import</span> <span class="n">CubicSpline</span>
-<span class="kn">import</span> <span class="nn">fluids</span>
-<span class="kn">import</span> <span class="nn">config_earth</span>
-<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
-<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">termcolor</span><span class="w"> </span><span class="kn">import</span> <span class="n">colored</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.interpolate</span><span class="w"> </span><span class="kn">import</span> <span class="n">CubicSpline</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">fluids</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">config_earth</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
 
-<span class="kn">import</span> <span class="nn">GFS</span>
-<span class="kn">import</span> <span class="nn">ERA5</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">GFS</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">ERA5</span>
 
 <div class="viewcode-block" id="Windmap">
 <a class="viewcode-back" href="../API/windmap.html#windmap.Windmap">[docs]</a>
-<span class="k">class</span> <span class="nc">Windmap</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Windmap</span><span class="p">:</span>
 <div class="viewcode-block" id="Windmap.__init__">
 <a class="viewcode-back" href="../API/windmap.html#windmap.Windmap.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
         <span class="k">if</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">forecast</span><span class="p">[</span><span class="s1">&#39;forecast_type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;GFS&quot;</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">gfs</span> <span class="o">=</span> <span class="n">GFS</span><span class="o">.</span><span class="n">GFS</span><span class="p">(</span><span class="n">config_earth</span><span class="o">.</span><span class="n">simulation</span><span class="p">[</span><span class="s1">&#39;start_coord&#39;</span><span class="p">])</span>
@@ -155,12 +155,12 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">hour_index</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_timestamp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getHourIndex</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">start_time</span><span class="p">)</span></div>
 
 
-    <span class="k">def</span> <span class="nf">closest</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">arr</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">closest</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">arr</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)),</span> <span class="n">key</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="nb">abs</span><span class="p">(</span><span class="n">arr</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">k</span><span class="p">))</span>
 
 <div class="viewcode-block" id="Windmap.time_in_range">
 <a class="viewcode-back" href="../API/windmap.html#windmap.Windmap.time_in_range">[docs]</a>
-    <span class="k">def</span> <span class="nf">time_in_range</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">time_in_range</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return true if x is in the range [start, end]&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">start</span> <span class="o">&lt;=</span> <span class="n">end</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">start</span> <span class="o">&lt;=</span> <span class="n">x</span> <span class="o">&lt;=</span> <span class="n">end</span>
@@ -169,7 +169,7 @@
 
 
     <span class="c1">#THIS IS ASSUMING THE CORRECT ERA5 TIME PERIOD HAS BEEN DOWNLOADED</span>
-    <span class="k">def</span> <span class="nf">getHourIndex</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">start_time</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">getHourIndex</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">start_time</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">config_earth</span><span class="o">.</span><span class="n">forecast</span><span class="p">[</span><span class="s1">&#39;forecast_type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;GFS&quot;</span><span class="p">:</span>
             <span class="n">times</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gfs</span><span class="o">.</span><span class="n">time_convert</span>
         <span class="k">else</span><span class="p">:</span>
@@ -193,7 +193,7 @@
 
 <div class="viewcode-block" id="Windmap.windVectorToBearing">
 <a class="viewcode-back" href="../API/windmap.html#windmap.Windmap.windVectorToBearing">[docs]</a>
-    <span class="k">def</span> <span class="nf">windVectorToBearing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">h</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">windVectorToBearing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">h</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Converts U-V wind data at specific heights to angular and radial</span>
 <span class="sd">        components for polar plotting.</span>
 
@@ -223,7 +223,7 @@
 
 <div class="viewcode-block" id="Windmap.getWind">
 <a class="viewcode-back" href="../API/windmap.html#windmap.Windmap.getWind">[docs]</a>
-    <span class="k">def</span> <span class="nf">getWind</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">hour_index</span><span class="p">,</span><span class="n">lat_i</span><span class="p">,</span><span class="n">lon_i</span><span class="p">,</span> <span class="n">interpolation_frequency</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">getWind</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">hour_index</span><span class="p">,</span><span class="n">lat_i</span><span class="p">,</span><span class="n">lon_i</span><span class="p">,</span> <span class="n">interpolation_frequency</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Calculates a wind vector estimate at a particular 3D coordinate and timestamp</span>
 <span class="sd">        using a 2-step linear interpolation approach.</span>
 
@@ -279,7 +279,7 @@
 
 <div class="viewcode-block" id="Windmap.plotWind2">
 <a class="viewcode-back" href="../API/windmap.html#windmap.Windmap.plotWind2">[docs]</a>
-    <span class="k">def</span> <span class="nf">plotWind2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">hour_index</span><span class="p">,</span><span class="n">lat</span><span class="p">,</span><span class="n">lon</span><span class="p">,</span> <span class="n">num_interpolations</span> <span class="o">=</span> <span class="mi">100</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">plotWind2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">hour_index</span><span class="p">,</span><span class="n">lat</span><span class="p">,</span><span class="n">lon</span><span class="p">,</span> <span class="n">num_interpolations</span> <span class="o">=</span> <span class="mi">100</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Calculates a wind vector estimate at a particular 3D coordinate and timestamp</span>
 <span class="sd">        using a 2-step linear interpolation approach.</span>
 
@@ -458,7 +458,7 @@
 
 <div class="viewcode-block" id="Windmap.plotWindVelocity">
 <a class="viewcode-back" href="../API/windmap.html#windmap.Windmap.plotWindVelocity">[docs]</a>
-    <span class="k">def</span> <span class="nf">plotWindVelocity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">hour_index</span><span class="p">,</span><span class="n">lat</span><span class="p">,</span><span class="n">lon</span><span class="p">,</span> <span class="n">interpolation_frequency</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">plotWindVelocity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">hour_index</span><span class="p">,</span><span class="n">lat</span><span class="p">,</span><span class="n">lon</span><span class="p">,</span> <span class="n">interpolation_frequency</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Plots a 3D Windrose for a particular coordinate and timestamp from a downloaded forecast.</span>
 
 <span class="sd">        :param hour_index: Time index from forecast file</span>
@@ -553,7 +553,7 @@
 <span class="sd">        plt.legend(loc=&#39;upper right&#39;)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">makePlots</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">makePlots</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hour_index</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">plotWindVelocity</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hour_index</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">LAT</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">LON</span><span class="p">,</span> <span class="n">interpolation_frequency</span> <span class="o">=</span> <span class="mi">100</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">plotWind2</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hour_index</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">LAT</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">LON</span><span class="p">,</span> <span class="n">num_interpolations</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span>

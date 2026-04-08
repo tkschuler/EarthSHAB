@@ -1,20 +1,20 @@
+
+
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>radiation &mdash; EarthSHAB 1.1.0 documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <!--[if lt IE 9]>
-    <script src="../_static/js/html5shiv.min.js"></script>
-  <![endif]-->
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
   
-        <script src="../_static/jquery.js?v=5d32c60e"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="../_static/documentation_options.js?v=fc837d61"></script>
-        <script src="../_static/doctools.js?v=888ff710"></script>
-        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=fc837d61"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" /> 
@@ -77,15 +77,15 @@
 
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">import</span> <span class="nn">math</span>
-<span class="kn">import</span> <span class="nn">fluids</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">fluids</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
-<span class="kn">import</span> <span class="nn">config_earth</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">config_earth</span>
 
 <div class="viewcode-block" id="Radiation">
 <a class="viewcode-back" href="../API/radiation.html#radiation.Radiation">[docs]</a>
-<span class="k">class</span> <span class="nc">Radiation</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Radiation</span><span class="p">:</span>
     <span class="c1"># Constants</span>
     <span class="n">I0</span> <span class="o">=</span> <span class="mi">1358</span>               <span class="c1"># Direct Solar Radiation Level</span>
     <span class="n">e</span> <span class="o">=</span> <span class="mf">0.016708</span>            <span class="c1"># Eccentricity of Earth&#39;s Orbit</span>
@@ -112,13 +112,13 @@
     <span class="n">projArea</span> <span class="o">=</span> <span class="mf">0.25</span><span class="o">*</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span><span class="o">*</span><span class="n">d</span><span class="o">*</span><span class="n">d</span>
     <span class="n">surfArea</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span><span class="o">*</span><span class="n">d</span><span class="o">*</span><span class="n">d</span>
 
-    <span class="k">def</span> <span class="nf">getTemp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">el</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">getTemp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">el</span><span class="p">):</span>
         <span class="n">atm</span> <span class="o">=</span> <span class="n">fluids</span><span class="o">.</span><span class="n">atmosphere</span><span class="o">.</span><span class="n">ATMOSPHERE_1976</span><span class="p">(</span><span class="n">el</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">atm</span><span class="o">.</span><span class="n">T</span>
 
 <div class="viewcode-block" id="Radiation.getTempForecast">
 <a class="viewcode-back" href="../API/radiation.html#radiation.Radiation.getTempForecast">[docs]</a>
-    <span class="k">def</span> <span class="nf">getTempForecast</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coord</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">getTempForecast</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coord</span><span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot; Looks up the forecast temperature at the current coordinate and altitude</span>
 
 <span class="sd">        .. important:: TODO. This function is not operational yet. </span>
@@ -132,21 +132,21 @@
         <span class="k">return</span> <span class="n">temp</span></div>
 
 
-    <span class="k">def</span> <span class="nf">getPressure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">el</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">getPressure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">el</span><span class="p">):</span>
         <span class="n">atm</span> <span class="o">=</span> <span class="n">fluids</span><span class="o">.</span><span class="n">atmosphere</span><span class="o">.</span><span class="n">ATMOSPHERE_1976</span><span class="p">(</span><span class="n">el</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">atm</span><span class="o">.</span><span class="n">P</span>
 
-    <span class="k">def</span> <span class="nf">getDensity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">el</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">getDensity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">el</span><span class="p">):</span>
         <span class="n">atm</span> <span class="o">=</span> <span class="n">fluids</span><span class="o">.</span><span class="n">atmosphere</span><span class="o">.</span><span class="n">ATMOSPHERE_1976</span><span class="p">(</span><span class="n">el</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">atm</span><span class="o">.</span><span class="n">rho</span>
 
-    <span class="k">def</span> <span class="nf">getGravity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">el</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">getGravity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">el</span><span class="p">):</span>
         <span class="n">atm</span> <span class="o">=</span> <span class="n">fluids</span><span class="o">.</span><span class="n">atmosphere</span><span class="o">.</span><span class="n">ATMOSPHERE_1976</span><span class="p">(</span><span class="n">el</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">atm</span><span class="o">.</span><span class="n">g</span>
 
 <div class="viewcode-block" id="Radiation.get_SI0">
 <a class="viewcode-back" href="../API/radiation.html#radiation.Radiation.get_SI0">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_SI0</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_SI0</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot; Incident solar radiation above Earth&#39;s atmosphere (W/m^2)</span>
 
 <span class="sd">        .. math:: I_{sun,0}= I_0 \cdot [1+0.5(\frac{1+e}{1-e})^2-1) \cdot cos(f)]</span>
@@ -162,14 +162,14 @@
         <span class="k">return</span> <span class="n">Radiation</span><span class="o">.</span><span class="n">I0</span><span class="o">*</span><span class="p">(</span><span class="mf">1.</span><span class="o">+</span><span class="mf">0.5</span><span class="o">*</span><span class="n">e2</span><span class="o">*</span><span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">f</span><span class="p">))</span></div>
 
 
-    <span class="k">def</span> <span class="nf">get_declination</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_declination</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="c1">#This function is unused</span>
 
         <span class="k">return</span> <span class="o">-</span><span class="mf">.4091</span><span class="o">*</span><span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span><span class="o">*</span><span class="p">(</span><span class="n">Radiation</span><span class="o">.</span><span class="n">Ls</span><span class="o">+</span><span class="mi">10</span><span class="p">)</span><span class="o">/</span><span class="mi">365</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Radiation.get_zenith">
 <a class="viewcode-back" href="../API/radiation.html#radiation.Radiation.get_zenith">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_zenith</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">coord</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_zenith</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">coord</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Calculates adjusted solar zenith angle at elevation</span>
 
 <span class="sd">        :param t: Lattitude (rad)</span>
@@ -198,7 +198,7 @@
 
 <div class="viewcode-block" id="Radiation.get_air_mass">
 <a class="viewcode-back" href="../API/radiation.html#radiation.Radiation.get_air_mass">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_air_mass</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">zen</span><span class="p">,</span> <span class="n">el</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_air_mass</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">zen</span><span class="p">,</span> <span class="n">el</span><span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Air Mass at elevation</span>
 
 <span class="sd">        .. math:: AM = 1229+(614cos(\zeta)^2)^{\frac{1}{2}}-614cos(\zeta)</span>
@@ -219,7 +219,7 @@
 
 <div class="viewcode-block" id="Radiation.get_trans_atm">
 <a class="viewcode-back" href="../API/radiation.html#radiation.Radiation.get_trans_atm">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_trans_atm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">zen</span><span class="p">,</span><span class="n">el</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_trans_atm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">zen</span><span class="p">,</span><span class="n">el</span><span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;The amount of solar radiation that permeates through the atmosphere at a</span>
 <span class="sd">        certain altitude, I_{sun} is driven by the atmospheric transmittance.</span>
 
@@ -241,7 +241,7 @@
 
 <div class="viewcode-block" id="Radiation.get_direct_SI">
 <a class="viewcode-back" href="../API/radiation.html#radiation.Radiation.get_direct_SI">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_direct_SI</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">zen</span><span class="p">,</span><span class="n">el</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_direct_SI</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">zen</span><span class="p">,</span><span class="n">el</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates Direct Solar Radiation</span>
 
 <span class="sd">        :param zen: Solar Angle (rad)</span>
@@ -265,7 +265,7 @@
 
 <div class="viewcode-block" id="Radiation.get_diffuse_SI">
 <a class="viewcode-back" href="../API/radiation.html#radiation.Radiation.get_diffuse_SI">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_diffuse_SI</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">zen</span><span class="p">,</span><span class="n">el</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_diffuse_SI</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">zen</span><span class="p">,</span><span class="n">el</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates Diffuse Solar Radiation from sky</span>
 
 <span class="sd">        :param zen: Solar Angle (rad)</span>
@@ -289,7 +289,7 @@
 
 <div class="viewcode-block" id="Radiation.get_reflected_SI">
 <a class="viewcode-back" href="../API/radiation.html#radiation.Radiation.get_reflected_SI">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_reflected_SI</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">zen</span><span class="p">,</span><span class="n">el</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_reflected_SI</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">zen</span><span class="p">,</span><span class="n">el</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates Reflected Solar Radiation from from the Earth&#39;s Surface</span>
 
 <span class="sd">        :param zen: Solar Angle (rad)</span>
@@ -313,7 +313,7 @@
 
 <div class="viewcode-block" id="Radiation.get_earth_IR">
 <a class="viewcode-back" href="../API/radiation.html#radiation.Radiation.get_earth_IR">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_earth_IR</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">el</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_earth_IR</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">el</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates Infared Radiation emitted from Earth&#39;s surface</span>
 
 <span class="sd">        :param el: Elevation (m)</span>
@@ -334,7 +334,7 @@
 
 <div class="viewcode-block" id="Radiation.get_sky_IR">
 <a class="viewcode-back" href="../API/radiation.html#radiation.Radiation.get_sky_IR">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_sky_IR</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">el</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_sky_IR</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">el</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates Infared Radiation emitted the from Sky</span>
 
 <span class="sd">        :param el: Elevation (m)</span>
@@ -349,7 +349,7 @@
 
 <div class="viewcode-block" id="Radiation.get_rad_total">
 <a class="viewcode-back" href="../API/radiation.html#radiation.Radiation.get_rad_total">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_rad_total</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">datetime</span><span class="p">,</span><span class="n">coord</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_rad_total</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">datetime</span><span class="p">,</span><span class="n">coord</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates total radiation sources as a function of altitude, time, and balloon surface area.</span>
 
 <span class="sd">        The figure below shows how different altitudes effects the radiation sources on</span>

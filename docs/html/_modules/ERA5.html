@@ -1,20 +1,20 @@
+
+
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ERA5 &mdash; EarthSHAB 1.1.0 documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <!--[if lt IE 9]>
-    <script src="../_static/js/html5shiv.min.js"></script>
-  <![endif]-->
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
   
-        <script src="../_static/jquery.js?v=5d32c60e"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="../_static/documentation_options.js?v=fc837d61"></script>
-        <script src="../_static/doctools.js?v=888ff710"></script>
-        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=fc837d61"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" /> 
@@ -78,27 +78,27 @@
 <span class="sd">Contributing authors: Craig Motell and Michael Rodriguez of NIWC Pacific</span>
 <span class="sd">Edited and integrated: Tristan Schuler</span>
 <span class="sd">&quot;&quot;&quot;</span>
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">netCDF4</span>
-<span class="kn">from</span> <span class="nn">termcolor</span> <span class="kn">import</span> <span class="n">colored</span>
-<span class="kn">import</span> <span class="nn">math</span>
-<span class="kn">from</span> <span class="nn">geographiclib.geodesic</span> <span class="kn">import</span> <span class="n">Geodesic</span>
-<span class="kn">import</span> <span class="nn">sys</span>
-<span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">interpolate</span>
-<span class="kn">from</span> <span class="nn">pytz</span> <span class="kn">import</span> <span class="n">timezone</span>
-<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">netCDF4</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">termcolor</span><span class="w"> </span><span class="kn">import</span> <span class="n">colored</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">geographiclib.geodesic</span><span class="w"> </span><span class="kn">import</span> <span class="n">Geodesic</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy</span><span class="w"> </span><span class="kn">import</span> <span class="n">interpolate</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pytz</span><span class="w"> </span><span class="kn">import</span> <span class="n">timezone</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
 
-<span class="kn">import</span> <span class="nn">config_earth</span> <span class="c1">#integrate with EARTHSHAB</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">config_earth</span> <span class="c1">#integrate with EARTHSHAB</span>
 
 <div class="viewcode-block" id="ERA5">
 <a class="viewcode-back" href="../API/era5.html#ERA5.ERA5">[docs]</a>
-<span class="k">class</span> <span class="nc">ERA5</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ERA5</span><span class="p">:</span>
     <span class="c1">#def __init__(self, start_coord, end_coord, input_file, dt_sec, sim_time_hours, use_time):</span>
 <div class="viewcode-block" id="ERA5.__init__">
 <a class="viewcode-back" href="../API/era5.html#ERA5.ERA5.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start_coord</span><span class="p">):</span> <span class="c1">#CHANGED INPUT VARIABLES</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start_coord</span><span class="p">):</span> <span class="c1">#CHANGED INPUT VARIABLES</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a class object containing information about an ERA5. Along the way,</span>
 <span class="sd">        it checks whether it can take a subset of your model data. For example, if you have</span>
 <span class="sd">        data before or after your simulation times, you can ignore these data through saving</span>
@@ -133,7 +133,7 @@
     <span class="c1">#def init_without_time(self, start_coord, end_coord, dt_sec, sim_time_hours): # modded the number of varibales for troubleshootin</span>
 <div class="viewcode-block" id="ERA5.init_with_time">
 <a class="viewcode-back" href="../API/era5.html#ERA5.ERA5.init_with_time">[docs]</a>
-    <span class="k">def</span> <span class="nf">init_with_time</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">init_with_time</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
 <span class="w">        </span><span class="sd">&#39;&#39;&#39; adds to class object containing information about an ERA5 but without any time</span>
 <span class="sd">        variables.</span>
@@ -208,7 +208,7 @@
 
 <div class="viewcode-block" id="ERA5.determineRanges">
 <a class="viewcode-back" href="../API/era5.html#ERA5.ERA5.determineRanges">[docs]</a>
-    <span class="k">def</span> <span class="nf">determineRanges</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">netcdf_ranges</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">determineRanges</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">netcdf_ranges</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Determine the dimensions of actual data. If you have columns or rows with missing data</span>
 <span class="sd">        as indicated by NaN, then this function will return your actual shape size so you can</span>
@@ -240,7 +240,7 @@
 
 <div class="viewcode-block" id="ERA5.closestIdx">
 <a class="viewcode-back" href="../API/era5.html#ERA5.ERA5.closestIdx">[docs]</a>
-    <span class="k">def</span> <span class="nf">closestIdx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">closestIdx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Given an ordered array and a value, determines the index of the closest item contained in the array.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -249,7 +249,7 @@
 
 <div class="viewcode-block" id="ERA5.getNearestLatIdx">
 <a class="viewcode-back" href="../API/era5.html#ERA5.ERA5.getNearestLatIdx">[docs]</a>
-    <span class="k">def</span> <span class="nf">getNearestLatIdx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="nb">min</span><span class="p">,</span> <span class="nb">max</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">getNearestLatIdx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="nb">min</span><span class="p">,</span> <span class="nb">max</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Determines the nearest latitude index (to .25 degrees),  which will be integer index starting at 0 where you data is starting</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -261,7 +261,7 @@
 
 <div class="viewcode-block" id="ERA5.getNearestLonIdx">
 <a class="viewcode-back" href="../API/era5.html#ERA5.ERA5.getNearestLonIdx">[docs]</a>
-    <span class="k">def</span> <span class="nf">getNearestLonIdx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lon</span><span class="p">,</span> <span class="nb">min</span><span class="p">,</span> <span class="nb">max</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">getNearestLonIdx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lon</span><span class="p">,</span> <span class="nb">min</span><span class="p">,</span> <span class="nb">max</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Determines the nearest longitude (to .25 degrees)</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -274,7 +274,7 @@
 
 <div class="viewcode-block" id="ERA5.get2NearestAltIdxs">
 <a class="viewcode-back" href="../API/era5.html#ERA5.ERA5.get2NearestAltIdxs">[docs]</a>
-    <span class="k">def</span> <span class="nf">get2NearestAltIdxs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">alt_m</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get2NearestAltIdxs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">alt_m</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Determines 2 nearest indexes for altitude for interpolating angles.</span>
 <span class="sd">        It does index wrap from 0 to -1, which is taken care of in `ERA5.interpolateBearing()`</span>
 
@@ -293,7 +293,7 @@
 
 <div class="viewcode-block" id="ERA5.getNearestAltbyIndex">
 <a class="viewcode-back" href="../API/era5.html#ERA5.ERA5.getNearestAltbyIndex">[docs]</a>
-    <span class="k">def</span> <span class="nf">getNearestAltbyIndex</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">int_hr_idx</span><span class="p">,</span> <span class="n">lat_i</span><span class="p">,</span> <span class="n">lon_i</span><span class="p">,</span> <span class="n">alt_m</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">getNearestAltbyIndex</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">int_hr_idx</span><span class="p">,</span> <span class="n">lat_i</span><span class="p">,</span> <span class="n">lon_i</span><span class="p">,</span> <span class="n">alt_m</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Determines the nearest altitude based off of geo potential height of a .25 degree lat/lon area.</span>
 <span class="sd">            at a given latitude, longitude index</span>
 
@@ -306,7 +306,7 @@
 
 <div class="viewcode-block" id="ERA5.wind_alt_Interpolate">
 <a class="viewcode-back" href="../API/era5.html#ERA5.ERA5.wind_alt_Interpolate">[docs]</a>
-    <span class="k">def</span> <span class="nf">wind_alt_Interpolate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alt_m</span><span class="p">,</span> <span class="n">diff_time</span><span class="p">,</span> <span class="n">lat_idx</span><span class="p">,</span> <span class="n">lon_idx</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">wind_alt_Interpolate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alt_m</span><span class="p">,</span> <span class="n">diff_time</span><span class="p">,</span> <span class="n">lat_idx</span><span class="p">,</span> <span class="n">lon_idx</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        .. warning:: This function is no longer used.  Use wind_alt_Interpolate2 which does 2 different types of interpolation to choose from.</span>
 
@@ -384,7 +384,7 @@
 
 <div class="viewcode-block" id="ERA5.wind_alt_Interpolate2">
 <a class="viewcode-back" href="../API/era5.html#ERA5.ERA5.wind_alt_Interpolate2">[docs]</a>
-    <span class="k">def</span> <span class="nf">wind_alt_Interpolate2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alt_m</span><span class="p">,</span> <span class="n">diff_time</span><span class="p">,</span> <span class="n">lat_idx</span><span class="p">,</span> <span class="n">lon_idx</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">wind_alt_Interpolate2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alt_m</span><span class="p">,</span> <span class="n">diff_time</span><span class="p">,</span> <span class="n">lat_idx</span><span class="p">,</span> <span class="n">lon_idx</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Performs two different types of a 2 step linear interpolation to determine horizontal wind velocity.  First the altitude is interpolated between the two nearest</span>
 <span class="sd">        .25 degree lat/lon areas.  Once altitude is matched, a second linear interpolation is performed with respect to time.</span>
@@ -471,7 +471,7 @@
 
 <div class="viewcode-block" id="ERA5.fill_missing_data">
 <a class="viewcode-back" href="../API/era5.html#ERA5.ERA5.fill_missing_data">[docs]</a>
-    <span class="k">def</span> <span class="nf">fill_missing_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fill_missing_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Helper function to fill in linearly interpolate and fill in missing data</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -484,7 +484,7 @@
 
 <div class="viewcode-block" id="ERA5.windVectorToBearing">
 <a class="viewcode-back" href="../API/era5.html#ERA5.ERA5.windVectorToBearing">[docs]</a>
-    <span class="k">def</span> <span class="nf">windVectorToBearing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">windVectorToBearing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Helper function to conver u-v wind components to bearing and speed.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -496,7 +496,7 @@
 
 <div class="viewcode-block" id="ERA5.interpolateBearing">
 <a class="viewcode-back" href="../API/era5.html#ERA5.ERA5.interpolateBearing">[docs]</a>
-    <span class="k">def</span> <span class="nf">interpolateBearing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">alt_m</span> <span class="p">):</span> <span class="c1">#h, bearing0, speed0, bearing1, speed1):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">interpolateBearing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">alt_m</span> <span class="p">):</span> <span class="c1">#h, bearing0, speed0, bearing1, speed1):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Given altitude, u_velocity and v_velocity arrays as well as a desired altitude, perform a linear interpolation</span>
 <span class="sd">        between the 2 altitudes (h0 and h1) while accounting for possible 0/360degree axis crossover.</span>
 
@@ -533,7 +533,7 @@
 
 <div class="viewcode-block" id="ERA5.interpolateBearingTime">
 <a class="viewcode-back" href="../API/era5.html#ERA5.ERA5.interpolateBearingTime">[docs]</a>
-    <span class="k">def</span> <span class="nf">interpolateBearingTime</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bearing0</span><span class="p">,</span> <span class="n">speed0</span><span class="p">,</span> <span class="n">bearing1</span><span class="p">,</span> <span class="n">speed1</span><span class="p">,</span> <span class="n">hour_index</span> <span class="p">):</span> <span class="c1">#h, bearing0, speed0, bearing1, speed1):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">interpolateBearingTime</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bearing0</span><span class="p">,</span> <span class="n">speed0</span><span class="p">,</span> <span class="n">bearing1</span><span class="p">,</span> <span class="n">speed1</span><span class="p">,</span> <span class="n">hour_index</span> <span class="p">):</span> <span class="c1">#h, bearing0, speed0, bearing1, speed1):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Similar to `ERA5.interpolateBearing()` however bearings and speeds are already known</span>
 <span class="sd">        and linearly then interpolated with respect to time (t0 and t1)</span>
 
@@ -559,7 +559,7 @@
 
 <div class="viewcode-block" id="ERA5.getNewCoord">
 <a class="viewcode-back" href="../API/era5.html#ERA5.ERA5.getNewCoord">[docs]</a>
-    <span class="k">def</span> <span class="nf">getNewCoord</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coord</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">getNewCoord</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coord</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Determines the new coordinates of the balloon based on the effects of U and V wind components.</span>
 
@@ -621,7 +621,7 @@
 
     <span class="c1">#This function is unused now after code cleanup, but leaving for now because Craig included it with the orginal code</span>
 <span class="w">    </span><span class="sd">&#39;&#39;&#39;CHECK THIS&#39;&#39;&#39;</span>
-    <span class="k">def</span> <span class="nf">datetime_epoch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timedate_obj</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">datetime_epoch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timedate_obj</span><span class="p">):</span>
         <span class="n">gmt</span> <span class="o">=</span> <span class="n">timezone</span><span class="p">(</span><span class="s1">&#39;GMT&#39;</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">dt</span> <span class="o">=</span> <span class="n">timedate_obj</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">)</span>

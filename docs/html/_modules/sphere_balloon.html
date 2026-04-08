@@ -1,20 +1,20 @@
+
+
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>sphere_balloon &mdash; EarthSHAB 1.1.0 documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <!--[if lt IE 9]>
-    <script src="../_static/js/html5shiv.min.js"></script>
-  <![endif]-->
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
   
-        <script src="../_static/jquery.js?v=5d32c60e"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="../_static/documentation_options.js?v=fc837d61"></script>
-        <script src="../_static/doctools.js?v=888ff710"></script>
-        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=fc837d61"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" /> 
@@ -77,16 +77,16 @@
 
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">import</span> <span class="nn">math</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">radiation</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">radiation</span>
 
-<span class="kn">import</span> <span class="nn">config_earth</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">config_earth</span>
 
 
 <div class="viewcode-block" id="Sphere_Balloon">
 <a class="viewcode-back" href="../API/sphere_balloon.html#sphere_balloon.Sphere_Balloon">[docs]</a>
-<span class="k">class</span> <span class="nc">Sphere_Balloon</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Sphere_Balloon</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Initializes atmospheric properties from the earth configuration file</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -100,7 +100,7 @@
 
 <div class="viewcode-block" id="Sphere_Balloon.__init__">
 <a class="viewcode-back" href="../API/sphere_balloon.html#sphere_balloon.Sphere_Balloon.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Initializes all of the solar balloon paramaters from the configuration file</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -112,12 +112,12 @@
 
 
 
-    <span class="k">def</span> <span class="nf">setEmiss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">e</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">setEmiss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">e</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">emissEnv</span> <span class="o">=</span> <span class="n">e</span>
 
 <div class="viewcode-block" id="Sphere_Balloon.get_viscocity">
 <a class="viewcode-back" href="../API/sphere_balloon.html#sphere_balloon.Sphere_Balloon.get_viscocity">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_viscocity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">T</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_viscocity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">T</span><span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Calculates Kinematic Viscocity of Air at Temperature, T</span>
 
 <span class="sd">        .. math:: \mu_{air} = 1.458\cdot10^{-6}\frac{T_{atm}^{1.5}}{T_{atm}+110.4}</span>
@@ -135,7 +135,7 @@
 
 <div class="viewcode-block" id="Sphere_Balloon.get_conduction">
 <a class="viewcode-back" href="../API/sphere_balloon.html#sphere_balloon.Sphere_Balloon.get_conduction">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_conduction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">T</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_conduction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">T</span><span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Calculates Thermal Diffusivity of Air at Temperature, T using Sutherland&#39;s Law of Thermal Diffusivity</span>
 
 
@@ -153,7 +153,7 @@
 
 <div class="viewcode-block" id="Sphere_Balloon.get_Pr">
 <a class="viewcode-back" href="../API/sphere_balloon.html#sphere_balloon.Sphere_Balloon.get_Pr">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_Pr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">T</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_Pr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">T</span><span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Calculates Prantl Number</span>
 
 <span class="sd">        .. math:: Pr = \mu_{air}  \frac{C_{p,air}}{k}</span>
@@ -173,7 +173,7 @@
 
 <div class="viewcode-block" id="Sphere_Balloon.get_Nu_ext">
 <a class="viewcode-back" href="../API/sphere_balloon.html#sphere_balloon.Sphere_Balloon.get_Nu_ext">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_Nu_ext</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">Ra</span><span class="p">,</span> <span class="n">Re</span><span class="p">,</span> <span class="n">Pr</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_Nu_ext</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">Ra</span><span class="p">,</span> <span class="n">Re</span><span class="p">,</span> <span class="n">Pr</span><span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Calculates External Nusselt Number.</span>
 
 <span class="sd">        Determine the external convection due to natural buoyancy</span>
@@ -224,7 +224,7 @@
 
 <div class="viewcode-block" id="Sphere_Balloon.get_q_ext">
 <a class="viewcode-back" href="../API/sphere_balloon.html#sphere_balloon.Sphere_Balloon.get_q_ext">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_q_ext</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">T_s</span><span class="p">,</span> <span class="n">el</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_q_ext</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">T_s</span><span class="p">,</span> <span class="n">el</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate External Heat Transfer to balloon envelope</span>
 
 <span class="sd">        :param zen: Surface Temperature of Envelope (K)</span>
@@ -264,7 +264,7 @@
 
 <div class="viewcode-block" id="Sphere_Balloon.get_sum_q_surf">
 <a class="viewcode-back" href="../API/sphere_balloon.html#sphere_balloon.Sphere_Balloon.get_sum_q_surf">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_sum_q_surf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">q_rad</span><span class="p">,</span> <span class="n">T_s</span><span class="p">,</span> <span class="n">el</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_sum_q_surf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">q_rad</span><span class="p">,</span> <span class="n">T_s</span><span class="p">,</span> <span class="n">el</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;External Heat Transfer</span>
 
 <span class="sd">        :param q_rad: Power input from external radiation (W)</span>
@@ -289,7 +289,7 @@
 
 <div class="viewcode-block" id="Sphere_Balloon.get_Nu_int">
 <a class="viewcode-back" href="../API/sphere_balloon.html#sphere_balloon.Sphere_Balloon.get_Nu_int">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_Nu_int</span><span class="p">(</span><span class="n">sef</span><span class="p">,</span><span class="n">Ra</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_Nu_int</span><span class="p">(</span><span class="n">sef</span><span class="p">,</span><span class="n">Ra</span><span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Calculates Internal Nusselt Number for internal convection between the balloon</span>
 <span class="sd">        envelope and internal gas</span>
 
@@ -313,7 +313,7 @@
 
 <div class="viewcode-block" id="Sphere_Balloon.get_q_int">
 <a class="viewcode-back" href="../API/sphere_balloon.html#sphere_balloon.Sphere_Balloon.get_q_int">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_q_int</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">T_s</span><span class="p">,</span> <span class="n">T_i</span><span class="p">,</span> <span class="n">el</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_q_int</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">T_s</span><span class="p">,</span> <span class="n">T_i</span><span class="p">,</span> <span class="n">el</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates Internal Heat Transfer</span>
 
 <span class="sd">        :param T_s: Surface Temperature of Envelope (K)</span>
@@ -361,7 +361,7 @@
 
 <div class="viewcode-block" id="Sphere_Balloon.get_sum_q_int">
 <a class="viewcode-back" href="../API/sphere_balloon.html#sphere_balloon.Sphere_Balloon.get_sum_q_int">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_sum_q_int</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">T_s</span><span class="p">,</span> <span class="n">T_i</span><span class="p">,</span> <span class="n">el</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_sum_q_int</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">T_s</span><span class="p">,</span> <span class="n">T_i</span><span class="p">,</span> <span class="n">el</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates sum of Internal Heat Transfer.</span>
 
 <span class="sd">        .. note::</span>

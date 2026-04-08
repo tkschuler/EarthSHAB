@@ -2,26 +2,45 @@
 Downloading ERA5 Forecasts
 ==========================
 
-ECMWF weather forecasts reanalysis data are downloaded from the `Copernicus Climate Data Server  <https://cds.climate.copernicus.eu>`_.  This website requires signing up for an account before being able to download data. 
+.. important::
+	Note From September 26, 2024, the `legacy CDS and legacy ADS <https://confluence.ecmwf.int/display/CKB/Please+read%3A+CDS+and+ADS+migrating+to+new+infrastructure%3A+Common+Data+Store+%28CDS%29+Engine>`_ 
+	are decommissioned and no longer accessible. CDS-Beta and ADS-Beta have officially become the new CDS and the new ADS. The new CDS and ADS also use 
+	an `updated GRIB to netCDF conversion <https://confluence.ecmwf.int/display/CKB/GRIB+to+netCDF+conversion+on+new+CDS+and+ADS+systems>`_, 
+	which causes slight differences in both formatting and data. 
 
-.. seealso::
+	EarthSHAB still expects the Pre Sep 2024 ERA5 structure for running trajectories.  Use the `ERA5-Utils toolkit <https://github.com/tkschuler/ERA5-Utils>`_ to convert the new 
+	CDS ERA5 files into the expected format. This toolkit can also be used to download Complete ERA5 reanalysis (more pressure levels) via API.
+ 
 
-	"**ERA5** is the fifth generation ECMWF reanalysis for the global climate and weather for the past 8 decades.
+Overview
+--------
 
-	Reanalysis combines model data with observations from across the world into a globally complete and consistent dataset using the laws of physics. This principle, called data assimilation, is based on the method used by numerical weather prediction centres, where every so many hours (12 hours at ECMWF) a previous forecast is combined with newly available observations in an optimal way to produce a new best estimate of the state of the atmosphere, called analysis, from which an updated, improved forecast is issued. Reanalysis works in the same way, but at reduced resolution to allow for the provision of a dataset spanning back several decades. Reanalysis does not have the constraint of issuing timely forecasts, so there is more time to collect observations, and when going further back in time, to allow for the ingestion of improved versions of the original observations, which all benefit the quality of the reanalysis product.
-	"
+**ERA5** is ECMWF’s fifth-generation global atmospheric reanalysis dataset, providing hourly estimates of
+atmospheric variables from 1979 to present.
 
-Download the reanalysis data from `ERA5 hourly data on pressure levels from 1979 to present  <https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-pressure-levels?tab=form>`_  and navigating to the **Download data** tab.
+Reanalysis combines numerical weather prediction models with observational data to produce a physically
+consistent estimate of the atmosphere over time. ERA5 is the standard benchmark for historical analysis
+and trajectory simulations.
 
-The variables (**requires all pressure levels**) needed to forecast the balloon trajectories include:
-
-- Geopotential
-- U-component of wind
-- V-component of wind
-- Temperature
+ERA5 reanalysis data from the European Centre for Medium-Range Weather Forecasts (ECMWF) is accessed via the
+`Copernicus Climate Data Server <https://cds.climate.copernicus.eu/datasets/reanalysis-era5-pressure-levels?tab=download>`_.
 
 
-Let say you want data over the Hawaiian Islands for January 1-2, 2021, then a typical selection would look like:
+Required Variables
+------------------
+
+EarthSHAB requires the following variables across **all pressure levels**:
+
+- Geopotential (``z``)
+- U-component of wind (``u``)
+- V-component of wind (``v``)
+- Temperature (``t``)
+
+.. note::
+   ERA5 data is available at **hourly resolution**, which provides finer temporal fidelity
+   than GFS (typically 3-hour intervals).
+
+Let's say you want data over the Hawaiian Islands for January 1-2, 2021, then a typical selection would look like:
 
 .. image:: ../../img/era5_data_selection.png
 
@@ -36,7 +55,4 @@ The data download request is then added to a queue and can be downloaded a later
 The download option will look like the following: 
 
 .. image:: ../../img/era5_download.png
-
-
-.. important:: Thank you to Craig Motell and Michael Rodriquez from NIWC Pacific for contributing to the ERA5 feature.
 

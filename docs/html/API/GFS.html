@@ -1,21 +1,21 @@
+
+
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../">
 <head>
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GFS &mdash; EarthSHAB 1.1.0 documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <!--[if lt IE 9]>
-    <script src="../_static/js/html5shiv.min.js"></script>
-  <![endif]-->
+  <title>GFS &mdash; EarthSHAB 1.2.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
   
-        <script src="../_static/jquery.js?v=5d32c60e"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="../_static/documentation_options.js?v=fc837d61"></script>
-        <script src="../_static/doctools.js?v=888ff710"></script>
-        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=6efca38a"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -44,7 +44,7 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../examples/index.html">EarthSHAB Usage</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">EarthSHAB API</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">GFS</span></code></a></li>
@@ -91,7 +91,7 @@ For now, only wind velocity is used for the simulation prediction.  Atmposheric 
 the U.S. Standard Atmosphere tables from 1976, and the fluids library is used for these, which can be seen in radiation3.py</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="GFS.GFS">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">GFS.</span></span><span class="sig-name descname"><span class="pre">GFS</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">centered_coord</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GFS.html#GFS"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GFS.GFS" title="Link to this definition"></a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">GFS.</span></span><span class="sig-name descname"><span class="pre">GFS</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">centered_coord</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GFS.html#GFS"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GFS.GFS" title="Link to this definition"></a></dt>
 <dd><dl class="py method">
 <dt class="sig sig-object py" id="GFS.GFS.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">centered_coord</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GFS.html#GFS.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GFS.GFS.__init__" title="Link to this definition"></a></dt>
@@ -124,6 +124,13 @@ coordinate to coordinate, and all levels in the array are always be used.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="GFS.GFS.get2NearestAltIdxs">
+<span class="sig-name descname"><span class="pre">get2NearestAltIdxs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">h</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alt_m</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GFS.html#GFS.get2NearestAltIdxs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GFS.GFS.get2NearestAltIdxs" title="Link to this definition"></a></dt>
+<dd><p>Determines 2 nearest indexes for altitude for interpolating angles.
+It does index wrap from 0 to -1, which is taken care of in <cite>ERA5.interpolateBearing()</cite></p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="GFS.GFS.getNearestAlt">
 <span class="sig-name descname"><span class="pre">getNearestAlt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hour_index</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alt</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GFS.html#GFS.getNearestAlt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GFS.GFS.getNearestAlt" title="Link to this definition"></a></dt>
 <dd><p>Determines the nearest altitude based off of geo potential height of a .25 degree lat/lon area.</p>
@@ -131,14 +138,15 @@ coordinate to coordinate, and all levels in the array are always be used.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="GFS.GFS.getNearestLat">
-<span class="sig-name descname"><span class="pre">getNearestLat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GFS.html#GFS.getNearestLat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GFS.GFS.getNearestLat" title="Link to this definition"></a></dt>
-<dd><p>Determines the nearest lattitude (to .25 degrees)</p>
+<span class="sig-name descname"><span class="pre">getNearestLat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_unused</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_unused</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GFS.html#GFS.getNearestLat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GFS.GFS.getNearestLat" title="Link to this definition"></a></dt>
+<dd><p>Determine the nearest latitude index using the actual stored latitude array.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="GFS.GFS.getNearestLon">
-<span class="sig-name descname"><span class="pre">getNearestLon</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GFS.html#GFS.getNearestLon"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GFS.GFS.getNearestLon" title="Link to this definition"></a></dt>
-<dd><p>Determines the nearest longitude (to .25 degrees)</p>
+<span class="sig-name descname"><span class="pre">getNearestLon</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_unused</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_unused</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GFS.html#GFS.getNearestLon"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GFS.GFS.getNearestLon" title="Link to this definition"></a></dt>
+<dd><p>Determine the nearest longitude index using the actual stored longitude array.
+GFS longitudes are stored in 0..360, so normalize the query the same way.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -149,6 +157,26 @@ coordinate to coordinate, and all levels in the array are always be used.</p>
 :type coord: dict
 :returns: [lat_new, lon_new, x_wind_vel, y_wind_vel, bearing, closest_lat, closest_lon, closest alt]
 :rtype: array</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GFS.GFS.interpolateBearing">
+<span class="sig-name descname"><span class="pre">interpolateBearing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">h</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alt_m</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GFS.html#GFS.interpolateBearing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GFS.GFS.interpolateBearing" title="Link to this definition"></a></dt>
+<dd><p>Given altitude, u_velocity and v_velocity arrays as well as a desired altitude, perform a linear interpolation
+between the 2 altitudes (h0 and h1) while accounting for possible 0/360degree axis crossover.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GFS.GFS.interpolateBearingTime">
+<span class="sig-name descname"><span class="pre">interpolateBearingTime</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bearing0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">speed0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bearing1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">speed1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hour_index</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GFS.html#GFS.interpolateBearingTime"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GFS.GFS.interpolateBearingTime" title="Link to this definition"></a></dt>
+<dd><p>Similar to <cite>ERA5.interpolateBearing()</cite> however bearings and speeds are already known
+and linearly then interpolated with respect to time (t0 and t1)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GFS.GFS.windVectorToBearing">
+<span class="sig-name descname"><span class="pre">windVectorToBearing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GFS.html#GFS.windVectorToBearing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GFS.GFS.windVectorToBearing" title="Link to this definition"></a></dt>
+<dd><p>Helper function to conver u-v wind components to bearing and speed.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -196,7 +224,7 @@ is performed with respect to time (t0 and t1).</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2023, Tristan Schuler.</p>
+    <p>&#169; Copyright 2021-2026.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

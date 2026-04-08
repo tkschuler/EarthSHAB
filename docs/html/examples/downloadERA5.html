@@ -1,21 +1,21 @@
+
+
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../">
 <head>
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Downloading ERA5 Forecasts &mdash; EarthSHAB 1.1.0 documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <!--[if lt IE 9]>
-    <script src="../_static/js/html5shiv.min.js"></script>
-  <![endif]-->
+  <title>Downloading ERA5 Forecasts &mdash; EarthSHAB 1.2.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
   
-        <script src="../_static/jquery.js?v=5d32c60e"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="../_static/documentation_options.js?v=fc837d61"></script>
-        <script src="../_static/doctools.js?v=888ff710"></script>
-        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=6efca38a"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -44,12 +44,18 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">EarthSHAB Usage</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="downloadGFS.html">Downloading GFS Forecasts</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Downloading ERA5 Forecasts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="downloadGFS.html#saving-gfs-forecasts">Saving GFS Forecasts</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Downloading ERA5 Forecasts</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#required-variables">Required Variables</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#quick-start">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="index.html#configuration-file">Configuration File</a></li>
-<li class="toctree-l2"><a class="reference internal" href="index.html#examples">Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#other-examples">Other Examples</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../API/index.html">EarthSHAB API</a></li>
@@ -83,22 +89,40 @@
              
   <section id="downloading-era5-forecasts">
 <h1>Downloading ERA5 Forecasts<a class="headerlink" href="#downloading-era5-forecasts" title="Link to this heading"></a></h1>
-<p>ECMWF weather forecasts reanalysis data are downloaded from the <a class="reference external" href="https://cds.climate.copernicus.eu">Copernicus Climate Data Server</a>.  This website requires signing up for an account before being able to download data.</p>
-<div class="admonition seealso">
-<p class="admonition-title">See also</p>
-<p>“<strong>ERA5</strong> is the fifth generation ECMWF reanalysis for the global climate and weather for the past 8 decades.</p>
-<p>Reanalysis combines model data with observations from across the world into a globally complete and consistent dataset using the laws of physics. This principle, called data assimilation, is based on the method used by numerical weather prediction centres, where every so many hours (12 hours at ECMWF) a previous forecast is combined with newly available observations in an optimal way to produce a new best estimate of the state of the atmosphere, called analysis, from which an updated, improved forecast is issued. Reanalysis works in the same way, but at reduced resolution to allow for the provision of a dataset spanning back several decades. Reanalysis does not have the constraint of issuing timely forecasts, so there is more time to collect observations, and when going further back in time, to allow for the ingestion of improved versions of the original observations, which all benefit the quality of the reanalysis product.
-“</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Note From September 26, 2024, the <a class="reference external" href="https://confluence.ecmwf.int/display/CKB/Please+read%3A+CDS+and+ADS+migrating+to+new+infrastructure%3A+Common+Data+Store+%28CDS%29+Engine">legacy CDS and legacy ADS</a>
+are decommissioned and no longer accessible. CDS-Beta and ADS-Beta have officially become the new CDS and the new ADS. The new CDS and ADS also use
+an <a class="reference external" href="https://confluence.ecmwf.int/display/CKB/GRIB+to+netCDF+conversion+on+new+CDS+and+ADS+systems">updated GRIB to netCDF conversion</a>,
+which causes slight differences in both formatting and data.</p>
+<p>EarthSHAB still expects the Pre Sep 2024 ERA5 structure for running trajectories.  Use the <a class="reference external" href="https://github.com/tkschuler/ERA5-Utils">ERA5-Utils toolkit</a> to convert the new
+CDS ERA5 files into the expected format. This toolkit can also be used to download Complete ERA5 reanalysis (more pressure levels) via API.</p>
 </div>
-<p>Download the reanalysis data from <a class="reference external" href="https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-pressure-levels?tab=form">ERA5 hourly data on pressure levels from 1979 to present</a>  and navigating to the <strong>Download data</strong> tab.</p>
-<p>The variables (<strong>requires all pressure levels</strong>) needed to forecast the balloon trajectories include:</p>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p><strong>ERA5</strong> is ECMWF’s fifth-generation global atmospheric reanalysis dataset, providing hourly estimates of
+atmospheric variables from 1979 to present.</p>
+<p>Reanalysis combines numerical weather prediction models with observational data to produce a physically
+consistent estimate of the atmosphere over time. ERA5 is the standard benchmark for historical analysis
+and trajectory simulations.</p>
+<p>ERA5 reanalysis data from the European Centre for Medium-Range Weather Forecasts (ECMWF) is accessed via the
+<a class="reference external" href="https://cds.climate.copernicus.eu/datasets/reanalysis-era5-pressure-levels?tab=download">Copernicus Climate Data Server</a>.</p>
+</section>
+<section id="required-variables">
+<h2>Required Variables<a class="headerlink" href="#required-variables" title="Link to this heading"></a></h2>
+<p>EarthSHAB requires the following variables across <strong>all pressure levels</strong>:</p>
 <ul class="simple">
-<li><p>Geopotential</p></li>
-<li><p>U-component of wind</p></li>
-<li><p>V-component of wind</p></li>
-<li><p>Temperature</p></li>
+<li><p>Geopotential (<code class="docutils literal notranslate"><span class="pre">z</span></code>)</p></li>
+<li><p>U-component of wind (<code class="docutils literal notranslate"><span class="pre">u</span></code>)</p></li>
+<li><p>V-component of wind (<code class="docutils literal notranslate"><span class="pre">v</span></code>)</p></li>
+<li><p>Temperature (<code class="docutils literal notranslate"><span class="pre">t</span></code>)</p></li>
 </ul>
-<p>Let say you want data over the Hawaiian Islands for January 1-2, 2021, then a typical selection would look like:</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>ERA5 data is available at <strong>hourly resolution</strong>, which provides finer temporal fidelity
+than GFS (typically 3-hour intervals).</p>
+</div>
+<p>Let’s say you want data over the Hawaiian Islands for January 1-2, 2021, then a typical selection would look like:</p>
 <img alt="../_images/era5_data_selection.png" src="../_images/era5_data_selection.png" />
 <img alt="../_images/era5_data_selection2.png" src="../_images/era5_data_selection2.png" />
 <p>Be sure to select <strong>NetCDF (experimental)</strong> for the download format to use with EarthSHAB.</p>
@@ -109,10 +133,7 @@
 </div>
 <p>The download option will look like the following:</p>
 <img alt="../_images/era5_download.png" src="../_images/era5_download.png" />
-<div class="admonition important">
-<p class="admonition-title">Important</p>
-<p>Thank you to Craig Motell and Michael Rodriquez from NIWC Pacific for contributing to the ERA5 feature.</p>
-</div>
+</section>
 </section>
 
 
@@ -126,7 +147,7 @@
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2023, Tristan Schuler.</p>
+    <p>&#169; Copyright 2021-2026.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
