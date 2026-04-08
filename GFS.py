@@ -111,15 +111,13 @@ class GFS:
             self.lon_max_idx = lonrange.max()
         else: #This might be broken for time
             #Need to double check this for an entire world netcdf download
-            '''
+            t_size, lat_size, lon_size = netcdf_ranges.shape
             self.start_time_idx = 0
-            self.end_time_idx = len(self.time_convert)-1
-            lati, loni = netcdf_ranges.shape
-            self.lat_min_idx = lati
-            self.lat_max_idx = 0
-            self.lon_max_idx = loni
-            self.lon_min_idx = 0
-            '''
+            self.end_time_idx   = t_size   - 1
+            self.lat_min_idx    = 0
+            self.lat_max_idx    = lat_size - 1
+            self.lon_min_idx    = 0
+            self.lon_max_idx    = lon_size - 1
 
     def closest(self, arr, k):
         """ Given an ordered array and a value, determines the index of the closest item contained in the array.

@@ -1,131 +1,304 @@
 """
-saveNETCDF.py downloads a portion of the netCDF file for the specified day and
-area specified in earth_config.py.
+saveNETCDF.py  –  EarthSHAB GFS forecast downloader (GRIB-filter edition)
+==========================================================================
+NOAA retired the OpenDAP/DODS interface that EarthSHAB originally used.
+This replacement fetches the same data through NOAA's GRIB-filter service
+(https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25.pl), saves each
+forecast hour as a temporary GRIB2 file, and merges everything into a
+single NetCDF-4 file whose structure matches what GFS.py already expects.
 
-Archive forecast dataset retirval is not currently supported.
+Variables downloaded (all on isobaric pressure levels):
+  UGRD  – U-component of wind  (m/s)
+  VGRD  – V-component of wind  (m/s)
+  TMP   – Temperature          (K)
+  HGT   – Geopotential height  (gpm)
+
+Requirements (add to requirements.txt):
+  cfgrib        – pip install cfgrib
+  eccodes       – conda install -c conda-forge eccodes   (or apt/brew)
+  xarray        – already in EarthSHAB requirements
+  netCDF4       – already in EarthSHAB requirements
+  requests      – usually available; pip install requests
+
+Usage:
+  python saveNETCDF.py
+  (uses config_earth.py for lat/lon centre, range, date, and download_days)
 """
 
-import netCDF4 as nc4
-import config_earth
-from termcolor import colored
-import numpy as np
-import sys
-
 import os
+import time
+import datetime
+import tempfile
+import requests
+import numpy as np
+import xarray as xr
+import cfgrib
+import netCDF4 as nc
+from pathlib import Path
+from termcolor import colored
+import pandas as pd
 
-coord = config_earth.simulation['start_coord']
-lat_range = config_earth.netcdf_gfs['lat_range']
-lon_range = config_earth.netcdf_gfs['lon_range']
-download_days = config_earth.netcdf_gfs['download_days']
-hourstamp = config_earth.netcdf_gfs['hourstamp']
-res = config_earth.netcdf_gfs['res']
+# ── EarthSHAB config ──────────────────────────────────────────────────────────
+from config_earth import netcdf_gfs, simulation
 
-nc_start = config_earth.netcdf_gfs['nc_start']
+# ── Pressure levels available in GFS 0.25° pgrb2 isobaric data ───────────────
+PRESSURE_LEVELS_MB = [
+    1000, 975, 950, 925, 900, 850, 800, 750, 700, 650,
+     600, 550, 500, 450, 400, 350, 300, 250, 200, 150,
+     100,  70,  50,  40,  30,  20,  15,  10,
+]
 
-if not os.path.exists('forecasts'):
-    os.makedirs('forecasts')
+# ── GRIB filter base URL ───────────────────────────────────────────────────────
+FILTER_BASE = "https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25.pl"
 
-def closest(arr, k):
-    """ Given an ordered array and a value, determines the index of the closest item
-    contained in the array.
+# Seconds to wait between fetches (NOAA asks for ≥10 s between requests)
+FETCH_DELAY = 2
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Helpers
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _level_params(levels_mb):
+    """Build the query-string fragments that turn on each pressure level."""
+    return "&".join(f"lev_{p}_mb=on" for p in levels_mb)
+
+
+def _build_url(date_str, cycle_hour, forecast_hour, lat_range, lon_range,
+               center_lat, center_lon):
     """
-    return min(range(len(arr)), key = lambda i: abs(arr[i]-k))
+    Construct a GRIB-filter URL for one GFS forecast step.
 
-def getNearestLat(lat,min,max):
-    """ Determines the nearest lattitude (to .25 degrees)
+    date_str      : 'YYYYMMDD'
+    cycle_hour    : 0, 6, 12, or 18  (model initialisation hour)
+    forecast_hour : 0, 3, 6, … 240+  (hours into forecast)
+    lat/lon_range : index counts (each = res degrees) from config
+    center_lat/lon: centre of the bounding box; lon in [-180, 180]
+    NOTE: GRIB filter requires longitudes in [-180, 180], NOT [0, 360].
     """
-    arr = np.arange(start=min, stop=max, step=res)
-    i = closest(arr, lat)
-    return i
+    fhh = f"{int(forecast_hour):03d}"
+    cyc = f"{int(cycle_hour):02d}"
 
-def getNearestLon(lon,min,max):
-    """ Determines the nearest longitude (to .25 degrees)
+    # Bounding box – clamp to valid globe extents and round to 4 dp
+    top    = round(min( 90.0, center_lat + lat_range / 2.0), 4)
+    bottom = round(max(-90.0, center_lat - lat_range / 2.0), 4)
+    left   = round(max(-180.0, center_lon - lon_range / 2.0), 4)
+    right  = round(min( 180.0, center_lon + lon_range / 2.0), 4)
+
+    level_str = _level_params(PRESSURE_LEVELS_MB)
+
+    params = (
+        f"file=gfs.t{cyc}z.pgrb2.0p25.f{fhh}"
+        f"&{level_str}"
+        f"&var_UGRD=on&var_VGRD=on&var_TMP=on&var_HGT=on"
+        f"&subregion="
+        f"&toplat={top}&leftlon={left}&rightlon={right}&bottomlat={bottom}"
+        f"&dir=%2Fgfs.{date_str}%2F{cyc}%2Fatmos"
+    )
+    return f"{FILTER_BASE}?{params}"
+
+
+def _adjust_run_date(start_time):
     """
-    lon = lon % 360 #convert from -180-180 to 0-360
-    arr = np.arange(start=min, stop=max, step=res)
+    Adjust the run_date to match an available forecast cycle on NOAA's server.
+    """
+    # GFS model runs at 00, 06, 12, and 18 UTC
+    cycle_hour = (start_time.hour // 6) * 6  # Nearest GFS cycle (00, 06, 12, 18)
+    run_date = start_time.replace(hour=cycle_hour, minute=0, second=0, microsecond=0)
 
-    i = closest(arr, lon)
-    return i
+    # Check if the calculated run_date is within the NOAA retention window
+    now_utc = datetime.datetime.utcnow()
+    GFS_RETENTION_DAYS = 9
+    oldest_available = (now_utc - datetime.timedelta(days=GFS_RETENTION_DAYS)).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
 
-lat_i = getNearestLat(coord["lat"],-90,90.01)
-lon_i = getNearestLon(coord["lon"],0,360)
+    if run_date < oldest_available:
+        print(colored("\n[WARNING] Calculated run_date is too far in the past for available forecasts.", "yellow"))
+        print(colored(f"  Adjusting run_date to the oldest available forecast: {oldest_available}", "yellow"))
+        run_date = oldest_available
 
-coords = ['time', 'lat', 'lon', 'lev']
-vars_out = ['ugrdprs', 'vgrdprs', 'hgtprs', 'tmpprs']
+    print(f"Calculated run_date for GFS download: {run_date} (cycle hour: {cycle_hour:02d}Z)")
 
-# parse GFS forecast start time from config file
-year = str(nc_start.year)
-month = str(nc_start.month).zfill(2)
-day = str(nc_start.day).zfill(2)
-
-print("Downloading data from")
-url = "https://nomads.ncep.noaa.gov/dods/gfs_0p25/gfs" + year + month + day + "/gfs_0p25_" + str(hourstamp) + "z"
-print(colored(url,"cyan"))
-
-# Open input file in read (r), and output file in write (w) mode:
-try:
-    nc_in = nc4.Dataset(url)
-
-except:
-    print(colored("NOAA DODS Server error with timestamp " + str(nc_start) + ". Data not downloaded.", "red"))
-    sys.exit()
+    return run_date
 
 
-#Some print statistics:
-# Get dimensions directly from dataset
-num_lats = len(nc_in.dimensions['lat'])
-num_lons = len(nc_in.dimensions['lon'])
-
-#print netcdf structre
-print("GFS NetCDF structure:")
-
-print(f"Number of latitude points: {num_lats}")
-print(f"Number of longitude points: {num_lons}")
-
-lat_vals = nc_in.variables['lat'][:]
-lon_vals = nc_in.variables['lon'][:]
-
-print(f"Lat min: {lat_vals.min()}, Lat max: {lat_vals.max()}")
-print(f"Lon min: {lon_vals.min()}, Lon max: {lon_vals.max()}\n\n")
-
-print("Download/Fill Data dimesnions")
-lat_start_i = max(0, lat_i - lat_range)
-lat_end_i = min(num_lats, lat_i + lat_range)
-
-lon_start_i = max(0, lon_i - lon_range)
-lon_end_i = min(num_lons, lon_i + lon_range)
-
-print(f"Clipped lat indices: {lat_start_i}-{lat_end_i}, size: {lat_end_i - lat_start_i}")
-print(f"Clipped lon indices: {lon_start_i}-{lon_end_i}, size: {lon_end_i - lon_start_i}")
-
-# Print corresponding lat/lon degree bounds
-print(f"Lat degrees: {lat_vals[lat_start_i]} to {lat_vals[lat_end_i-1]}")
-print(f"Lon degrees: {lon_vals[lon_start_i]} to {lon_vals[lon_end_i-1]}\n\n")
+def _download_grib(url, dest_path, retries=3):
+    """Download a GRIB2 file from *url* to *dest_path*. Returns True on success."""
+    for attempt in range(1, retries + 1):
+        try:
+            resp = requests.get(url, timeout=120, stream=True)
+            resp.raise_for_status()
+            content_type = resp.headers.get("Content-Type", "")
+            if "html" in content_type.lower():
+                print(f"  [!] Server returned HTML (likely bad request). Skipping.")
+                return False
+            with open(dest_path, "wb") as fh:
+                for chunk in resp.iter_content(chunk_size=1 << 16):
+                    fh.write(chunk)
+            return True
+        except requests.RequestException as exc:
+            print(f"  [!] Attempt {attempt}/{retries} failed: {exc}")
+            if attempt < retries:
+                time.sleep(FETCH_DELAY)
+    return False
 
 
+def _grib_to_dataset(grib_path):
+    """
+    Open a GRIB2 file with cfgrib and return a merged xarray Dataset
+    containing ugrd, vgrd, t, and gh on isobaric levels.
+    cfgrib may split a GRIB2 into multiple datasets; we merge them.
+    """
+    datasets = []
+    try:
+        datasets = cfgrib.open_datasets(
+            str(grib_path),
+            backend_kwargs={"indexpath": ""},   # don't write .idx files
+        )
+    except Exception as exc:
+        print(f"  [!] cfgrib error opening {grib_path}: {exc}")
+        return None
 
-# Create output netCDF file
-nc_out = nc4.Dataset(config_earth.netcdf_gfs['nc_file'], 'w')
+    if not datasets:
+        return None
 
-# Create dimensions in output file
-for name, dimension in nc_in.dimensions.items():
-    nc_out.createDimension(name, len(dimension) if not dimension.isunlimited() else None)
+    isobaric_ds = [ds for ds in datasets if "isobaricInhPa" in ds.coords]
+    if not isobaric_ds:
+        print(f"  [!] No isobaric data found in {grib_path}")
+        return None
 
-# Create coordinate variables in output file
-for name, variable in nc_in.variables.items():
-    if name in coords:
-        x = nc_out.createVariable(name, variable.datatype, variable.dimensions)
-        v = nc_in.variables[name][:]
-        nc_out.variables[name][:] = v
-        print ("Downloaded " + name)
+    merged = xr.merge(isobaric_ds, compat="override")
+    return merged
 
-    if name in vars_out:
-        print ("Downloading " + name)
-        x = nc_out.createVariable(name, variable.datatype, variable.dimensions, zlib=True) #Without zlib the file will be MASSIVE
 
-        #Download only a chunk of the data
-        for i in range(0,download_days*8+1):  #In intervals of 3 hours. hour_index of 8 is 8*3=24 hours. Add one more index to get full day range
-            data = nc_in.variables[name][i,0:34,lat_start_i:lat_end_i,lon_start_i:lon_end_i] #This array can only have a maximum of  536,870,912 elements, Need to dynamically add.
-            nc_out.variables[name][i,0:34,lat_start_i:lat_end_i,lon_start_i:lon_end_i] = data
-            #print("Downloaded and added to output file ", name, ' hour index - ', i, ' time - ', i*3)
-            print(f"{name} hour index {i}: downloaded data shape {data.shape}")
+# ─────────────────────────────────────────────────────────────────────────────
+# Main download routine
+# ─────────────────────────────────────────────────────────────────────────────
+
+def download_gfs_grib_to_netcdf():
+    """
+    Download GFS GRIB2 subsets via the NOAA GRIB filter and save a single
+    NetCDF file compatible with EarthSHAB's GFS.py reader.
+    """
+    start_dt = simulation["start_time"]
+    lat_center = simulation["start_coord"]["lat"]
+    lon_center = simulation["start_coord"]["lon"]
+    lat_range = netcdf_gfs["lat_range"]
+    lon_range = netcdf_gfs["lon_range"]
+    download_days = netcdf_gfs["download_days"]
+    out_filename = netcdf_gfs["nc_file"]
+
+    out_path = Path(out_filename)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    start_time = simulation["start_time"]
+    run_date = _adjust_run_date(start_time)
+    date_str = run_date.strftime("%Y%m%d")
+    cycle_hour = run_date.hour
+
+    total_hours = download_days * 24
+    forecast_hours = list(range(0, total_hours + 1, 3))
+
+    print(f"\nEarthSHAB GFS downloader (GRIB-filter edition)")
+    print(f"  Model run   : {date_str} {cycle_hour:02d}Z")
+    print(f"  Forecast hrs: {forecast_hours[0]}–{forecast_hours[-1]} (every 3 h)")
+    print(f"  Bounding box: lat {lat_center}±{lat_range/2}°, "
+          f"lon {lon_center}±{lon_range/2}°")
+    print(f"  Output      : {out_path}\n")
+    print(f"Start Time: {start_time} UTC")
+
+    hourly_datasets = []
+
+    with tempfile.TemporaryDirectory(prefix="earthshab_grib_") as tmpdir:
+        for fhr in forecast_hours:
+            url = _build_url(date_str, cycle_hour, fhr, lat_range, lon_range, lat_center, lon_center)
+            grb_name = f"gfs_{date_str}_{cycle_hour:02d}z_f{fhr:03d}.grb2"
+            grb_path = Path(tmpdir) / grb_name
+
+            print(f"  Downloading f{fhr:03d} … ", end="", flush=True)
+            ok = _download_grib(url, grb_path)
+            if not ok:
+                print("FAILED – skipping")
+                time.sleep(FETCH_DELAY)
+                continue
+            print(f"OK ({grb_path.stat().st_size / 1024:.1f} kB)")
+
+            ds = _grib_to_dataset(grb_path)
+            if ds is None:
+                time.sleep(FETCH_DELAY)
+                continue
+
+            valid_time = run_date + datetime.timedelta(hours=fhr)
+            ds = ds.expand_dims("time").assign_coords(time=[np.datetime64(valid_time, "ns")])
+            hourly_datasets.append(ds)
+
+            time.sleep(FETCH_DELAY)
+
+    if not hourly_datasets:
+        raise RuntimeError("No data was successfully downloaded. Check your config and network connectivity.")
+
+    print("\nMerging all forecast hours …")
+    combined = xr.concat(hourly_datasets, dim="time")
+
+    rename_map = {
+        "u": "ugrdprs",
+        "v": "vgrdprs",
+        "t": "tmpprs",
+        "gh": "hgtprs",
+        "isobaricInhPa": "lev",
+        "latitude": "lat",
+        "longitude": "lon",
+    }
+    combined = combined.rename(rename_map)
+
+    if "lev" in combined.coords:
+        combined["lev"].attrs["units"] = "hPa"
+        combined["lev"].attrs["long_name"] = "pressure level"
+
+    for old, new in [("latitude", "lat"), ("longitude", "lon")]:
+        if old in combined.dims:
+            combined = combined.rename({old: new})
+
+    time_values = combined["time"].values
+    datetime_objects = [pd.Timestamp(t).to_pydatetime() for t in time_values]
+
+    print(f"time values (datetime): {datetime_objects}")
+
+    julian_dates = nc.date2num(
+        datetime_objects,
+        units="days since 0001-01-01",
+        calendar="standard",
+        has_year_zero=True,
+    )
+
+    combined = combined.assign_coords(time=julian_dates.astype(np.float64))
+    combined["time"].attrs = {}  # Remove all attributes from the time variable
+
+    combined["time"].attrs["units"] = "days since 0001-01-01"
+    combined["time"].attrs["calendar"] = "standard"
+
+    # Reorder coordinates and variables to match the old file
+    combined = combined.transpose("time", "lev", "lat", "lon")  # Correct dimension names
+    variable_order = ["hgtprs", "tmpprs", "ugrdprs", "vgrdprs"]  # Desired variable order
+    combined = xr.Dataset({var: combined[var] for var in variable_order if var in combined}, coords=combined.coords)
+
+    # Remove unnecessary coordinates
+    for coord in ["step", "valid_time"]:
+        if coord in combined.coords:
+            combined = combined.drop_vars(coord)
+
+
+    print(f"Writing {out_path} …")
+    encoding = {var: {"zlib": True, "complevel": 4} for var in combined.data_vars}
+    encoding["time"] = {"_FillValue": None}  # Remove _FillValue from the time variable
+    combined.to_netcdf(str(out_path), encoding=encoding)
+    print(f"\nDone!  Saved to: {out_path}")
+    print(f"  Dimensions : {dict(combined.dims)}")
+    print(f"  Variables  : {list(combined.data_vars)}")
+    print(f"  Time values (Julian dates): {julian_dates}")
+    return str(out_path)
+
+
+if __name__ == "__main__":
+    download_gfs_grib_to_netcdf()
