@@ -14,26 +14,21 @@ EarthSHAB is a Python-based simulation framework for high-altitude solar balloon
 
 **2. Create a virtual environment (optional but recommended)**
 
+It's reccomended to install cfgrib with conda rather than pip
+
 Using ``conda``:
 
 .. code-block:: bash
 
-   conda create -n earthshab python=3.11
+   conda create -n earthshab python=3.11 pip
    conda activate earthshab
-   pip install -r requirements.txt
-   pip install -e .
+   conda install conda-forge::cfgrib
 
 **3. Install dependencies**
 
 .. code-block:: bash
 
    pip install -r requirements.txt
-
-
-**4. Install EarthSHAB (editable mode)**
-
-.. code-block:: bash
-
    pip install -e .
 
 
