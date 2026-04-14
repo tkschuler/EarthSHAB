@@ -294,7 +294,7 @@ class Windmap:
         #plt.scatter(np.radians(interpolated_directions_deg), interpolated_altitudes)
 
         # Set title
-        fig.suptitle("Wind Interpolation using Wind Speed and Directio Linear Interpolation")
+        fig.suptitle("Wind Interpolation using Wind Speed and Direction Linear Interpolation")
         #plt.title('Windmap with Wind Angles Interpolated')
 
     '''
