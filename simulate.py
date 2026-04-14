@@ -72,7 +72,7 @@ class BalloonSimulation:
         self.x_winds_new = [0]
         self.y_winds_new = [0]
 
-        self.ttt = [self.t - pd.Timedelta(hours=self.GMT)]  # Just for visualizing plot better
+        self.time_local = [self.t - pd.Timedelta(hours=self.GMT)]  # Just for visualizing plot better
         self.data_loss = False
         self.burst = False
         self.gmap1 = gmplot.GoogleMapPlotter(
@@ -88,7 +88,7 @@ class BalloonSimulation:
 
         self.lat_aprs_gps = [self.coord["lat"]]
         self.lon_aprs_gps = [self.coord["lon"]]
-        self.ttt_aprs = [self.t - pd.Timedelta(hours=self.GMT)]
+        self.time_local_aprs = [self.t - pd.Timedelta(hours=self.GMT)]
         self.coords_aprs = [self.coord]
 
         self.sim_state = None
@@ -117,7 +117,7 @@ class BalloonSimulation:
             self.v.append(v_new)
             self.T_atm.append(T_atm_new)
             self.t = self.t + pd.Timedelta(hours=(1 / 3600 * self.dt))
-            self.ttt.append(self.t - pd.Timedelta(hours=self.GMT))  # Just for visualizing plot better
+            self.time_local.append(self.t - pd.Timedelta(hours=self.GMT))  # Just for visualizing plot better
 
             if i % self.GFSrate == 0:
                 (
@@ -212,7 +212,7 @@ class BalloonSimulation:
                 ) = self.gfs.getNewCoord(self.coords_aprs[i], dt_aprs[i])
 
                 self.t = self.t + pd.Timedelta(seconds=dt_aprs[i + 1])
-                self.ttt_aprs.append(self.t - pd.Timedelta(hours=self.GMT))
+                self.time_local_aprs.append(self.t - pd.Timedelta(hours=self.GMT))
 
                 coord_new = {
                     "lat": lat_new,          # (deg) Latitude
@@ -221,7 +221,7 @@ class BalloonSimulation:
                     "timestamp": self.t,     # Timestamp
                 }
 
-                print(self.ttt_aprs[i], dt_aprs[i])
+                print(self.time_local_aprs[i], dt_aprs[i])
 
                 self.coords_aprs.append(coord_new)
                 self.lat_aprs_gps.append(lat_new)
@@ -263,7 +263,7 @@ class BalloonSimulation:
             "y_winds_old": self.y_winds_old,
             "x_winds_new": self.x_winds_new,
             "y_winds_new": self.y_winds_new,
-            "ttt": self.ttt,
+            "time_local": self.time_local,
             "data_loss": self.data_loss,
             "burst": self.burst,
             "gmap1": self.gmap1,
@@ -271,7 +271,7 @@ class BalloonSimulation:
             "gfs": self.gfs,
             "lat_aprs_gps": self.lat_aprs_gps,
             "lon_aprs_gps": self.lon_aprs_gps,
-            "ttt_aprs": self.ttt_aprs,
+            "time_local_aprs": self.time_local_aprs,
             "coords_aprs": self.coords_aprs,
             "df": self.df,
         }

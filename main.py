@@ -49,7 +49,7 @@ globals().update(sim.sim_state)
 
 sns.set_palette("muted")
 fig, ax = plt.subplots()
-ax.plot(ttt,el, label = "reforecasted simulation")
+ax.plot(time_local,el, label = "reforecasted simulation")
 plt.xlabel('Datetime (MST)')
 plt.ylabel('Elevation (m)')
 if balloon_trajectory != None:
@@ -63,9 +63,9 @@ if balloon_trajectory != None:
         gmap1.text(coord["lat"]-.3, coord["lon"]-.2, trajectory_name + " Alt + " + forecast_type + " Wind Data" , color='orange')
 
 fig2, ax2 = plt.subplots()
-ax2.plot(ttt,T_s,label="Surface Temperature")
-ax2.plot(ttt,T_i,label="Internal Temperature")
-ax2.plot(ttt,T_atm,label="Atmospheric Temperature")
+ax2.plot(time_local,T_s,label="Surface Temperature")
+ax2.plot(time_local,T_i,label="Internal Temperature")
+ax2.plot(time_local,T_atm,label="Atmospheric Temperature")
 #ax2.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M',tz=pytz.timezone(coord['timezone'])))
 plt.xlabel('Datetime (MST)')
 plt.ylabel('Temperature (K)')
@@ -80,11 +80,11 @@ def windVectorToBearing(u, v):
 
 #'''
 plt.figure()
-plt.plot(ttt, x_winds_new, label = "X winds New", color = "blue")
-plt.plot(ttt, x_winds_old, label = "X winds Old", color = "cyan")
+plt.plot(time_local, x_winds_new, label = "X winds New", color = "blue")
+plt.plot(time_local, x_winds_old, label = "X winds Old", color = "cyan")
 
-plt.plot(ttt, y_winds_new, label = "Y winds New", color = "red")
-plt.plot(ttt, y_winds_old, label = "Y winds Old", color = "orange")
+plt.plot(time_local, y_winds_new, label = "Y winds New", color = "red")
+plt.plot(time_local, y_winds_old, label = "Y winds Old", color = "orange")
 #'''
 
 plt.legend(loc='upper right')
@@ -93,8 +93,8 @@ plt.title('Wind Interpolation Comparison')
 #Winds Figure
 plt.figure()
 if any(x_winds_old):
-    plt.plot(ttt, np.degrees(windVectorToBearing(x_winds_old, y_winds_old)[0]), label = "Bearing old", color = "blue")
-plt.plot(ttt, np.degrees(windVectorToBearing(x_winds_new, y_winds_new)[0]), label = "Bearing New", color = "red")
+    plt.plot(time_local, np.degrees(windVectorToBearing(x_winds_old, y_winds_old)[0]), label = "Bearing old", color = "blue")
+plt.plot(time_local, np.degrees(windVectorToBearing(x_winds_new, y_winds_new)[0]), label = "Bearing New", color = "red")
 plt.legend(loc='upper right')
 plt.title('Wind Interpolation Comparison')
 
