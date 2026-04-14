@@ -275,5 +275,3 @@ class BalloonSimulation:
             "coords_aprs": self.coords_aprs,
             "df": self.df,
         }
-
-
