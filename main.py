@@ -36,10 +36,16 @@ if not os.path.exists('trajectories'):
 
 scriptstartTime = tm.time()
 
-from simulate import sim_state
+# main.py
 
-# Recreate all the original top-level variables in this module:
-globals().update(sim_state)
+from simulate import BalloonSimulation
+
+# 1. run the simulation
+sim = BalloonSimulation()
+sim.run()
+
+# 3. make them available to existing plotting code as top-level variables
+globals().update(sim.sim_state)
 
 sns.set_palette("muted")
 fig, ax = plt.subplots()
@@ -156,7 +162,7 @@ if forecast_type == "GFS":
 
     gmap1.plot(lat, lon,'blue', edge_width = 2.5) # Simulated Trajectory
     gmap1.text(coord["lat"]-.2, coord["lon"]-.2, 'Simulated Trajectory with GFS Forecast', color='blue')
-    draw_bounding_box(gfs.LAT_LOW, wrap_lon(gfs.lon).min(), gfs.LAT_HIGH, wrap_lon(gfs.lon).max())
+    draw_bounding_box(gfs.LAT_LOW, sim.wrap_lon(gfs.lon).min(), gfs.LAT_HIGH, sim.wrap_lon(gfs.lon).max())
 
 elif forecast_type == "ERA5":
     region= zip(*[
