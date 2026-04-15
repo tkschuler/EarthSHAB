@@ -1,3 +1,9 @@
+version 1.2.1
+===============================
+* Reorganization for simplifying main + modularity
+    * simulate.py added, and individual plots added to Plotting/
+
+
 version 1.2.0
 ===============================
 * New saveNETCDF.py script with discontinuation of NOAA's OpenDAP Server
