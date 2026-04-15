@@ -8,12 +8,15 @@ from Plotting.plot_trajectory_map import plot_map
 from Plotting.plot_windmap import plot_windmap
 
 import matplotlib.pyplot as plt
+import config_earth
 
 
 def main():
     sim = BalloonSimulation()
-    sim.run()
 
+    sim.run_simulation(run_reforecast=False)
+    if config_earth.balloon_trajectory is not None:
+        sim.run_simulation(run_reforecast=True) 
     sim_state = sim.sim_state
 
     # Save Variables
