@@ -42,7 +42,12 @@ pip install -e .
 
 ``main.py*``, ``predict.py``, and ``trapezoid.py`` show examples of how to produce relevant and html-based trajectory maps using the Google maps API.
 
-These examples can all be run with the included GFS and ERA forecasts as well as a SHAB balloon trajectory (SHAB14-V) in the required APRS.fi csv format.
+Run a trajectory with the example prodived GFS and ERA5 netcdf forecast and compare with a historical balloon launch 
+
+```
+python -m EarthSHAB.main
+```
+
 
 <img src = "img/rainbow_trajectories_altitude.png" />
 
