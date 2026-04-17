@@ -9,3 +9,8 @@ __pycache__
 *.pyd
 *.egg
 *.egg-info
+
+docs/html/*
+docs/build/*
+docs/doctrees/*
+docs/_build/
