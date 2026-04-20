@@ -23,7 +23,7 @@ copyright = '2021-2026'
 author = 'Tristan Schuler'
 
 # The full version, including alpha/beta/rc tags
-release = '1.2.0'
+release = '1.2.1'
 
 # The suffix of source filenames.
 #source_suffix = '.rst'
@@ -48,6 +48,8 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
 ]
+
+autosummary_generate = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
