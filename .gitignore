@@ -14,3 +14,7 @@ docs/html/*
 docs/build/*
 docs/doctrees/*
 docs/_build/
+
+.claude/    
+.codex/
+.continue/

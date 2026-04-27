@@ -17,9 +17,9 @@ balloon_properties = dict(
 parent_dir = "src/EarthSHAB/"
 
 #SHAB14-V Example for EarthSHAB software
-forecast_start_time =  "2022-08-22 12:00:00" # Forecast start time, should match a downloaded forecast in the forecasts directory
-start_time = datetime.fromisoformat("2022-08-22 14:01:00") # Simulation start time. The end time needs to be within the downloaded forecast
-balloon_trajectory = parent_dir + "balloon_data/SHAB14V-APRS.csv"  # Only Accepting Files in the Standard APRS.fi format for now
+forecast_start_time =  "2026-04-27 06:00:00" # Forecast start time, should match a downloaded forecast in the forecasts directory
+start_time = datetime.fromisoformat("2026-04-27 14:01:00") # Simulation start time. The end time needs to be within the downloaded forecast
+balloon_trajectory = None #parent_dir + "balloon_data/SHAB14V-APRS.csv"  # Only Accepting Files in the Standard APRS.fi format for now
 
 forecast = dict(
     forecast_type = "GFS",      # GFS or ERA5

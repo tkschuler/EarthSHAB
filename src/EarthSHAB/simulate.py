@@ -86,8 +86,9 @@ class BalloonSimulation:
         # lon = lon % 360
         return np.where(lon > 180, lon - 360, lon)
 
-    def run_simulation(self, run_reforecast=False):
+    def run_simulation(self, run_reforecast=False, descent_correction=False):
         if not run_reforecast:
+            descent = False
             for i in range(0, self.sim_time):
                 T_s_new, T_i_new, T_atm_new, el_new, v_new, q_rad, q_surf, q_int = self.e.solveVerticalTrajectory(
                     self.t,
@@ -99,6 +100,16 @@ class BalloonSimulation:
                     self.alt_sp,
                     self.v_sp,
                 )
+
+                if descent_correction:
+                    if v_new < -3.0 and el_new > 15000:
+                        descent = True
+                    if descent:
+                        v_new = -3
+                        el_new = self.el[i] + v_new * self.dt
+                        if el_new < self.min_alt:
+                            el_new = self.min_alt
+                            v_new = 0
 
                 self.T_s.append(T_s_new)
                 self.T_i.append(T_i_new)
