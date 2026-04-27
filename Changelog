@@ -1,3 +1,9 @@
+version 1.2.2 (don't forget to change documentation and setup.py, and release)
+===============================
+* New Testing Suite against Historical Data.  
+    * Recreating https://journals.ametsoc.org/view/journals/atot/41/12/JTECH-D-24-0045.1.xml?tab_body=pdf
+
+
 version 1.2.1
 ===============================
 * Reorganizing into Python package Structure

@@ -4,25 +4,25 @@ MonkeyPatch.patch_fromisoformat()     # Hacky solution for Python 3.6 to use ISO
 
 balloon_properties = dict(
     shape = 'sphere',
-    d = 6,                            # (m) Diameter of Sphere Balloon
-    mp = 0.7,                         # (kg) Mass of Payload
+    d = 5.8,                          # (m) Diameter of Sphere Balloon
+    mp = 0.9,                         # (kg) Mass of Payload
     areaDensityEnv = 939.*7.87E-6,    # (Kg/m^2) rhoEnv*envThickness
-    mEnv = 2.0,                       # (kg) Mass of Envelope - SHAB1
+    mEnv = 2.1,                       # (kg) Mass of Envelope - SHAB1
     cp = 2000.,                       # (J/(kg K)) Specific heat of envelope material
-    absEnv = .98,                     # Absorbiviy of envelope material
-    emissEnv = .95,                   # Emisivity of enevelope material
+    absEnv = .93,                     # Absorbiviy of envelope material
+    emissEnv = .92,                   # Emisivity of enevelope material
     Upsilon = 4.5,                    # Ascent Resistance coefficient
 )
 
 parent_dir = "src/EarthSHAB/"
 
 #SHAB14-V Example for EarthSHAB software
-forecast_start_time =  "2026-04-27 06:00:00" # Forecast start time, should match a downloaded forecast in the forecasts directory
-start_time = datetime.fromisoformat("2026-04-27 14:01:00") # Simulation start time. The end time needs to be within the downloaded forecast
-balloon_trajectory = None #parent_dir + "balloon_data/SHAB14V-APRS.csv"  # Only Accepting Files in the Standard APRS.fi format for now
+forecast_start_time =  "2022-08-22 12:00:00" # Forecast start time, should match a downloaded forecast in the forecasts directory
+start_time = datetime.fromisoformat("2022-08-22 14:36:00") # Simulation start time. The end time needs to be within the downloaded forecast
+balloon_trajectory = parent_dir + "balloon_data/SHAB14V-APRS.csv"  # Only Accepting Files in the Standard APRS.fi format for now
 
 forecast = dict(
-    forecast_type = "GFS",      # GFS or ERA5
+    forecast_type = "ERA5",      # GFS or ERA5
     forecast_start_time = forecast_start_time, # Forecast start time, should match a downloaded forecast in the forecasts directory
     GFSrate = 60,               # (s) After how many iterated dt steps are new wind speeds are looked up
 )
