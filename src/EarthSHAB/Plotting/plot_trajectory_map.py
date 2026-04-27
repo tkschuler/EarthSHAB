@@ -46,6 +46,7 @@ def plot_map(
     sim,
     t,
     start,
+    html_prefix=None,
 ):
     if balloon_trajectory is not None:
         if forecast_type == "GFS":
@@ -87,21 +88,7 @@ def plot_map(
         gmap1.text(coord["lat"] - .2, coord["lon"] - .2, 'Simulated Trajectory with ERA5 Reanalysis', color='red')
         gmap1.polygon(*region, color='orange', edge_width=1, alpha=.15)
 
-    if balloon_trajectory is not None:
-        if forecast_type == "GFS":
-            gmap1.draw(
-                "src/EarthSHAB/trajectories/" + trajectory_name + "_GFS_" + str(t.year) + "_" + str(t.month) + "_" + str(start.day) + ".html"
-            )
-        elif forecast_type == "ERA5":
-            gmap1.draw(
-                "src/EarthSHAB/trajectories/" + trajectory_name + "_ERA5_" + str(t.year) + "_" + str(t.month) + "_" + str(start.day) + ".html"
-            )
-    else:
-        if forecast_type == "GFS":
-            gmap1.draw(
-                "src/EarthSHAB/trajectories/PREDICTION_GFS_" + str(t.year) + "_" + str(t.month) + "_" + str(start.day) + ".html"
-            )
-        elif forecast_type == "ERA5":
-            gmap1.draw(
-                "src/EarthSHAB/trajectories/PREDICTION_ERA5_" + str(t.year) + "_" + str(t.month) + "_" + str(start.day) + ".html"
-            )
+    prefix = (html_prefix or "") + (trajectory_name if balloon_trajectory is not None else "PREDICTION")
+    gmap1.draw(
+        f"src/EarthSHAB/trajectories/{prefix}_{forecast_type}_{t.year}_{t.month}_{start.day}.html"
+    )

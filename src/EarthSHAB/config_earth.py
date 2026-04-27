@@ -22,7 +22,7 @@ start_time = datetime.fromisoformat("2022-08-22 14:36:00") # Simulation start ti
 balloon_trajectory = parent_dir + "balloon_data/SHAB14V-APRS.csv"  # Only Accepting Files in the Standard APRS.fi format for now
 
 forecast = dict(
-    forecast_type = "ERA5",      # GFS or ERA5
+    forecast_type = "GFS",      # GFS or ERA5
     forecast_start_time = forecast_start_time, # Forecast start time, should match a downloaded forecast in the forecasts directory
     GFSrate = 60,               # (s) After how many iterated dt steps are new wind speeds are looked up
 )

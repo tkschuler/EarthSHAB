@@ -58,6 +58,10 @@ class EvaluationResult:
     landing_time_diff_min: float = math.nan
     temp_mae_k:     float = math.nan
     pressure_mae_pa: float = math.nan
+    # GFS Forecast applied to truth altitude profile (reforecast trajectory)
+    gfs_truth_landing_lat:  float = math.nan
+    gfs_truth_landing_lon:  float = math.nan
+    gfs_truth_landing_dist_m: float = math.nan
 
 
 # ── Evaluator ────────────────────────────────────────────────────────────────
@@ -264,6 +268,20 @@ class BalloonEvaluator:
         else:
             landing_dt_min = math.nan
 
+        # ── GFS Forecast + Truth Altitude (reforecast) ────────────────────────
+        gfs_lat_arr = ss.get("lat_aprs_gps", [])
+        gfs_lon_arr = ss.get("lon_aprs_gps", [])
+        if gfs_lat_arr and gfs_lon_arr:
+            gfs_land_lat = float(gfs_lat_arr[-1])
+            gfs_land_lon = float(gfs_lon_arr[-1])
+            geo_gfs = self.geod.Inverse(
+                gfs_land_lat, gfs_land_lon,
+                truth_metrics.landing_lat, truth_metrics.landing_lon,
+            )
+            gfs_land_dist_m = geo_gfs['s12']
+        else:
+            gfs_land_lat = gfs_land_lon = gfs_land_dist_m = math.nan
+
         self.result = EvaluationResult(
             sim=sim_metrics,
             truth=truth_metrics,
@@ -271,6 +289,9 @@ class BalloonEvaluator:
             landing_time_diff_min=landing_dt_min,
             temp_mae_k=self._compute_temp_mae(ss, df),
             pressure_mae_pa=self._compute_pressure_mae(df),
+            gfs_truth_landing_lat=gfs_land_lat,
+            gfs_truth_landing_lon=gfs_land_lon,
+            gfs_truth_landing_dist_m=gfs_land_dist_m,
         )
 
         # Store phase info for use in plot()
@@ -399,6 +420,19 @@ class BalloonEvaluator:
         print("-" * W)
         print(_row("Temperature MAE",    "", "", _fmt(result.temp_mae_k, 2), "K"))
         print(_row("Pressure MAE",       "", "", _fmt(result.pressure_mae_pa, 0), "Pa"))
+        print("-" * W)
+        print(f"  GFS Forecast + Truth Altitude (reforecast landing vs truth)")
+        print(f"  {'Metric':<30} {'GFS+TA':>9}  {'Truth':>9}  {'Diff':>9}  Unit")
+        gfs = result
+        print(_row("Landing Lat (°)",
+                   _fmt(gfs.gfs_truth_landing_lat, 4),
+                   _fmt(t.landing_lat, 4),
+                   _fmt(_diff(gfs.gfs_truth_landing_lat, t.landing_lat), 4), "°"))
+        print(_row("Landing Lon (°)",
+                   _fmt(gfs.gfs_truth_landing_lon, 4),
+                   _fmt(t.landing_lon, 4),
+                   _fmt(_diff(gfs.gfs_truth_landing_lon, t.landing_lon), 4), "°"))
+        print(_row("Distance Off (m)", "", "", _fmt(gfs.gfs_truth_landing_dist_m, 0), "m"))
         print("=" * W)
 
         # ── Start-time suggestion ──────────────────────────────────────────
@@ -447,6 +481,7 @@ class BalloonEvaluator:
             sim=self.sim,
             t=ss["t"],
             start=ss["start"],
+            html_prefix="EVALUATION_",
         )
         plot_windmap()
 
