@@ -15,7 +15,7 @@ Extending:
 """
 
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import pandas as pd
@@ -56,6 +56,16 @@ APRS_COLUMN_SETS = [
 
 GFS_REQUIRED_VARS  = {"ugrdprs", "vgrdprs", "hgtprs", "lat", "lon", "lev", "time"}
 ERA5_REQUIRED_VARS = {"u", "v", "z", "latitude", "longitude", "level", "time"}
+
+# Time-alignment tolerances.
+# launch_time is stored in local time (MST); APRS raw format timestamps are UTC;
+# GFS/ERA5 filenames and variables are UTC.  The naive (no-tz) comparison can
+# therefore differ by up to 7 h.  Tolerances are set above that floor to catch
+# gross mismatches (wrong year, wrong flight) while allowing format-driven skew.
+APRS_LAUNCH_TOLERANCE_HR = 8   # |aprs_first − launch_time|, naive
+GFS_MAX_AGE_HR            = 24  # launch_time must not be more than this far past GFS start
+GFS_MAX_LEAD_HR           = 8   # GFS start must not appear more than this far after launch_time
+ERA5_TOLERANCE_HR         = 8   # ERA5 start/end slack for timezone uncertainty
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -192,6 +202,89 @@ def _make_launch_class(launch: dict):
             pytest.skip("APRS file missing — covered by test_aprs_exists")
         assert len(pd.read_csv(path)) > 0, f"APRS file has no data rows"
 
+    # ── Time-alignment check ──────────────────────────────────────────────────
+
+    def test_time_alignment(_):
+        """APRS first timestamp, GFS start, and ERA5 coverage must align with launch_time."""
+        try:
+            launch_dt = datetime.fromisoformat(launch["launch_time"])
+        except (ValueError, TypeError):
+            pytest.skip("launch_time not parseable — covered by test_launch_time_valid")
+
+        errors = []
+
+        # ── APRS first timestamp ──────────────────────────────────────────────
+        aprs_path = _BALLOON_DATA_DIR / launch.get("aprs_file", "")
+        if aprs_path.exists():
+            df_head = pd.read_csv(aprs_path, nrows=2)
+            cols = set(df_head.columns)
+            aprs_first = None
+            try:
+                if "time" in cols:
+                    aprs_first = pd.to_datetime(df_head["time"].iloc[0]).to_pydatetime().replace(tzinfo=None)
+                elif "Date" in cols and "Time(UTC)" in cols:
+                    ts_str = str(df_head["Date"].iloc[0]) + " " + str(df_head["Time(UTC)"].iloc[0])
+                    aprs_first = pd.to_datetime(ts_str).to_pydatetime().replace(tzinfo=None)
+            except Exception:
+                pass
+
+            if aprs_first is not None:
+                diff_hr = abs((aprs_first - launch_dt).total_seconds()) / 3600
+                if diff_hr > APRS_LAUNCH_TOLERANCE_HR:
+                    errors.append(
+                        f"APRS first timestamp {aprs_first} is {diff_hr:.1f}h from "
+                        f"launch_time {launch_dt} (tolerance {APRS_LAUNCH_TOLERANCE_HR}h). "
+                        f"Check for wrong APRS file or timezone mismatch."
+                    )
+
+        # ── GFS forecast start (parsed from filename) ─────────────────────────
+        if launch.get("gfs_file"):
+            parts = launch["gfs_file"].replace(".nc", "").split("_")
+            if len(parts) >= 4 and len(parts[2]) == 8 and parts[2].isdigit() and parts[3].isdigit():
+                gfs_start = datetime.strptime(f"{parts[2]}{parts[3].zfill(2)}", "%Y%m%d%H")
+                diff_hr = (launch_dt - gfs_start).total_seconds() / 3600
+                if diff_hr > GFS_MAX_AGE_HR:
+                    errors.append(
+                        f"GFS forecast starts {diff_hr:.1f}h before launch_time "
+                        f"(max {GFS_MAX_AGE_HR}h). Check gfs_file points to the right date."
+                    )
+                if diff_hr < -GFS_MAX_LEAD_HR:
+                    errors.append(
+                        f"GFS forecast starts {-diff_hr:.1f}h after launch_time "
+                        f"(max lead {GFS_MAX_LEAD_HR}h). Check gfs_file or launch_time."
+                    )
+
+        # ── ERA5 time coverage ────────────────────────────────────────────────
+        if launch.get("era5_file"):
+            era5_path = _FORECASTS_DIR / launch["era5_file"]
+            if era5_path.exists():
+                try:
+                    import netCDF4 as nc
+                    ds = nc.Dataset(era5_path)
+                    t_var = ds.variables.get("time")
+                    if t_var is not None and hasattr(t_var, "units"):
+                        t_dates = nc.num2date(t_var[:], units=t_var.units,
+                                              calendar=getattr(t_var, "calendar", "standard"))
+                        era5_start = datetime(t_dates[0].year,  t_dates[0].month,  t_dates[0].day,  t_dates[0].hour)
+                        era5_end   = datetime(t_dates[-1].year, t_dates[-1].month, t_dates[-1].day, t_dates[-1].hour)
+                        sim_end    = launch_dt + timedelta(hours=launch.get("sim_time_hr", 0))
+
+                        if (launch_dt - era5_start).total_seconds() / 3600 < -ERA5_TOLERANCE_HR:
+                            errors.append(
+                                f"ERA5 starts at {era5_start}, which is more than "
+                                f"{ERA5_TOLERANCE_HR}h after launch_time {launch_dt}."
+                            )
+                        if (era5_end - sim_end).total_seconds() / 3600 < -ERA5_TOLERANCE_HR:
+                            errors.append(
+                                f"ERA5 ends at {era5_end} but simulation needs coverage "
+                                f"until {sim_end} (launch + {launch.get('sim_time_hr')}h)."
+                            )
+                    ds.close()
+                except ImportError:
+                    pytest.skip("netCDF4 not installed")
+
+        assert not errors, "\n  " + "\n  ".join(errors)
+
     methods = {
         "test_required_fields":        test_required_fields,
         "test_has_at_least_one_forecast": test_has_at_least_one_forecast,
@@ -204,6 +297,7 @@ def _make_launch_class(launch: dict):
         "test_aprs_exists":            test_aprs_exists,
         "test_aprs_columns":           test_aprs_columns,
         "test_aprs_non_empty":         test_aprs_non_empty,
+        "test_time_alignment":         test_time_alignment,
     }
 
     # ── GFS checks (only if gfs_file is set) ─────────────────────────────────
