@@ -297,6 +297,13 @@ def _validate_launch(launch: dict) -> list[str]:
 # ── Main batch runner ─────────────────────────────────────────────────────────
 
 def run_batch(note: str):
+    if not os.path.exists(LAUNCHES_JSON):
+        print(f"ERROR: {LAUNCHES_JSON} not found.")
+        print(f"  Copy the example to get started:")
+        print(f"    cp evaluation/launches.example.json evaluation/launches.json")
+        print(f"  Then add your own launch entries and re-run.")
+        sys.exit(1)
+
     with open(LAUNCHES_JSON) as f:
         launches = json.load(f)["launches"]
 

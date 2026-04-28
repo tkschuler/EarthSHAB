@@ -28,6 +28,14 @@ _EVAL_DIR         = _REPO_ROOT / "evaluation"
 _BALLOON_DATA_DIR = _REPO_ROOT / "src" / "EarthSHAB" / "balloon_data"
 _FORECASTS_DIR    = _REPO_ROOT / "src" / "EarthSHAB" / "forecasts"
 _LAUNCHES_JSON    = _EVAL_DIR / "launches.json"
+_LAUNCHES_EXAMPLE = _EVAL_DIR / "launches.example.json"
+
+if not _LAUNCHES_JSON.exists():
+    pytest.skip(
+        f"launches.json not found — copy the example to get started:\n"
+        f"  cp evaluation/launches.example.json evaluation/launches.json",
+        allow_module_level=True,
+    )
 
 # ── Configurable constants ────────────────────────────────────────────────────
 

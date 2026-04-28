@@ -27,3 +27,4 @@ src/EarthSHAB/forecasts/*
 !src/EarthSHAB/forecasts/SHAB14V_ERA5_20220822_20220823.nc
 
 evaluation/batches/*
+evaluation/launches.json
