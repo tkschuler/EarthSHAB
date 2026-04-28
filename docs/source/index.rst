@@ -7,6 +7,7 @@
    
    installation
    examples/index
+   evaluation/index
    API/index
    citing
 

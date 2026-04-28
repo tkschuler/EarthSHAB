@@ -7,9 +7,10 @@ EarthSHAB Usage
 .. toctree::
    :maxdepth: 1
    :caption: Downloading and Saving Forecasts:
-   
+
    downloadGFS
    downloadERA5
+
 
 
 Quick Start

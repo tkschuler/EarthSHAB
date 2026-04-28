@@ -14,6 +14,66 @@ import EarthSHAB.ERA5 as ERA5
 import EarthSHAB.radiation as radiation
 import EarthSHAB.config_earth as config_earth
 
+
+def _load_aprs(path: str) -> tuple:
+    """Load and normalize an APRS CSV to standard column names.
+
+    Detects format by column names and returns (df, format_name).
+
+    Standard APRS.fi format columns: time, lat, lng, altitude, comment
+    Raw APRS logger format columns:  Date, Time(UTC), Latitude, Longitude, Altitude(m),
+                                     Internal Temp(C), Pressure(Pa), ...
+
+    Both are normalized so downstream code sees: time, lat, lng, altitude, comment, dt.
+    Time is converted to local (MST = UTC-7) in both cases.
+    """
+    df = pd.read_csv(path)
+    cols = set(df.columns)
+
+    if "time" in cols and "lat" in cols and "lng" in cols and "altitude" in cols:
+        df["time"] = pd.to_datetime(df["time"])
+        df["time"] = df["time"] - pd.to_timedelta(7, unit="h")
+        df["dt"] = (
+            df["time"].diff()
+            .apply(lambda x: x / np.timedelta64(1, "s"))
+            .fillna(0)
+            .astype("int64")
+        )
+        return df, "aprs_fi"
+
+    if "Date" in cols and "Time(UTC)" in cols and "Latitude" in cols \
+            and "Longitude" in cols and "Altitude(m)" in cols:
+        df["time"] = pd.to_datetime(
+            df["Date"].astype(str) + " " + df["Time(UTC)"].astype(str)
+        )
+        df["time"] = df["time"] - pd.to_timedelta(7, unit="h")
+        df = df.rename(columns={
+            "Latitude":    "lat",
+            "Longitude":   "lng",
+            "Altitude(m)": "altitude",
+        })
+
+        def _make_comment(row):
+            parts = []
+            t = row.get("Internal Temp(C)")
+            p = row.get("Pressure(Pa)")
+            if pd.notna(t):
+                parts.append(f"{t}C")
+            if pd.notna(p):
+                parts.append(f"{p}Pa")
+            return " ".join(parts)
+
+        df["comment"] = df.apply(_make_comment, axis=1)
+        df["dt"] = (
+            df["time"].diff()
+            .apply(lambda x: x / np.timedelta64(1, "s"))
+            .fillna(0)
+            .astype("int64")
+        )
+        return df, "raw"
+
+    raise ValueError(f"Unrecognized APRS file format. Columns found: {sorted(cols)}")
+
 class BalloonSimulation:
     def __init__(self):
         self.scriptstartTime = tm.time()
@@ -38,6 +98,7 @@ class BalloonSimulation:
 
         self.trajectory_name = None
         self.df = None
+        self.aprs_format = None
 
         # Get trajectory name from config file for Google Maps:
         if self.balloon_trajectory is not None:
@@ -168,10 +229,7 @@ class BalloonSimulation:
                                 " Nearest Alt: " + str(nearest_alt)), "cyan"))
         else:
             if self.balloon_trajectory is not None:
-                self.df = pd.read_csv(self.balloon_trajectory)
-                self.df["time"] = pd.to_datetime(self.df["time"])
-                self.df["time"] = self.df["time"] - pd.to_timedelta(7, unit="h")
-                self.df["dt"] = self.df["time"].diff().apply(lambda x: x / np.timedelta64(1, "s")).fillna(0).astype("int64")
+                self.df, self.aprs_format = _load_aprs(self.balloon_trajectory)
 
                 self.gmap1.plot(self.df["lat"], self.df["lng"], "white", edge_width=2.5)
                 self.gmap1.text(
@@ -261,4 +319,5 @@ class BalloonSimulation:
             "time_local_aprs": self.time_local_aprs,
             "coords_aprs": self.coords_aprs,
             "df": self.df,
+            "aprs_format": self.aprs_format,
         }
