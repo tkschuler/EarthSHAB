@@ -4,7 +4,7 @@ Structure mirrors main.py. BalloonEvaluator accepts optional config overrides so
 the same class can be reused for batch testing across flights and parameter sweeps.
 
 Usage (single flight):
-    python -m EarthSHAB.evaluate
+    python -m EarthSHAB.Evaluation.evaluate
 
 Batch example (future):
     for mp in [0.5, 0.7, 1.0]:
@@ -13,6 +13,8 @@ Batch example (future):
         results[mp] = ev.compute_metrics()
 """
 
+import csv
+import os
 import re
 import math
 from dataclasses import dataclass, field
@@ -27,7 +29,7 @@ import matplotlib.pyplot as plt
 
 import EarthSHAB.config_earth as config_earth
 from EarthSHAB.simulate import BalloonSimulation
-from EarthSHAB.Plotting.plot_evaluation import plot_comparison
+from EarthSHAB.Evaluation.plot_evaluation import plot_comparison
 from EarthSHAB.Plotting.plot_trajectory_map import plot_map
 from EarthSHAB.Plotting.plot_windmap import plot_windmap
 
@@ -68,6 +70,7 @@ class EvaluationResult:
 
 class BalloonEvaluator:
     GMT = 7  # MST offset
+    OUTPUT_DIR = "src/EarthSHAB/Evaluation/"
 
     def __init__(self, config_overrides: dict = None):
         """
@@ -363,12 +366,29 @@ class BalloonEvaluator:
         ])
         return float(np.mean(np.abs(p_isa - df["pressure_pa"].to_numpy()[valid])))
 
+    def _stem(self) -> str:
+        """Build a consistent filename stem: {trajectory}_{forecast}_{Y}_{M}_{D}."""
+        ss = self.sim_state
+        name     = ss.get("trajectory_name") or "Unknown"
+        forecast = ss.get("forecast_type", "")
+        start    = ss.get("start")
+        date_str = f"{start.year}_{start.month}_{start.day}" if start else "unknown"
+        return f"{name}_{forecast}_{date_str}"
+
     # ── Report ────────────────────────────────────────────────────────────────
 
     def report(self, result: Optional[EvaluationResult] = None):
         if result is None:
             result = self.result
 
+        self._report_body(result)
+
+        os.makedirs(self.OUTPUT_DIR, exist_ok=True)
+        csv_path = os.path.join(self.OUTPUT_DIR, f"{self._stem()}.csv")
+        self._write_csv(result, csv_path)
+        print(f"  Report saved → {csv_path}")
+
+    def _report_body(self, result: EvaluationResult):
         traj_path = config_earth.simulation.get('balloon_trajectory', '') or ''
         name = traj_path.split("/")[-1].replace(".csv", "") or "Unknown"
 
@@ -453,11 +473,56 @@ class BalloonEvaluator:
                       f"  (extrapolated at {v_mean:.2f} m/s from first APRS point)")
                 print(f"  Suggested start_time      : \"{sugg_utc.strftime('%Y-%m-%d %H:%M:%S')}\"")
 
+    def _write_csv(self, result: EvaluationResult, path: str):
+        """Write evaluation metrics to a structured CSV file."""
+        s, t = result.sim, result.truth
+
+        def _v(x, dec=4):
+            return "" if (isinstance(x, float) and math.isnan(x)) else f"{x:.{dec}f}"
+
+        def _diff(a, b):
+            return a - b if not (math.isnan(a) or math.isnan(b)) else math.nan
+
+        land_dist_m = result.landing_distance_km * 1000 if not math.isnan(result.landing_distance_km) else math.nan
+
+        rows = [
+            ("Float Alt Mean",        "m",   _v(s.float_alt_mean, 0),    _v(t.float_alt_mean, 0),    _v(_diff(s.float_alt_mean,    t.float_alt_mean),    0)),
+            ("Float Alt Std",         "m",   _v(s.float_alt_std,  0),    _v(t.float_alt_std,  0),    _v(_diff(s.float_alt_std,     t.float_alt_std),     0)),
+            ("Ascent Rate Mean",      "m/s", _v(s.ascent_rate_mean, 2),  _v(t.ascent_rate_mean, 2),  _v(_diff(s.ascent_rate_mean,  t.ascent_rate_mean),  2)),
+            ("Ascent Rate Std",       "m/s", _v(s.ascent_rate_std,  2),  _v(t.ascent_rate_std,  2),  _v(_diff(s.ascent_rate_std,   t.ascent_rate_std),   2)),
+            ("Descent Rate Mean",     "m/s", _v(s.descent_rate_mean, 2), _v(t.descent_rate_mean, 2), _v(_diff(s.descent_rate_mean, t.descent_rate_mean), 2)),
+            ("Descent Rate Std",      "m/s", _v(s.descent_rate_std,  2), _v(t.descent_rate_std,  2), _v(_diff(s.descent_rate_std,  t.descent_rate_std),  2)),
+            ("Elapsed Time",          "min", _v(s.elapsed_time_min, 1),  _v(t.elapsed_time_min, 1),  _v(_diff(s.elapsed_time_min,  t.elapsed_time_min),  1)),
+            ("Landing Lat",           "deg", _v(s.landing_lat, 4),       _v(t.landing_lat, 4),       _v(_diff(s.landing_lat,       t.landing_lat),       4)),
+            ("Landing Lon",           "deg", _v(s.landing_lon, 4),       _v(t.landing_lon, 4),       _v(_diff(s.landing_lon,       t.landing_lon),       4)),
+            ("Landing Time (MST)",    "",    str(s.landing_time)[:16] if s.landing_time else "",
+                                             str(t.landing_time)[:16] if t.landing_time else "",
+                                             _v(result.landing_time_diff_min, 1)),
+            ("Distance Off",          "m",   "", "", _v(land_dist_m, 0)),
+            ("Temperature MAE",       "K",   "", "", _v(result.temp_mae_k, 2)),
+            ("Pressure MAE",          "Pa",  "", "", _v(result.pressure_mae_pa, 0)),
+            ("GFS+TA Landing Lat",    "deg", _v(result.gfs_truth_landing_lat, 4),
+                                             _v(t.landing_lat, 4),
+                                             _v(_diff(result.gfs_truth_landing_lat, t.landing_lat), 4)),
+            ("GFS+TA Landing Lon",    "deg", _v(result.gfs_truth_landing_lon, 4),
+                                             _v(t.landing_lon, 4),
+                                             _v(_diff(result.gfs_truth_landing_lon, t.landing_lon), 4)),
+            ("GFS+TA Distance Off",   "m",   "", "", _v(result.gfs_truth_landing_dist_m, 0)),
+        ]
+
+        with open(path, 'w', newline='') as f:
+            w = csv.writer(f)
+            w.writerow(["Metric", "Unit", "Sim", "Truth", "Diff"])
+            w.writerows(rows)
+
     # ── Plot ─────────────────────────────────────────────────────────────────
 
     def plot(self):
         ss = self.sim_state
-        plot_comparison(
+        os.makedirs(self.OUTPUT_DIR, exist_ok=True)
+        stem = self._stem()
+
+        fig = plot_comparison(
             time_sim=ss["time_local"],
             el_sim=ss["el"],
             v_sim=ss["v"],
@@ -466,6 +531,10 @@ class BalloonEvaluator:
             sim_phases=getattr(self, '_sim_phases', None),
             truth_phases=getattr(self, '_truth_phases', None),
         )
+        png_path = os.path.join(self.OUTPUT_DIR, f"{stem}.png")
+        fig.savefig(png_path, dpi=150, bbox_inches='tight')
+        print(f"  Plot saved     → {png_path}")
+
         plot_map(
             gmap1=ss["gmap1"],
             coord=ss["coord"],
@@ -482,7 +551,9 @@ class BalloonEvaluator:
             t=ss["t"],
             start=ss["start"],
             html_prefix="EVALUATION_",
+            output_dir=self.OUTPUT_DIR,
         )
+        print(f"  Map saved      → {os.path.join(self.OUTPUT_DIR, 'EVALUATION_' + stem + '.html')}")
         plot_windmap()
 
 

@@ -47,6 +47,7 @@ def plot_map(
     t,
     start,
     html_prefix=None,
+    output_dir="src/EarthSHAB/trajectories/",
 ):
     if balloon_trajectory is not None:
         if forecast_type == "GFS":
@@ -89,6 +90,7 @@ def plot_map(
         gmap1.polygon(*region, color='orange', edge_width=1, alpha=.15)
 
     prefix = (html_prefix or "") + (trajectory_name if balloon_trajectory is not None else "PREDICTION")
+    os.makedirs(output_dir, exist_ok=True)
     gmap1.draw(
-        f"src/EarthSHAB/trajectories/{prefix}_{forecast_type}_{t.year}_{t.month}_{start.day}.html"
+        os.path.join(output_dir, f"{prefix}_{forecast_type}_{t.year}_{t.month}_{start.day}.html")
     )

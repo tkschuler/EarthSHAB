@@ -161,3 +161,4 @@ def plot_comparison(time_sim, el_sim, v_sim, T_atm_sim, df_truth,
 
     fig.suptitle('Simulation vs Ground Truth', fontsize=14, y=1.00)
     plt.tight_layout()
+    return fig
