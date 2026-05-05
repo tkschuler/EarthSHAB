@@ -25,16 +25,13 @@ class Radiation:
     radRef= .1              # [0,1] Balloon Reflectivity
     radTrans = .1           # [0,1] Balloon Transmitivity
 
-    start_coord = config_earth.simulation['start_coord']
-    t = config_earth.simulation['start_time']
-    lat = math.radians(start_coord['lat'])
-    Ls = t.timetuple().tm_yday
-    d = config_earth.balloon_properties['d']
-    emissEnv = config_earth.balloon_properties['emissEnv']
-    absEnv = config_earth.balloon_properties['absEnv']
-
-    projArea = 0.25*math.pi*d*d
-    surfArea = math.pi*d*d
+    def __init__(self):
+        d = config_earth.balloon_properties['d']
+        self.emissEnv = config_earth.balloon_properties['emissEnv']
+        self.absEnv   = config_earth.balloon_properties['absEnv']
+        self.projArea = 0.25 * math.pi * d * d
+        self.surfArea = math.pi * d * d
+        self.Ls = config_earth.simulation['start_time'].timetuple().tm_yday
 
     def getTemp(self, el):
         atm = fluids.atmosphere.ATMOSPHERE_1976(el)
@@ -76,14 +73,14 @@ class Radiation:
 
         """
 
-        f = 2*math.pi*Radiation.Ls/365 #true anomaly
+        f = 2*math.pi*self.Ls/365 #true anomaly
         e2 = pow(((1.+Radiation.e)/(1.-Radiation.e)),2) -1.
         return Radiation.I0*(1.+0.5*e2*math.cos(f))
 
     def get_declination(self):
         #This function is unused
 
-        return -.4091*math.cos(2*math.pi*(Radiation.Ls+10)/365)
+        return -.4091*math.cos(2*math.pi*(self.Ls+10)/365)
 
     def get_zenith(self, t, coord):
         """ Calculates adjusted solar zenith angle at elevation
@@ -255,25 +252,25 @@ class Radiation:
         el = coord["alt"]
 
         #radRef = Radiation.radRef + Radiation.radRef*Radiation.radRef +  Radiation.radRef*Radiation.radRef*Radiation.radRef
-        totAbs = Radiation.absEnv # + Radiation.absEnv*Radiation.radTrans + Radiation.absEnv*Radiation.radTrans*radRef
+        totAbs = self.absEnv
 
         hca = math.asin(Radiation.RE/(Radiation.RE+el)) #half cone angle
         vf = 0.5*(1. - math.cos(hca)) #viewfactor
 
         direct_I = self.get_direct_SI(zen, el)
-        power_direct = direct_I*totAbs*Radiation.projArea
+        power_direct = direct_I*totAbs*self.projArea
 
         diffuse_I = self.get_diffuse_SI(zen, el)
-        power_diffuse = diffuse_I*totAbs*(1.-vf)*Radiation.surfArea
+        power_diffuse = diffuse_I*totAbs*(1.-vf)*self.surfArea
 
         reflected_I = self.get_reflected_SI(zen, el)
-        power_reflected = reflected_I*totAbs*vf*Radiation.surfArea
+        power_reflected = reflected_I*totAbs*vf*self.surfArea
 
         earth_IR = self.get_earth_IR(el)
-        power_earth_IR = earth_IR*Radiation.emissEnv*vf*Radiation.surfArea
+        power_earth_IR = earth_IR*self.emissEnv*vf*self.surfArea
 
         sky_IR = self.get_sky_IR(el)
-        power_sky_IR = sky_IR*Radiation.emissEnv*(1.-vf)*Radiation.surfArea
+        power_sky_IR = sky_IR*self.emissEnv*(1.-vf)*self.surfArea
 
         rad_tot_bal = power_direct + power_diffuse + power_reflected + power_earth_IR + power_sky_IR
 

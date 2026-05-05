@@ -14,19 +14,15 @@ class Sphere_Balloon:
     """Initializes atmospheric properties from the earth configuration file
 
     """
-    Cp_air0 = config_earth.earth_properties['Cp_air0']
-    Rsp_air = config_earth.earth_properties['Rsp_air']
-    cv_air0 = config_earth.earth_properties['Cv_air0']
-    cf = config_earth.balloon_properties['cp']
-
     RE = 6371000.0      # (m) Radius of Earth
     SB = 5.670373E-8    # Stefan Boltzman Constant
 
     def __init__(self):
-        """Initializes all of the solar balloon paramaters from the configuration file
-
-        """
-        self.d = config_earth.balloon_properties['d']
+        self.Cp_air0 = config_earth.earth_properties['Cp_air0']
+        self.Rsp_air = config_earth.earth_properties['Rsp_air']
+        self.cv_air0 = config_earth.earth_properties['Cv_air0']
+        self.cf      = config_earth.balloon_properties['cp']
+        self.d       = config_earth.balloon_properties['d']
         self.emissEnv = config_earth.balloon_properties['emissEnv']
 
         self.surfArea = math.pi*self.d*self.d
@@ -78,7 +74,7 @@ class Sphere_Balloon:
 
         """
         k = self.get_conduction(T) #Thermal diffusivity
-        Pr = self.get_viscocity(T)*Sphere_Balloon.Cp_air0/k
+        Pr = self.get_viscocity(T)*self.Cp_air0/k
         return Pr
 
     #-------------------------------------------SOLVE FOR T_S------------------------------------------------------------------'''
@@ -154,7 +150,7 @@ class Sphere_Balloon:
         Pr_atm = self.get_Pr(T_atm)
 
         T_avg = 0.5*(T_atm + T_s)
-        rho_avg = p_atm/(Sphere_Balloon.Rsp_air*T_avg)
+        rho_avg = p_atm/(self.Rsp_air*T_avg)
         Pr_avg = self.get_Pr(T_avg)
 
         exp_coeff = 1./T_avg;
@@ -233,7 +229,7 @@ class Sphere_Balloon:
 
         '''
         T_avg = 0.5*(T_s+T_i)
-        rho_avg = p_atm/(Sphere_Balloon.Rsp_air*T_avg)
+        rho_avg = p_atm/(self.Rsp_air*T_avg)
         Pr = self.get_Pr(T_avg)
         exp_coeff = 1./T_avg
         kin_visc = self.get_viscocity(T_avg)/rho_avg
@@ -246,7 +242,7 @@ class Sphere_Balloon:
 
         T_avg = 0.5*(T_s+T_i)
         Pr = self.get_Pr(T_avg)
-        rho_avg = p_atm/(Sphere_Balloon.Rsp_air*T_avg)
+        rho_avg = p_atm/(self.Rsp_air*T_avg)
         mu = self.get_viscocity(T_avg)/rho_avg
         k = self.get_conduction(T_avg)
 
