@@ -5,6 +5,7 @@ import gmplot
 import time as tm
 import pandas as pd
 import numpy as np
+import os
 import re
 import copy
 
@@ -72,6 +73,37 @@ def _load_aprs(path: str) -> tuple:
         )
         return df, "raw"
 
+    if "UTC_Date_Time" in cols and "Lon" in cols and "Lat" in cols and "Altitude_m" in cols:
+        df["time"] = pd.to_datetime(df["UTC_Date_Time"], format="%m/%d/%Y %H:%M:%S")
+        df["time"] = df["time"] - pd.to_timedelta(7, unit="h")
+        # Some files in this format have Lat/Lon data swapped relative to the header;
+        # detect by checking whether the "Lon" column holds a positive value (true lat for NM)
+        if df["Lon"].iloc[0] > 0:
+            df = df.rename(columns={"Lon": "lat", "Lat": "lng", "Altitude_m": "altitude"})
+        else:
+            df = df.rename(columns={"Lat": "lat", "Lon": "lng", "Altitude_m": "altitude"})
+        # StratoTrack files label the pressure column hPa but store Pa; detect by magnitude
+        pressure_in_pa = "Pressure_hPa" in df.columns and df["Pressure_hPa"].median() > 1200
+
+        def _make_lightaprs_comment(row):
+            parts = []
+            t = row.get("Temperature_C")
+            p = row.get("Pressure_hPa")
+            if pd.notna(t):
+                parts.append(f"{t}C")
+            if pd.notna(p):
+                p_pa = float(p) if pressure_in_pa else float(p) * 100
+                parts.append(f"{p_pa:.1f}Pa")
+            return " ".join(parts)
+        df["comment"] = df.apply(_make_lightaprs_comment, axis=1)
+        df["dt"] = (
+            df["time"].diff()
+            .apply(lambda x: x / np.timedelta64(1, "s"))
+            .fillna(0)
+            .astype("int64")
+        )
+        return df, "lightaprs"
+
     raise ValueError(f"Unrecognized APRS file format. Columns found: {sorted(cols)}")
 
 class BalloonSimulation:
@@ -102,10 +134,7 @@ class BalloonSimulation:
 
         # Get trajectory name from config file for Google Maps:
         if self.balloon_trajectory is not None:
-            self.trajectory_name = copy.copy(self.balloon_trajectory)
-            replacements = [("src/EarthSHAB/balloon_data/", ""), (".csv", "")]
-            for pat, repl in replacements:
-                self.trajectory_name = re.sub(pat, repl, self.trajectory_name)
+            self.trajectory_name = os.path.splitext(os.path.basename(self.balloon_trajectory))[0]
             print(self.trajectory_name)
 
         # Variables for Simulation and Plotting
