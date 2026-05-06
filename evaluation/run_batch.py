@@ -196,6 +196,7 @@ def _build_overrides(launch: dict, forecast_type: str, orig: dict) -> dict:
 
 _SUMMARY_FIELDNAMES = [
     "batch_id", "launch_id", "forecast_type", "status", "aprs_format",
+    "campaign", "organization", "launch_date",
     # sim FlightMetrics
     "sim_float_alt_mean_m", "sim_float_alt_std_m",
     "sim_ascent_rate_mean_ms", "sim_ascent_rate_std_ms",
@@ -224,7 +225,9 @@ def _nan(v):
 
 
 def _result_to_row(batch_id: str, launch_id: str, forecast_type: str,
-                   result, status: str, aprs_format: str = "") -> dict:
+                   result, status: str, aprs_format: str = "",
+                   campaign: str = "", organization: str = "",
+                   launch_date: str = "") -> dict:
     if result is None:
         return {f: "" for f in _SUMMARY_FIELDNAMES} | {
             "batch_id": batch_id,
@@ -232,6 +235,9 @@ def _result_to_row(batch_id: str, launch_id: str, forecast_type: str,
             "forecast_type": forecast_type,
             "status": status,
             "aprs_format": aprs_format,
+            "campaign": campaign,
+            "organization": organization,
+            "launch_date": launch_date,
         }
 
     s, t = result.sim, result.truth
@@ -241,6 +247,9 @@ def _result_to_row(batch_id: str, launch_id: str, forecast_type: str,
         "forecast_type":               forecast_type,
         "status":                      status,
         "aprs_format":                 aprs_format,
+        "campaign":                    campaign,
+        "organization":                organization,
+        "launch_date":                 launch_date,
         "sim_float_alt_mean_m":        _nan(s.float_alt_mean),
         "sim_float_alt_std_m":         _nan(s.float_alt_std),
         "sim_ascent_rate_mean_ms":     _nan(s.ascent_rate_mean),
@@ -269,6 +278,294 @@ def _result_to_row(batch_id: str, launch_id: str, forecast_type: str,
         "reforecast_landing_lon_deg":  _nan(result.gfs_truth_landing_lon),
         "reforecast_landing_dist_m":   _nan(result.gfs_truth_landing_dist_m),
     }
+
+# ── HTML Summary ─────────────────────────────────────────────────────────────
+
+def _write_summary_html(summary_rows: list[dict], batch_dir: str,
+                        batch_id: str, note: str, git: dict) -> str:
+    """Write summary.html: a colored percent-diff table + campaign sections."""
+    import html as _html
+
+    GREEN  = "#b7e4b7"
+    YELLOW = "#ffeaa0"
+    RED    = "#f4a5a5"
+    FAIL   = "#e8e8e8"
+
+    def _pct(s, t):
+        try:
+            sv, tv = float(s), float(t)
+            if math.isnan(sv) or math.isnan(tv) or tv == 0:
+                return math.nan
+            return (sv - tv) / abs(tv) * 100.0
+        except (ValueError, TypeError):
+            return math.nan
+
+    def _fv(v, fmt=".1f"):
+        try:
+            fv = float(v)
+            return "—" if math.isnan(fv) else f"{fv:{fmt}}"
+        except (ValueError, TypeError):
+            return str(v) if v else "—"
+
+    def _pct_cell(pct, lo=10, hi=25):
+        if math.isnan(pct):
+            return "—", ""
+        color = GREEN if abs(pct) <= lo else YELLOW if abs(pct) <= hi else RED
+        sign  = "+" if pct > 0 else ""
+        return f"{sign}{pct:.1f}%", f' style="background:{color}"'
+
+    def _abs_cell(val, lo, hi):
+        if math.isnan(val):
+            return "—", ""
+        color = GREEN if abs(val) <= lo else YELLOW if abs(val) <= hi else RED
+        return f"{abs(val):.1f}", f' style="background:{color}"'
+
+    def _build_data_row(row: dict) -> str:
+        status = row.get("status", "")
+        lid    = _html.escape(str(row.get("launch_id", "")))
+        ft     = _html.escape(str(row.get("forecast_type", "")))
+
+        if status != "ok":
+            msg = _html.escape(str(status)[:80])
+            return (f'<tr style="background:{FAIL}">'
+                    f'<td>{lid}</td><td>{ft}</td>'
+                    f'<td colspan="12" style="text-align:left">FAILED: {msg}</td></tr>')
+
+        def _float(key):
+            try:    return float(row.get(key, math.nan))
+            except: return math.nan
+
+        pct_alt = _pct(row.get("sim_float_alt_mean_m"),     row.get("truth_float_alt_mean_m"))
+        pct_asc = _pct(row.get("sim_ascent_rate_mean_ms"),  row.get("truth_ascent_rate_mean_ms"))
+        pct_des = _pct(row.get("sim_descent_rate_mean_ms"), row.get("truth_descent_rate_mean_ms"))
+        pct_ela = _pct(row.get("sim_elapsed_time_min"),     row.get("truth_elapsed_time_min"))
+
+        land_km  = _float("landing_distance_km")
+        tdiff    = _float("landing_time_diff_min")
+        temp_mae = _float("temp_mae_k")
+        pres_mae = _float("pressure_mae_pa")
+
+        pa_txt, pa_s = _pct_cell(pct_alt)
+        pc_txt, pc_s = _pct_cell(pct_asc)
+        pd_txt, pd_s = _pct_cell(pct_des)
+        pe_txt, pe_s = _pct_cell(pct_ela)
+        ld_txt, ld_s = _abs_cell(land_km, 20, 50)
+        td_txt, td_s = _abs_cell(abs(tdiff) if not math.isnan(tdiff) else math.nan, 30, 90)
+        tm_txt, tm_s = _abs_cell(temp_mae, 5, 15)
+        pm_txt, pm_s = _abs_cell(pres_mae, 500, 2000)
+
+        sim_alt  = _fv(row.get("sim_float_alt_mean_m"),    ".0f")
+        tru_alt  = _fv(row.get("truth_float_alt_mean_m"),  ".0f")
+        sim_asc  = _fv(row.get("sim_ascent_rate_mean_ms"), ".2f")
+        tru_asc  = _fv(row.get("truth_ascent_rate_mean_ms"), ".2f")
+        sim_des  = _fv(row.get("sim_descent_rate_mean_ms"), ".2f")
+        tru_des  = _fv(row.get("truth_descent_rate_mean_ms"), ".2f")
+        sim_ela  = _fv(row.get("sim_elapsed_time_min"),    ".0f")
+        tru_ela  = _fv(row.get("truth_elapsed_time_min"),  ".0f")
+
+        return (
+            f'<tr>'
+            f'<td style="text-align:left">{lid}</td><td>{ft}</td>'
+            f'<td>{sim_alt} / {tru_alt}</td><td{pa_s}>{pa_txt}</td>'
+            f'<td>{sim_asc} / {tru_asc}</td><td{pc_s}>{pc_txt}</td>'
+            f'<td>{sim_des} / {tru_des}</td><td{pd_s}>{pd_txt}</td>'
+            f'<td>{sim_ela} / {tru_ela}</td><td{pe_s}>{pe_txt}</td>'
+            f'<td{ld_s}>{ld_txt}</td>'
+            f'<td{td_s}>{td_txt}</td>'
+            f'<td{tm_s}>{tm_txt}</td>'
+            f'<td{pm_s}>{pm_txt}</td>'
+            f'</tr>'
+        )
+
+    TABLE_HEADER = """
+    <table>
+      <thead>
+        <tr>
+          <th rowspan="2" style="text-align:left">Launch</th>
+          <th rowspan="2">Fcst</th>
+          <th colspan="2">Float Alt (m)</th>
+          <th colspan="2">Ascent (m/s)</th>
+          <th colspan="2">Descent (m/s)</th>
+          <th colspan="2">Elapsed (min)</th>
+          <th rowspan="2">Land Dist<br>(km)</th>
+          <th rowspan="2">|Time Δ|<br>(min)</th>
+          <th rowspan="2">Temp MAE<br>(K)</th>
+          <th rowspan="2">Press MAE<br>(Pa)</th>
+        </tr>
+        <tr>
+          <th class="sub">Sim / Truth</th><th class="sub">%Δ</th>
+          <th class="sub">Sim / Truth</th><th class="sub">%Δ</th>
+          <th class="sub">Sim / Truth</th><th class="sub">%Δ</th>
+          <th class="sub">Sim / Truth</th><th class="sub">%Δ</th>
+        </tr>
+      </thead>
+      <tbody>"""
+
+    # ── Overall table ─────────────────────────────────────────────────────────
+    overall_rows = "".join(_build_data_row(r) for r in summary_rows)
+
+    # ── Campaign sections ─────────────────────────────────────────────────────
+    # Group by explicit campaign field; fall back to (organization, launch_date)
+    # when multiple flights share the same org+date.
+    def _group_key(row):
+        camp = row.get("campaign") or ""
+        if camp:
+            return camp
+        org  = row.get("organization") or ""
+        date = row.get("launch_date") or ""
+        return f"{org} {date}" if (org or date) else ""
+
+    groups: dict[str, list[dict]] = {}
+    for row in summary_rows:
+        if row.get("status") != "ok":
+            continue
+        key = _group_key(row)
+        if key:
+            groups.setdefault(key, []).append(row)
+
+    # Only show campaign sections for groups with ≥2 distinct balloons
+    campaign_html = ""
+    for camp_key, rows in sorted(groups.items()):
+        if len({r["launch_id"] for r in rows}) < 2:
+            continue
+        camp_rows = "".join(_build_data_row(r) for r in rows)
+
+        # Aggregate averages
+        def _avg(col, _rows=rows):
+            vals = []
+            for r in _rows:
+                v = r.get(col)
+                if v in ("", None):
+                    continue
+                try:
+                    fv = float(v)
+                    if not math.isnan(fv):
+                        vals.append(fv)
+                except (ValueError, TypeError):
+                    pass
+            return sum(vals) / len(vals) if vals else math.nan
+
+        avg_land  = _avg("landing_distance_km")
+        avg_tdiff = _avg("landing_time_diff_min")
+        avg_tmae  = _avg("temp_mae_k")
+        avg_pmae  = _avg("pressure_mae_pa")
+        avg_palt  = _pct(_avg("sim_float_alt_mean_m"),     _avg("truth_float_alt_mean_m"))
+        avg_pasc  = _pct(_avg("sim_ascent_rate_mean_ms"),  _avg("truth_ascent_rate_mean_ms"))
+        avg_pdes  = _pct(_avg("sim_descent_rate_mean_ms"), _avg("truth_descent_rate_mean_ms"))
+        avg_pela  = _pct(_avg("sim_elapsed_time_min"),     _avg("truth_elapsed_time_min"))
+
+        def _avg_row(label, p_alt, p_asc, p_des, p_ela, land, tdiff, tmae, pmae):
+            pa_t, pa_s = _pct_cell(p_alt)
+            pc_t, pc_s = _pct_cell(p_asc)
+            pd_t, pd_s = _pct_cell(p_des)
+            pe_t, pe_s = _pct_cell(p_ela)
+            ld_t, ld_s = _abs_cell(land, 20, 50)
+            td_t, td_s = _abs_cell(abs(tdiff) if not math.isnan(tdiff) else math.nan, 30, 90)
+            tm_t, tm_s = _abs_cell(tmae, 5, 15)
+            pm_t, pm_s = _abs_cell(pmae, 500, 2000)
+            return (
+                f'<tr style="font-weight:bold; border-top:2px solid #555">'
+                f'<td colspan="2" style="text-align:left">{_html.escape(label)}</td>'
+                f'<td>—</td><td{pa_s}>{pa_t}</td>'
+                f'<td>—</td><td{pc_s}>{pc_t}</td>'
+                f'<td>—</td><td{pd_s}>{pd_t}</td>'
+                f'<td>—</td><td{pe_s}>{pe_t}</td>'
+                f'<td{ld_s}>{ld_t}</td>'
+                f'<td{td_s}>{td_t}</td>'
+                f'<td{tm_s}>{tm_t}</td>'
+                f'<td{pm_s}>{pm_t}</td>'
+                f'</tr>'
+            )
+
+        avg_row_html = _avg_row("Campaign Average",
+                                avg_palt, avg_pasc, avg_pdes, avg_pela,
+                                avg_land, avg_tdiff, avg_tmae, avg_pmae)
+
+        n_flights = len({r["launch_id"] for r in rows})
+        n_forecasts = len(rows)
+        campaign_html += f"""
+    <div class="campaign-card">
+      <h2>Campaign: {_html.escape(camp_key)}</h2>
+      <p style="color:#666;font-size:0.85em">{n_flights} balloon(s), {n_forecasts} evaluation(s)</p>
+      {TABLE_HEADER}
+        {camp_rows}
+        {avg_row_html}
+      </tbody></table>
+    </div>"""
+
+    # ── Assemble page ─────────────────────────────────────────────────────────
+    dirty_note = " <span style='color:orange'>(dirty)</span>" if git.get("git_dirty") else ""
+    page = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>EarthSHAB Batch: {_html.escape(batch_id)}</title>
+  <style>
+    body      {{ font-family: monospace; margin: 24px; background: #f5f5f5; color: #222; }}
+    h1        {{ margin-bottom: 4px; }}
+    h2        {{ color: #2c3e50; border-bottom: 2px solid #2c3e50; padding-bottom: 4px; margin-top: 0; }}
+    .meta     {{ margin-bottom: 18px; font-size: 0.9em; color: #555; line-height: 1.7; }}
+    .legend   {{ display:flex; gap:10px; margin-bottom: 18px; font-size:0.85em; }}
+    .legend span {{ padding: 3px 10px; border: 1px solid #bbb; border-radius: 3px; }}
+    table     {{ border-collapse: collapse; width: 100%; margin-bottom: 6px; font-size: 0.82em; }}
+    th, td    {{ border: 1px solid #bbb; padding: 5px 8px; text-align: center; white-space: nowrap; }}
+    th        {{ background: #2c3e50; color: #fff; font-weight: bold; }}
+    th.sub    {{ background: #34495e; }}
+    tr:hover  {{ filter: brightness(0.96); }}
+    .campaign-card {{
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 20px 24px;
+      margin-bottom: 32px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }}
+    .overall-section {{
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 20px 24px;
+      margin-bottom: 32px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }}
+  </style>
+</head>
+<body>
+  <h1>EarthSHAB Batch Evaluation</h1>
+  <div class="meta">
+    <b>Batch ID:</b> {_html.escape(batch_id)}<br>
+    <b>Note:</b> {_html.escape(note)}<br>
+    <b>Git:</b> {_html.escape(git.get("git_hash",""))} &mdash; {_html.escape(git.get("git_commit_message",""))}{dirty_note}<br>
+    <b>Branch:</b> {_html.escape(git.get("git_branch",""))}
+  </div>
+
+  <div class="legend">
+    <b>Color key (%&Delta; from truth):</b>
+    <span style="background:{GREEN}">&le;&thinsp;10%</span>
+    <span style="background:{YELLOW}">10&ndash;25%</span>
+    <span style="background:{RED}">&gt;&thinsp;25%</span>
+    &nbsp;&nbsp;<b>Error metrics:</b>
+    <span style="background:{GREEN}">good</span>
+    <span style="background:{YELLOW}">marginal</span>
+    <span style="background:{RED}">poor</span>
+  </div>
+
+  <div class="overall-section">
+    <h2>Overall Summary</h2>
+    {TABLE_HEADER}
+      {overall_rows}
+    </tbody></table>
+  </div>
+
+  {campaign_html}
+</body>
+</html>"""
+
+    path = os.path.join(batch_dir, "summary.html")
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(page)
+    return path
+
 
 # ── Validation ────────────────────────────────────────────────────────────────
 
@@ -331,8 +628,10 @@ def run_batch(note: str):
     batch_start = time.monotonic()
 
     for launch in launches:
-        launch_date = launch.get("launch_time", "")[:10]
-        launch_id   = f"{launch.get('organization','?')}_{launch.get('shab_name','?')}_{launch_date}"
+        launch_date   = launch.get("launch_time", "")[:10]
+        launch_org    = launch.get("organization", "?")
+        launch_camp   = launch.get("campaign") or ""
+        launch_id     = f"{launch_org}_{launch.get('shab_name','?')}_{launch_date}"
         attempted.append(launch_id)
 
         print(f"── {launch_id} ──")
@@ -345,7 +644,11 @@ def run_batch(note: str):
             failed[launch_id] = msg
             for ft in ["GFS", "ERA5"]:
                 if ft.lower() + "_file" in launch or ft == "GFS" and "gfs_file" in launch:
-                    summary_rows.append(_result_to_row(batch_id, launch_id, ft, None, msg))
+                    summary_rows.append(_result_to_row(
+                        batch_id, launch_id, ft, None, msg,
+                        campaign=launch_camp, organization=launch_org,
+                        launch_date=launch_date,
+                    ))
             continue
 
         forecast_types = []
@@ -371,16 +674,22 @@ def run_batch(note: str):
                 result = ev.compute_metrics()
                 ev.report(result)
                 ev.plot()
-                summary_rows.append(_result_to_row(batch_id, launch_id, ft, result, "ok", aprs_fmt))
+                summary_rows.append(_result_to_row(
+                    batch_id, launch_id, ft, result, "ok", aprs_fmt,
+                    campaign=launch_camp, organization=launch_org,
+                    launch_date=launch_date,
+                ))
                 print(f"  [{ft}] done\n")
             except Exception:
                 tb = traceback.format_exc()
                 short_msg = tb.strip().splitlines()[-1]
                 print(f"  [{ft}] FAILED: {short_msg}")
                 print(f"  Full traceback:\n{tb}")
-                summary_rows.append(
-                    _result_to_row(batch_id, launch_id, ft, None, short_msg, aprs_fmt)
-                )
+                summary_rows.append(_result_to_row(
+                    batch_id, launch_id, ft, None, short_msg, aprs_fmt,
+                    campaign=launch_camp, organization=launch_org,
+                    launch_date=launch_date,
+                ))
                 launch_errors.append(f"{ft}: {short_msg}")
 
         elapsed = time.monotonic() - launch_start
@@ -401,6 +710,9 @@ def run_batch(note: str):
         w.writeheader()
         w.writerows(summary_rows)
     print(f"Summary → {summary_path}")
+
+    html_path = _write_summary_html(summary_rows, batch_dir, batch_id, note, git)
+    print(f"Report  → {html_path}")
 
     # ── Write batch_info.json ────────────────────────────────────────────────
     with open(LAUNCHES_JSON) as f:
