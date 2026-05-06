@@ -203,16 +203,20 @@ _SUMMARY_FIELDNAMES = [
     "sim_ascent_rate_mean_ms", "sim_ascent_rate_std_ms",
     "sim_descent_rate_mean_ms", "sim_descent_rate_std_ms",
     "sim_elapsed_time_min",
+    "sim_time_to_float_min",
     "sim_landing_lat_deg", "sim_landing_lon_deg", "sim_landing_time",
     # truth FlightMetrics
     "truth_float_alt_mean_m", "truth_float_alt_std_m",
     "truth_ascent_rate_mean_ms", "truth_ascent_rate_std_ms",
     "truth_descent_rate_mean_ms", "truth_descent_rate_std_ms",
     "truth_elapsed_time_min",
+    "truth_time_to_float_min",
     "truth_landing_lat_deg", "truth_landing_lon_deg", "truth_landing_time",
     # cross metrics
     "landing_distance_km",
     "landing_time_diff_min",
+    "time_to_float_diff_min",
+    "time_to_ground_diff_min",
     "temp_mae_k",
     "pressure_mae_pa",
     "reforecast_landing_lat_deg",
@@ -264,6 +268,7 @@ def _result_to_row(batch_id: str, launch_id: str, forecast_type: str,
         "sim_descent_rate_mean_ms":    _nan(s.descent_rate_mean),
         "sim_descent_rate_std_ms":     _nan(s.descent_rate_std),
         "sim_elapsed_time_min":        _nan(s.elapsed_time_min),
+        "sim_time_to_float_min":       _nan(s.time_to_float_min),
         "sim_landing_lat_deg":         _nan(s.landing_lat),
         "sim_landing_lon_deg":         _nan(s.landing_lon),
         "sim_landing_time":            str(s.landing_time)[:19] if s.landing_time else "",
@@ -274,11 +279,14 @@ def _result_to_row(batch_id: str, launch_id: str, forecast_type: str,
         "truth_descent_rate_mean_ms":  _nan(t.descent_rate_mean),
         "truth_descent_rate_std_ms":   _nan(t.descent_rate_std),
         "truth_elapsed_time_min":      _nan(t.elapsed_time_min),
+        "truth_time_to_float_min":     _nan(t.time_to_float_min),
         "truth_landing_lat_deg":       _nan(t.landing_lat),
         "truth_landing_lon_deg":       _nan(t.landing_lon),
         "truth_landing_time":          str(t.landing_time)[:19] if t.landing_time else "",
         "landing_distance_km":         _nan(result.landing_distance_km),
         "landing_time_diff_min":       _nan(result.landing_time_diff_min),
+        "time_to_float_diff_min":      _nan(result.time_to_float_diff_min),
+        "time_to_ground_diff_min":     _nan(result.time_to_ground_diff_min),
         "temp_mae_k":                  _nan(result.temp_mae_k),
         "pressure_mae_pa":             _nan(result.pressure_mae_pa),
         "reforecast_landing_lat_deg":  _nan(result.gfs_truth_landing_lat),
@@ -379,7 +387,7 @@ def _write_summary_html(summary_rows: list[dict], batch_dir: str,
                 f'<tr class="failed-row" data-orig="{orig_idx}" style="background:{FAIL}">'
                 f'<td data-val="{_html.escape(lid_raw)}" style="text-align:left">{lid}</td>'
                 f'<td data-val="{_html.escape(ft_raw)}">{ft}</td>'
-                f'<td colspan="18" style="text-align:left">FAILED: {msg}</td></tr>'
+                f'<td colspan="21" style="text-align:left">FAILED: {msg}</td></tr>'
             )
 
         def _f(key):
@@ -389,21 +397,28 @@ def _write_summary_html(summary_rows: list[dict], batch_dir: str,
         pct_alt = _pct(row.get("sim_float_alt_mean_m"),     row.get("truth_float_alt_mean_m"))
         pct_asc = _pct(row.get("sim_ascent_rate_mean_ms"),  row.get("truth_ascent_rate_mean_ms"))
         pct_des = _pct(row.get("sim_descent_rate_mean_ms"), row.get("truth_descent_rate_mean_ms"))
-        pct_ela = _pct(row.get("sim_elapsed_time_min"),     row.get("truth_elapsed_time_min"))
 
+        ttf_diff = _f("time_to_float_diff_min")
+        ttg_diff = _f("time_to_ground_diff_min")
         land_km  = _f("landing_distance_km")
         tdiff    = _f("landing_time_diff_min")
         temp_mae = _f("temp_mae_k")
         pres_mae = _f("pressure_mae_pa")
 
-        pa_txt, pa_s, pa_r = _pct_cell(pct_alt)
-        pc_txt, pc_s, pc_r = _pct_cell(pct_asc)
-        pd_txt, pd_s, pd_r = _pct_cell(pct_des)
-        pe_txt, pe_s, pe_r = _pct_cell(pct_ela)
-        ld_txt, ld_s, ld_r = _abs_cell(land_km, 20, 50)
-        td_txt, td_s, td_r = _abs_cell(abs(tdiff) if not math.isnan(tdiff) else math.nan, 30, 90)
-        tm_txt, tm_s, tm_r = _abs_cell(temp_mae, 5, 15)
-        pm_txt, pm_s, pm_r = _abs_cell(pres_mae, 500, 2000)
+        pa_txt, pa_s, pa_r   = _pct_cell(pct_alt)
+        pc_txt, pc_s, pc_r   = _pct_cell(pct_asc)
+        pd_txt, pd_s, pd_r   = _pct_cell(pct_des)
+        tf_txt, tf_s, tf_r   = _abs_cell(abs(ttf_diff) if not math.isnan(ttf_diff) else math.nan, 15, 45)
+        tg_txt, tg_s, tg_r   = _abs_cell(abs(ttg_diff) if not math.isnan(ttg_diff) else math.nan, 30, 90)
+        ld_txt, ld_s, ld_r   = _abs_cell(land_km, 20, 50)
+        td_txt, td_s, td_r   = _abs_cell(abs(tdiff) if not math.isnan(tdiff) else math.nan, 30, 90)
+        tm_txt, tm_s, tm_r   = _abs_cell(temp_mae, 5, 15)
+        pm_txt, pm_s, pm_r   = _abs_cell(pres_mae, 500, 2000)
+
+        def _signed(v):
+            """Format a signed minute difference as '+X' / '-X'."""
+            if math.isnan(v): return "—"
+            return f"{v:+.0f}"
 
         return (
             f'<tr data-orig="{orig_idx}">'
@@ -420,9 +435,12 @@ def _write_summary_html(summary_rows: list[dict], batch_dir: str,
             + _td(_rv(row.get("sim_descent_rate_mean_ms")),  _fv(row.get("sim_descent_rate_mean_ms"),  ".2f"))
             + _td(_rv(row.get("truth_descent_rate_mean_ms")), _fv(row.get("truth_descent_rate_mean_ms"), ".2f"))
             + _td(pd_r, pd_txt, pd_s)
-            + _td(_rv(row.get("sim_elapsed_time_min")),   _fv(row.get("sim_elapsed_time_min"),   ".0f"))
-            + _td(_rv(row.get("truth_elapsed_time_min")), _fv(row.get("truth_elapsed_time_min"), ".0f"))
-            + _td(pe_r, pe_txt, pe_s)
+            + _td(_rv(row.get("sim_time_to_float_min")),   _fv(row.get("sim_time_to_float_min"),   ".0f"))
+            + _td(_rv(row.get("truth_time_to_float_min")), _fv(row.get("truth_time_to_float_min"), ".0f"))
+            + _td(tf_r, _signed(ttf_diff), tf_s)
+            + _td(_rv(row.get("sim_elapsed_time_min")),    _fv(row.get("sim_elapsed_time_min"),    ".0f"))
+            + _td(_rv(row.get("truth_elapsed_time_min")),  _fv(row.get("truth_elapsed_time_min"),  ".0f"))
+            + _td(tg_r, _signed(ttg_diff), tg_s)
             + _td(ld_r, ld_txt, ld_s)
             + _td(td_r, td_txt, td_s)
             + _td(tm_r, tm_txt, tm_s)
@@ -437,22 +455,25 @@ def _write_summary_html(summary_rows: list[dict], batch_dir: str,
         avg_sa  = a("sim_float_alt_mean_m");    avg_ta  = a("truth_float_alt_mean_m")
         avg_sas = a("sim_ascent_rate_mean_ms"); avg_tas = a("truth_ascent_rate_mean_ms")
         avg_sd  = a("sim_descent_rate_mean_ms"); avg_td = a("truth_descent_rate_mean_ms")
+        avg_sf  = a("sim_time_to_float_min");   avg_tf  = a("truth_time_to_float_min")
         avg_se  = a("sim_elapsed_time_min");    avg_te  = a("truth_elapsed_time_min")
 
         pct_alt = _pct(avg_sa,  avg_ta)
         pct_asc = _pct(avg_sas, avg_tas)
         pct_des = _pct(avg_sd,  avg_td)
-        pct_ela = _pct(avg_se,  avg_te)
 
-        avg_land  = a("landing_distance_km")
-        avg_tdiff = a("landing_time_diff_min")
-        avg_tmae  = a("temp_mae_k")
-        avg_pmae  = a("pressure_mae_pa")
+        avg_ttf_diff = a("time_to_float_diff_min")
+        avg_ttg_diff = a("time_to_ground_diff_min")
+        avg_land     = a("landing_distance_km")
+        avg_tdiff    = a("landing_time_diff_min")
+        avg_tmae     = a("temp_mae_k")
+        avg_pmae     = a("pressure_mae_pa")
 
         pa_txt, pa_s, _ = _pct_cell(pct_alt)
         pc_txt, pc_s, _ = _pct_cell(pct_asc)
         pd_txt, pd_s, _ = _pct_cell(pct_des)
-        pe_txt, pe_s, _ = _pct_cell(pct_ela)
+        tf_txt, tf_s, _ = _abs_cell(abs(avg_ttf_diff) if not math.isnan(avg_ttf_diff) else math.nan, 15, 45)
+        tg_txt, tg_s, _ = _abs_cell(abs(avg_ttg_diff) if not math.isnan(avg_ttg_diff) else math.nan, 30, 90)
         ld_txt, ld_s, _ = _abs_cell(avg_land, 20, 50)
         td_txt, td_s, _ = _abs_cell(abs(avg_tdiff) if not math.isnan(avg_tdiff) else math.nan, 30, 90)
         tm_txt, tm_s, _ = _abs_cell(avg_tmae, 5, 15)
@@ -460,6 +481,10 @@ def _write_summary_html(summary_rows: list[dict], batch_dir: str,
 
         avg_payload = a("payload_weight_kg")
         avg_balsize = a("balloon_size_m")
+
+        def _signed(v):
+            if math.isnan(v): return "—"
+            return f"{v:+.0f}"
 
         return (
             f'<tr>'
@@ -469,7 +494,8 @@ def _write_summary_html(summary_rows: list[dict], batch_dir: str,
             f'<td>{_fv(avg_sa,  ".0f")}</td><td>{_fv(avg_ta,  ".0f")}</td><td{pa_s}>{pa_txt}</td>'
             f'<td>{_fv(avg_sas, ".2f")}</td><td>{_fv(avg_tas, ".2f")}</td><td{pc_s}>{pc_txt}</td>'
             f'<td>{_fv(avg_sd,  ".2f")}</td><td>{_fv(avg_td,  ".2f")}</td><td{pd_s}>{pd_txt}</td>'
-            f'<td>{_fv(avg_se,  ".0f")}</td><td>{_fv(avg_te,  ".0f")}</td><td{pe_s}>{pe_txt}</td>'
+            f'<td>{_fv(avg_sf,  ".0f")}</td><td>{_fv(avg_tf,  ".0f")}</td><td{tf_s}>{_signed(avg_ttf_diff)}</td>'
+            f'<td>{_fv(avg_se,  ".0f")}</td><td>{_fv(avg_te,  ".0f")}</td><td{tg_s}>{_signed(avg_ttg_diff)}</td>'
             f'<td{ld_s}>{ld_txt}</td>'
             f'<td{td_s}>{td_txt}</td>'
             f'<td{tm_s}>{tm_txt}</td>'
@@ -491,11 +517,12 @@ def _write_summary_html(summary_rows: list[dict], batch_dir: str,
         '<th colspan="3">Float Alt (m)</th>'
         '<th colspan="3">Ascent (m/s)</th>'
         '<th colspan="3">Descent (m/s)</th>'
-        '<th colspan="3">Elapsed (min)</th>'
-        '<th data-col="16" rowspan="2">Land Dist<br>(km)<span class="si"></span></th>'
-        '<th data-col="17" rowspan="2">|Time &Delta;|<br>(min)<span class="si"></span></th>'
-        '<th data-col="18" rowspan="2">Temp MAE<br>(K)<span class="si"></span></th>'
-        '<th data-col="19" rowspan="2">Press MAE<br>(Pa)<span class="si"></span></th>'
+        '<th colspan="3">Time to Float (min)</th>'
+        '<th colspan="3">Time to Ground (min)</th>'
+        '<th data-col="22" rowspan="2">Land Dist<br>(km)<span class="si"></span></th>'
+        '<th data-col="23" rowspan="2">|Time &Delta;|<br>(min)<span class="si"></span></th>'
+        '<th data-col="24" rowspan="2">Temp MAE<br>(K)<span class="si"></span></th>'
+        '<th data-col="25" rowspan="2">Press MAE<br>(Pa)<span class="si"></span></th>'
         '</tr>'
         '<tr>'
         '<th data-col="4"  class="sub">Sim<span class="si"></span></th>'
@@ -509,7 +536,10 @@ def _write_summary_html(summary_rows: list[dict], batch_dir: str,
         '<th data-col="12" class="sub">%&Delta;<span class="si"></span></th>'
         '<th data-col="13" class="sub">Sim<span class="si"></span></th>'
         '<th data-col="14" class="sub">Truth<span class="si"></span></th>'
-        '<th data-col="15" class="sub">%&Delta;<span class="si"></span></th>'
+        '<th data-col="15" class="sub">&Delta;(min)<span class="si"></span></th>'
+        '<th data-col="16" class="sub">Sim<span class="si"></span></th>'
+        '<th data-col="17" class="sub">Truth<span class="si"></span></th>'
+        '<th data-col="18" class="sub">&Delta;(min)<span class="si"></span></th>'
         '</tr>'
         '</thead>'
     )

@@ -46,7 +46,8 @@ class FlightMetrics:
     ascent_rate_std:  float = math.nan
     descent_rate_mean: float = math.nan
     descent_rate_std:  float = math.nan
-    elapsed_time_min: float = math.nan
+    elapsed_time_min:    float = math.nan
+    time_to_float_min:   float = math.nan
     landing_lat:  float = math.nan
     landing_lon:  float = math.nan
     landing_time: Optional[object] = None  # pd.Timestamp or datetime
@@ -58,7 +59,9 @@ class EvaluationResult:
     sim:   FlightMetrics = field(default_factory=FlightMetrics)
     truth: FlightMetrics = field(default_factory=FlightMetrics)
     landing_distance_km:  float = math.nan
-    landing_time_diff_min: float = math.nan
+    landing_time_diff_min:   float = math.nan
+    time_to_float_diff_min:  float = math.nan
+    time_to_ground_diff_min: float = math.nan
     temp_mae_k:     float = math.nan
     pressure_mae_pa: float = math.nan
     # GFS Forecast applied to truth altitude profile (reforecast trajectory)
@@ -153,13 +156,13 @@ class BalloonEvaluator:
         """Return (ascent_mask, float_mask, descent_mask) boolean arrays.
 
         Strategy:
-        - **Float**: altitude >= alt_fraction * el_max AND |v| < v_float.
-          The combined condition excludes the curved transition regions where
-          the balloon is decelerating into or accelerating out of float.
-        - **Ascent**: v > v_linear, strictly before the balloon enters the
-          high-altitude region (i.e. before the deceleration curve begins).
-        - **Descent**: v < -v_linear, strictly after the balloon exits the
-          high-altitude region (i.e. after the initial slow post-float drop).
+        - **Float**: within the high-altitude region [i_enter, i_exit], find where
+          the rolling-mean velocity is approximately zero.  Using a rolling mean
+          rather than instantaneous velocity prevents two failure modes:
+            * sim: deceleration curve into float has |v| < v_float but mean > v_float
+            * truth: APRS noise spikes have |v| > v_float but local mean ≈ 0
+        - **Ascent**: v > v_linear strictly before i_enter.
+        - **Descent**: v < -v_linear strictly after i_exit.
         """
         el = np.asarray(el, dtype=float)
         v  = np.asarray(v,  dtype=float)
@@ -177,8 +180,16 @@ class BalloonEvaluator:
             i_peak  = int(np.argmax(el))
             i_enter = i_exit = i_peak
 
-        # Float: slow motion while at high altitude (excludes rounded transitions)
-        float_mask = (el >= alt_threshold) & (np.abs(v) < v_float)
+        # Rolling-mean velocity within the high-altitude slice only.
+        # Window ≈ 1/6 of the high-altitude span, capped so it stays meaningful.
+        span = max(i_exit - i_enter, 1)
+        win  = max(10, min(span // 6, 600))
+        v_hi_roll = (pd.Series(v[i_enter:i_exit + 1])
+                     .rolling(window=win, center=True, min_periods=1)
+                     .mean().to_numpy())
+
+        float_mask = np.zeros(n, dtype=bool)
+        float_mask[i_enter:i_exit + 1] = np.abs(v_hi_roll) < v_float
 
         # Ascent: linear climb before the deceleration into float
         ascent_mask = np.zeros(n, dtype=bool)
@@ -224,6 +235,12 @@ class BalloonEvaluator:
             pd.Timestamp(land_t_sim) - pd.Timestamp(t_sim[0])
         ).total_seconds() / 60.0
 
+        flt_idx_sim = np.where(flt_m)[0]
+        time_to_float_sim = (
+            (pd.Timestamp(t_sim[flt_idx_sim[0]]) - pd.Timestamp(t_sim[0])).total_seconds() / 60.0
+            if flt_idx_sim.size else math.nan
+        )
+
         sim_metrics = FlightMetrics(
             float_alt_mean=_mean(el_sim, flt_m),
             float_alt_std=_std(el_sim,  flt_m),
@@ -232,6 +249,7 @@ class BalloonEvaluator:
             descent_rate_mean=_mean(v_sim, des_m),
             descent_rate_std=_std(v_sim,  des_m),
             elapsed_time_min=elapsed_sim,
+            time_to_float_min=time_to_float_sim,
             landing_lat=ss["lat"][land_i_sim],
             landing_lon=ss["lon"][land_i_sim],
             landing_time=land_t_sim,
@@ -242,11 +260,22 @@ class BalloonEvaluator:
         v_truth  = df["v_truth"].to_numpy(dtype=float)
         t_truth  = df["time"].tolist()
 
-        asc_t, flt_t, des_t, i_enter_truth, i_exit_truth = self._detect_phases(el_truth, v_truth, min_alt)
+        # Smooth before phase detection — raw APRS finite-differences are noisy
+        # (altitude quantization causes many zero-velocity readings during ascent/descent)
+        v_truth_smooth = (pd.Series(v_truth)
+                          .rolling(window=5, center=True, min_periods=1)
+                          .median().to_numpy())
+        asc_t, flt_t, des_t, i_enter_truth, i_exit_truth = self._detect_phases(el_truth, v_truth_smooth, min_alt)
 
         elapsed_truth = (
             pd.Timestamp(t_truth[-1]) - pd.Timestamp(t_truth[0])
         ).total_seconds() / 60.0
+
+        flt_idx_truth = np.where(flt_t)[0]
+        time_to_float_truth = (
+            (pd.Timestamp(t_truth[flt_idx_truth[0]]) - pd.Timestamp(t_truth[0])).total_seconds() / 60.0
+            if flt_idx_truth.size else math.nan
+        )
 
         truth_metrics = FlightMetrics(
             float_alt_mean=_mean(el_truth, flt_t),
@@ -256,6 +285,7 @@ class BalloonEvaluator:
             descent_rate_mean=_mean(v_truth, des_t),
             descent_rate_std=_std(v_truth,  des_t),
             elapsed_time_min=elapsed_truth,
+            time_to_float_min=time_to_float_truth,
             landing_lat=float(df["lat"].iloc[-1]),
             landing_lon=float(df["lng"].iloc[-1]),
             landing_time=t_truth[-1],
@@ -276,6 +306,12 @@ class BalloonEvaluator:
         else:
             landing_dt_min = math.nan
 
+        def _diff(a, b):
+            return a - b if not (math.isnan(a) or math.isnan(b)) else math.nan
+
+        time_to_float_diff  = _diff(sim_metrics.time_to_float_min,  truth_metrics.time_to_float_min)
+        time_to_ground_diff = _diff(sim_metrics.elapsed_time_min,   truth_metrics.elapsed_time_min)
+
         # ── GFS Forecast + Truth Altitude (reforecast) ────────────────────────
         gfs_lat_arr = ss.get("lat_aprs_gps", [])
         gfs_lon_arr = ss.get("lon_aprs_gps", [])
@@ -295,6 +331,8 @@ class BalloonEvaluator:
             truth=truth_metrics,
             landing_distance_km=landing_dist_km,
             landing_time_diff_min=landing_dt_min,
+            time_to_float_diff_min=time_to_float_diff,
+            time_to_ground_diff_min=time_to_ground_diff,
             temp_mae_k=self._compute_temp_mae(ss, df),
             pressure_mae_pa=self._compute_pressure_mae(df),
             gfs_truth_landing_lat=gfs_land_lat,
