@@ -1,6 +1,7 @@
-version 1.2.2 (don't forget to change documentation and setup.py, and release)
+version 1.3 (don't forget to change documentation and setup.py, and release)
 ===============================
-* New Testing Suite against Historical Data.  
+* Fixed bug in calculating sunset
+* Evaluation Suite against Historical Data.  
     * Recreating https://journals.ametsoc.org/view/journals/atot/41/12/JTECH-D-24-0045.1.xml?tab_body=pdf
 
 

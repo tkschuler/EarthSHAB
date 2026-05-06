@@ -29,6 +29,7 @@ import matplotlib.pyplot as plt
 
 import EarthSHAB.config_earth as config_earth
 from EarthSHAB.simulate import BalloonSimulation
+from EarthSHAB.radiation import solar_zenith_adjusted
 from evaluation.plot_evaluation import plot_comparison
 from EarthSHAB.Plotting.plot_trajectory_map import plot_map
 from EarthSHAB.Plotting.plot_windmap import plot_windmap
@@ -521,6 +522,36 @@ class BalloonEvaluator:
 
     # ── Plot ─────────────────────────────────────────────────────────────────
 
+    def _compute_sunset_sim(self):
+        """Sunset local Timestamp along the simulated trajectory, or None."""
+        ss   = self.sim_state
+        gmt  = ss["GMT"]
+        lats = ss["lat"]
+        lons = ss["lon"]
+        alts = ss["el"]
+        step = 60
+        for i_s, t_local in enumerate(ss["time_local"][::step]):
+            i = i_s * step
+            t_utc = pd.Timestamp(t_local) + pd.Timedelta(hours=gmt)
+            if solar_zenith_adjusted(t_utc, lats[i], lons[i], alts[i]) >= math.pi / 2:
+                return pd.Timestamp(t_local)
+        return None
+
+    def _compute_sunset_truth(self):
+        """Sunset local Timestamp along the APRS truth trajectory, or None.
+
+        Scans the truth trajectory in chronological order, using each APRS
+        point's actual lat/lng/altitude.  The sort is required because aprs.fi
+        exports are newest-first.  The UTC offset (7 h) is the same constant
+        used by _load_aprs when converting timestamps — no model data is used.
+        """
+        _gmt = self.sim_state["GMT"]
+        for _, row in self.df_truth.sort_values("time").iterrows():
+            t_utc = row["time"] + pd.Timedelta(hours=_gmt)
+            if solar_zenith_adjusted(t_utc, row["lat"], row["lng"], float(row["altitude"])) >= math.pi / 2:
+                return row["time"]
+        return None
+
     def plot(self):
         ss = self.sim_state
         os.makedirs(self._output_dir, exist_ok=True)
@@ -534,6 +565,8 @@ class BalloonEvaluator:
             df_truth=self.df_truth,
             sim_phases=getattr(self, '_sim_phases', None),
             truth_phases=getattr(self, '_truth_phases', None),
+            t_sunset_sim=self._compute_sunset_sim(),
+            t_sunset_truth=self._compute_sunset_truth(),
         )
         png_path = os.path.join(self._output_dir, f"{stem}.png")
         fig.savefig(png_path, dpi=150, bbox_inches='tight')

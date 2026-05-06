@@ -10,7 +10,8 @@ import fluids
 
 
 def plot_comparison(time_sim, el_sim, v_sim, T_atm_sim, df_truth,
-                    sim_phases=None, truth_phases=None):
+                    sim_phases=None, truth_phases=None,
+                    t_sunset_sim=None, t_sunset_truth=None):
     """Evaluation comparison figure.
 
     Layout (3-row gridspec):
@@ -110,6 +111,24 @@ def plot_comparison(time_sim, el_sim, v_sim, T_atm_sim, df_truth,
             ax_alt.axhline(fa_mean_t, color='darkorange', linestyle='--',
                            linewidth=1.8, alpha=0.85, label=lbl)
 
+    t_ss_sim   = pd.Timestamp(t_sunset_sim)   if t_sunset_sim   is not None else None
+    t_ss_truth = pd.Timestamp(t_sunset_truth) if t_sunset_truth is not None else None
+
+    _sim_sunset_kw   = dict(color='royalblue',  linewidth=1.5, linestyle=':', zorder=5)
+    _truth_sunset_kw = dict(color='darkorange', linewidth=1.5, linestyle=':', zorder=5)
+
+    def _draw_sunsets(ax, only_if_in_range=False, t_s=None, t_e=None):
+        for t_ss, kw, lbl in [
+            (t_ss_sim,   _sim_sunset_kw,   'Sim Sunset'),
+            (t_ss_truth, _truth_sunset_kw, 'Truth Sunset'),
+        ]:
+            if t_ss is None:
+                continue
+            if only_if_in_range and not (t_s <= t_ss <= t_e):
+                continue
+            ax.axvline(t_ss, label=lbl, **kw)
+
+    _draw_sunsets(ax_alt)
     ax_alt.legend(loc='lower left', ncol=3, fontsize=9)
 
     # ── Velocity windows ─────────────────────────────────────────────────────
@@ -126,6 +145,7 @@ def plot_comparison(time_sim, el_sim, v_sim, T_atm_sim, df_truth,
                 color='darkorange', linestyle='--', marker='.', markersize=4,
                 label='Ground Truth')
         ax.axhline(0, color='gray', linewidth=0.8, linestyle=':')
+        _draw_sunsets(ax, only_if_in_range=True, t_s=t_s, t_e=t_e)
         ax.set_xlabel('Time (MST)')
         ax.set_ylabel('Vertical Velocity (m/s)')
         ax.set_title(title)
@@ -143,6 +163,7 @@ def plot_comparison(time_sim, el_sim, v_sim, T_atm_sim, df_truth,
     valid_temp = df_truth['temp_k'].notna()
     ax_temp.scatter(df_truth['time'][valid_temp], df_truth['temp_k'][valid_temp],
                     color='darkorange', s=12, zorder=3, label='Ground Truth (APRS)')
+    _draw_sunsets(ax_temp)
     ax_temp.set_xlabel('Time (MST)')
     ax_temp.set_ylabel('Temperature (K)')
     ax_temp.set_title('Temperature')
@@ -154,6 +175,7 @@ def plot_comparison(time_sim, el_sim, v_sim, T_atm_sim, df_truth,
     valid_pres = df_truth['pressure_pa'].notna()
     ax_pres.scatter(df_truth['time'][valid_pres], df_truth['pressure_pa'][valid_pres] / 1000,
                     color='darkorange', s=12, zorder=3, label='Ground Truth (APRS)')
+    _draw_sunsets(ax_pres)
     ax_pres.set_xlabel('Time (MST)')
     ax_pres.set_ylabel('Pressure (kPa)')
     ax_pres.set_title('Pressure')

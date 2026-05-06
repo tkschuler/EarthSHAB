@@ -9,6 +9,28 @@ import numpy as np
 
 import EarthSHAB.config_earth as config_earth
 
+# Horizon correction values (arcminutes converted to degrees).
+# Source: https://github.com/KosherJava/zmanim/blob/master/src/main/java/com/kosherjava/zmanim/util/AstronomicalCalculator.java#L176
+_REFRACTION_DEG   = 4.478885263888294 / 60.  # atmospheric refraction at the horizon
+_SOLAR_RADIUS_DEG = 16 / 60.                  # apparent angular radius of the solar disk
+
+
+def solar_zenith_adjusted(t_utc, lat, lon, alt_m):
+    """Altitude-adjusted solar zenith angle in radians.
+
+    At altitude the geometric horizon is depressed, so the sun sets later than
+    at ground level.  The result also corrects for atmospheric refraction and
+    the apparent solar disk radius (upper-limb definition of sunset).
+
+    Sunset occurs when the returned value >= math.pi / 2.
+    """
+    solpos = fluids.solar_position(t_utc, lat, lon)
+    zen = math.radians(solpos[0])
+    earth_radius_km = 6356.9
+    elev_adj = math.acos(earth_radius_km / (earth_radius_km + max(alt_m, 0.0) / 1000.))
+    return zen - elev_adj + math.radians(_SOLAR_RADIUS_DEG + _REFRACTION_DEG)
+
+
 class Radiation:
     # Constants
     I0 = 1358               # Direct Solar Radiation Level
@@ -94,19 +116,7 @@ class Radiation:
 
         """
 
-        solpos = fluids.solar_position(t, coord["lat"], coord["lon"], Z = coord["alt"])
-        zen = math.radians(solpos[0]) #get apparent zenith
-
-        # For determining adjusted zenith at elevation
-        # https://github.com/KosherJava/zmanim/blob/master/src/main/java/com/kosherjava/zmanim/util/AstronomicalCalculator.java#L176
-        refraction = 4.478885263888294 / 60.
-        solarRadius = 16 / 60.
-        earthRadius = 6356.9; # in KM
-        elevationAdjustment = math.acos(earthRadius / (earthRadius + (coord["alt"]/1000.)));
-
-
-        adjusted_zen =zen - elevationAdjustment + math.radians(solarRadius + refraction)
-        return adjusted_zen
+        return solar_zenith_adjusted(t, coord["lat"], coord["lon"], coord["alt"])
 
     def get_air_mass(self,zen, el):
         r"""Air Mass at elevation
