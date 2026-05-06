@@ -31,6 +31,20 @@ def draw_bounding_box(gmap1, min_lat, min_lon, max_lat, max_lon):
     gmap1.polygon(lats, lons, 'cornflowerblue', edge_width=5, alpha=.2)
 
 
+def _drop_nan_coords(lats, lons):
+    """Return (lats, lons) with any pair containing NaN removed."""
+    import math
+    def _isnan(v):
+        try:
+            return math.isnan(v)
+        except (TypeError, ValueError):
+            return False
+    pairs = [(la, lo) for la, lo in zip(lats, lons) if not _isnan(la) and not _isnan(lo)]
+    if not pairs:
+        return [], []
+    return zip(*pairs)
+
+
 def plot_map(
     gmap1,
     coord,
@@ -49,6 +63,9 @@ def plot_map(
     html_prefix=None,
     output_dir="src/EarthSHAB/trajectories/",
 ):
+    lat_aprs_gps, lon_aprs_gps = _drop_nan_coords(lat_aprs_gps, lon_aprs_gps)
+    lat, lon = _drop_nan_coords(lat, lon)
+
     if balloon_trajectory is not None:
         if forecast_type == "GFS":
             gmap1.plot(lat_aprs_gps, lon_aprs_gps, 'cyan', edge_width=2.5)

@@ -290,10 +290,18 @@ class BalloonSimulation:
                     self.t = self.t + pd.Timedelta(seconds=dt_aprs[i + 1])
                     self.time_local_aprs.append(self.t - pd.Timedelta(hours=self.GMT))
 
+                    # Forward-fill NaN altitudes: a corrupted APRS packet yields NaN
+                    # altitude, which would cascade — NaN alt → getNewCoord returns
+                    # NaN lat/lon → next iteration also returns NaN, propagating
+                    # indefinitely.  Use the previous coord's altitude instead.
+                    alt_i = alt_aprs[i]
+                    if np.isnan(alt_i):
+                        alt_i = self.coords_aprs[-1]["alt"]
+
                     coord_new = {
                         "lat": lat_new,
                         "lon": lon_new,
-                        "alt": alt_aprs[i],
+                        "alt": alt_i,
                         "timestamp": self.t,
                     }
 
