@@ -76,10 +76,14 @@ def plot_comparison(time_sim, el_sim, v_sim, T_atm_sim, df_truth,
         i_exit_t  = truth_phases['i_exit']
         t_asc_start_t = t_truth_all[0]                                                  # always from the start
         t_asc_end_t   = t_truth_all[asc_t_idx[-1]] if asc_t_idx.size else t_truth_all[i_enter_t]
-        t_flt_start_t = t_truth_all[flt_t_idx[0]]  if flt_t_idx.size else t_truth_all[i_enter_t]
-        t_flt_end_t   = t_truth_all[flt_t_idx[-1]] if flt_t_idx.size else t_truth_all[i_exit_t]
+        # Descent boundaries computed before float so they can serve as fallback.
         t_des_start_t = t_truth_all[des_t_idx[0]]  if des_t_idx.size else t_truth_all[i_exit_t]
         t_des_end_t   = t_truth_all[des_t_idx[-1]] if des_t_idx.size else t_truth_all[-1]
+        # When no float is detected, collapse float window to zero-width at the
+        # descent start — the ascent box then fills all the way to descent (correct
+        # for a trajectory that peaked and came straight down without floating).
+        t_flt_start_t = t_truth_all[flt_t_idx[0]]  if flt_t_idx.size else t_des_start_t
+        t_flt_end_t   = t_truth_all[flt_t_idx[-1]] if flt_t_idx.size else t_des_start_t
     else:
         t_asc_start_t = t_asc_start
         t_asc_end_t   = t_asc_end
@@ -129,25 +133,30 @@ def plot_comparison(time_sim, el_sim, v_sim, T_atm_sim, df_truth,
     ax_alt.set_title('Altitude')
 
     # ── 5 phase boxes: sim ascent, truth ascent, float, sim descent, truth descent ──
+    # Ascent boxes run from the first data point all the way to the float window start
+    # so there is no gap between ascent and float.
     # Sim boxes: solid fill.  Truth boxes: hatched, same color family.
     _span_kw = dict(zorder=0)
-    ax_alt.axvspan(t_asc_start,   t_asc_end,   alpha=0.18, color='limegreen',
+    ax_alt.axvspan(t_asc_start,   t_flt_start,   alpha=0.18, color='limegreen',
                    label='Sim ascent window',   **_span_kw)
-    ax_alt.axvspan(t_asc_start_t, t_asc_end_t, alpha=0.12, color='limegreen',
+    ax_alt.axvspan(t_asc_start_t, t_flt_start_t, alpha=0.12, color='limegreen',
                    hatch='//', label='Truth ascent window', **_span_kw)
-    ax_alt.axvspan(t_flt_start,   t_flt_end,   alpha=0.13, color='mediumpurple',
+    ax_alt.axvspan(t_flt_start,   t_flt_end,     alpha=0.13, color='mediumpurple',
                    label='Float window',        **_span_kw)
-    ax_alt.axvspan(t_des_start,   t_des_end,   alpha=0.18, color='tomato',
+    ax_alt.axvspan(t_des_start,   t_des_end,     alpha=0.18, color='tomato',
                    label='Sim descent window',  **_span_kw)
-    ax_alt.axvspan(t_des_start_t, t_des_end_t, alpha=0.12, color='tomato',
+    ax_alt.axvspan(t_des_start_t, t_des_end_t,   alpha=0.12, color='tomato',
                    hatch='//', label='Truth descent window', **_span_kw)
 
-    # Boundary vertical lines — one per phase edge (sim + truth)
+    # Boundary vertical lines — ascent/float boundary is shared, so only draw
+    # the outer edges of each box (ascent start, float start=ascent end, float end,
+    # descent start, descent end — for both sim and truth).
     _bnd_kw = dict(linewidth=1.5, alpha=0.65, zorder=2)
     for t_b, clr in [
-        (t_asc_start,   'limegreen'),    (t_asc_end,   'limegreen'),
-        (t_asc_start_t, 'limegreen'),    (t_asc_end_t, 'limegreen'),
+        (t_asc_start,   'limegreen'),
+        (t_asc_start_t, 'limegreen'),
         (t_flt_start,   'mediumpurple'), (t_flt_end,   'mediumpurple'),
+        (t_flt_start_t, 'mediumpurple'),
         (t_des_start,   'tomato'),       (t_des_end,   'tomato'),
         (t_des_start_t, 'tomato'),       (t_des_end_t, 'tomato'),
     ]:
@@ -222,9 +231,17 @@ def plot_comparison(time_sim, el_sim, v_sim, T_atm_sim, df_truth,
             truth_mask = (t_truth_all >= truth_ts) & (t_truth_all <= truth_te)
             if truth_mask.any():
                 truth_e = (t_truth_all[truth_mask] - truth_ts).total_seconds() / 60
-                ax.plot(truth_e, df_truth['v_truth'].values[truth_mask],
-                        color='darkorange', linestyle='--', marker='.', markersize=4,
-                        label='Ground Truth')
+                v_raw   = df_truth['v_truth'].values[truth_mask]
+                # Raw noisy trace (faded)
+                ax.plot(truth_e, v_raw, color='darkorange', linestyle='--',
+                        marker='.', markersize=3, alpha=0.35, label='Ground Truth (raw)')
+                # Smoothed overlay
+                win_s   = max(3, len(v_raw) // 12)
+                v_smooth = (pd.Series(v_raw)
+                            .rolling(window=win_s, center=True, min_periods=1)
+                            .mean().to_numpy())
+                ax.plot(truth_e, v_smooth, color='darkorange', linewidth=2.0,
+                        alpha=0.9, label='Ground Truth (smooth)')
 
         ax.axhline(0, color='gray', linewidth=0.8, linestyle=':')
 
@@ -241,7 +258,7 @@ def plot_comparison(time_sim, el_sim, v_sim, T_atm_sim, df_truth,
         ax.set_title(title)
         ax.legend(fontsize=8)
 
-    _vel_window(ax_asc, t_asc_start, t_asc_end, t_asc_start_t, t_asc_end_t,  'Ascent Rate')
+    _vel_window(ax_asc, t_asc_start, t_flt_start, t_asc_start_t, t_flt_start_t, 'Ascent Rate')
     _vel_window(ax_flt, t_flt_start, t_flt_end, t_flt_start_t, t_flt_end_t,  'Float Vertical Motion')
     _vel_window(ax_des, t_des_start, t_des_end, t_des_start_t, t_des_end_t,  'Descent Rate')
 

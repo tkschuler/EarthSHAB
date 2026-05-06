@@ -168,16 +168,18 @@ class BalloonEvaluator:
         v  = np.asarray(v,  dtype=float)
         n  = len(el)
 
-        el_max        = el.max()
+        # Use nanmax so a single missing altitude reading doesn't collapse detection.
+        el_max        = np.nanmax(el)
         alt_threshold = alt_fraction * el_max
 
-        # Find where the balloon enters and exits the high-altitude region
+        # Find where the balloon enters and exits the high-altitude region.
+        # NaN altitudes evaluate False for >=, so they are naturally excluded.
         high_indices = np.where(el >= alt_threshold)[0]
         if len(high_indices) > 0:
             i_enter = int(high_indices[0])
             i_exit  = int(high_indices[-1])
         else:
-            i_peak  = int(np.argmax(el))
+            i_peak  = int(np.nanargmax(el))
             i_enter = i_exit = i_peak
 
         # Rolling-mean velocity within the high-altitude slice only.
@@ -188,8 +190,41 @@ class BalloonEvaluator:
                      .rolling(window=win, center=True, min_periods=1)
                      .mean().to_numpy())
 
+        candidate = np.abs(v_hi_roll) < v_float
+
+        # Keep only the LARGEST contiguous True block inside the candidate mask.
+        # Discard it if it's shorter than 1/4 of the high-altitude span — this
+        # rejects spurious "float" detections caused by the velocity zero-crossing
+        # at the apex of a non-float trajectory.
         float_mask = np.zeros(n, dtype=bool)
-        float_mask[i_enter:i_exit + 1] = np.abs(v_hi_roll) < v_float
+        if candidate.any():
+            chg        = np.diff(np.concatenate([[False], candidate, [False]]).astype(int))
+            blk_starts = np.where(chg ==  1)[0]
+            blk_ends   = np.where(chg == -1)[0]
+            lengths    = blk_ends - blk_starts
+            best       = int(np.argmax(lengths))
+            min_len    = max(10, span // 4)
+            if lengths[best] >= min_len:
+                bs = blk_starts[best]
+                be = blk_ends[best]
+                # Trim the block front: skip the ascending approach into float
+                # (rolling mean still > 0.3 m/s means balloon is still climbing).
+                # Trim the block back: skip rapid descent out of float
+                # (rolling mean < -0.5 m/s means balloon has clearly left float).
+                v_trim_hi =  v_float * 0.3
+                v_trim_lo = -v_float * 0.5
+                front_trim = be  # default: skip if threshold never met
+                for idx in range(bs, be):
+                    if v_hi_roll[idx] < v_trim_hi:
+                        front_trim = idx
+                        break
+                back_trim = front_trim  # default
+                for idx in range(be - 1, front_trim - 1, -1):
+                    if v_hi_roll[idx] > v_trim_lo:
+                        back_trim = idx + 1
+                        break
+                if back_trim - front_trim >= min_len:
+                    float_mask[i_enter + front_trim : i_enter + back_trim] = True
 
         # Ascent: linear climb before the deceleration into float
         ascent_mask = np.zeros(n, dtype=bool)
