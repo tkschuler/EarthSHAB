@@ -49,6 +49,10 @@ FORECAST_FIELDS = ["gfs_file", "era5_file"]
 
 VALID_SHAPES = {"sphere", "trapezoid"}
 
+# launch_type is OPTIONAL — when absent, evaluator defaults to "standard".
+# When present, it must be one of these.
+VALID_LAUNCH_TYPES = {"standard", "helium_augmented", "grand_slam"}
+
 APRS_COLUMN_SETS = [
     {"time", "lat", "lng", "altitude"},                              # APRS.fi standard
     {"Date", "Time(UTC)", "Latitude", "Longitude", "Altitude(m)"},   # Custom onboard
@@ -152,6 +156,16 @@ def _make_launch_class(launch: dict):
         assert shape in VALID_SHAPES, (
             f"balloon_shape '{shape}' not in {VALID_SHAPES}. "
             f"Add it to VALID_SHAPES if intentional."
+        )
+
+    def test_launch_type_optional(_):
+        # launch_type is optional; only validated when present.
+        if "launch_type" not in launch:
+            return
+        lt = launch["launch_type"]
+        assert lt in VALID_LAUNCH_TYPES, (
+            f"launch_type '{lt}' not in {VALID_LAUNCH_TYPES}. "
+            f"Omit the field for standard solar-balloon launches."
         )
 
     def test_balloon_size(_):

@@ -256,6 +256,39 @@ Step 4 — ascent and descent
    ``v_linear`` defaults to ``1.0 m/s``.
 
 
+Launch-type-aware behaviour
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+EarthSHAB only physically models a self-ascending solar balloon.  When the
+``launch_type`` field on a launch entry is set to something other than
+``"standard"``, the evaluator alters phase detection and metric reporting so
+non-physical comparisons don't pollute the results.  The behaviour is
+identical between single and batch evaluations.
+
+* ``"standard"`` (default) — full ascent / float / descent metrics.
+* ``"helium_augmented"`` — ascent is helium-driven, faster than solar.
+  **Both sim and truth ascent masks are zeroed out**, so ``Ascent Rate Mean
+  / Std`` and ``Time to Float`` report ``N/A``.  Float and descent metrics
+  remain valid and are scored.
+* ``"grand_slam"`` — SHAB is carried by a separate weather balloon and
+  released *above* its natural float altitude.  Two changes:
+
+  * Ascent metrics are zeroed (same as helium-augmented).
+  * The float-search bracket is widened from ``alt ≥ 0.90 · max_alt`` to
+    the **entire post-apex region of the trajectory**.  Without this the
+    detector clips to the brief weather-balloon release peak and misses the
+    actual SHAB float plateau that follows the descent.  The descent mask
+    then begins at ``last_float_index + 1``.
+
+A row's ``Type`` cell in :ref:`batch-html-summary` shows which behaviour
+was applied; missing field is treated as ``standard``.
+
+.. note::
+   The forward simulation is unchanged — EarthSHAB still simulates a solar
+   balloon ascending from ``min_alt`` regardless of ``launch_type``.  The
+   flag only affects which phases of the *observed* trajectory get scored.
+
+
 Truth-velocity smoothing
 ~~~~~~~~~~~~~~~~~~~~~~~~
 

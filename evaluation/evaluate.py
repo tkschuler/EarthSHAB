@@ -75,7 +75,14 @@ class BalloonEvaluator:
     GMT = 7  # MST offset
     OUTPUT_DIR = "evaluation/"
 
-    def __init__(self, config_overrides: dict = None, output_dir: str = None):
+    # Launches whose ascent is non-physical for EarthSHAB's solar-balloon model:
+    # carried up by helium ("helium_augmented") or by a weather balloon
+    # ("grand_slam"). For these the ascent metrics are blanked out — only the
+    # float and descent phases get scored.
+    NON_STANDARD_LAUNCH_TYPES = {"helium_augmented", "grand_slam"}
+
+    def __init__(self, config_overrides: dict = None, output_dir: str = None,
+                 launch_type: str = "standard"):
         """
         Parameters
         ----------
@@ -97,6 +104,7 @@ class BalloonEvaluator:
             self._apply_overrides(config_overrides)
 
         self._output_dir = output_dir if output_dir is not None else self.OUTPUT_DIR
+        self.launch_type = launch_type
         self.geod = Geodesic.WGS84
         self.sim: Optional[BalloonSimulation] = None
         self.sim_state: Optional[dict] = None
@@ -151,8 +159,9 @@ class BalloonEvaluator:
     # ── Phase detection ───────────────────────────────────────────────────────
 
     @staticmethod
-    def _detect_phases(el, v, min_alt, alt_fraction=0.90, v_float=1.0, v_linear=1.0):
-        """Return (ascent_mask, float_mask, descent_mask) boolean arrays.
+    def _detect_phases(el, v, min_alt, alt_fraction=0.90, v_float=1.0, v_linear=1.0,
+                       launch_type="standard"):
+        """Return (ascent_mask, float_mask, descent_mask, i_enter, i_exit).
 
         Strategy:
         - **Float**: within the high-altitude region [i_enter, i_exit], find where
@@ -162,6 +171,14 @@ class BalloonEvaluator:
             * truth: APRS noise spikes have |v| > v_float but local mean ≈ 0
         - **Ascent**: v > v_linear strictly before i_enter.
         - **Descent**: v < -v_linear strictly after i_exit.
+
+        Grand Slam launches: the balloon is carried by a weather balloon to
+        well above its natural float altitude, then released and *descends*
+        into the SHAB float plateau.  ``alt ≥ alt_fraction · max_alt`` would
+        clip the search to the brief release peak and miss the actual float —
+        so for ``launch_type == "grand_slam"`` we widen the search bracket to
+        the entire post-apex region of the trajectory.  Descent is then
+        defined as everything after the detected float ends.
         """
         el = np.asarray(el, dtype=float)
         v  = np.asarray(v,  dtype=float)
@@ -170,16 +187,20 @@ class BalloonEvaluator:
         # Use nanmax so a single missing altitude reading doesn't collapse detection.
         el_max        = np.nanmax(el)
         alt_threshold = alt_fraction * el_max
+        i_peak        = int(np.nanargmax(el))
 
-        # Find where the balloon enters and exits the high-altitude region.
-        # NaN altitudes evaluate False for >=, so they are naturally excluded.
-        high_indices = np.where(el >= alt_threshold)[0]
-        if len(high_indices) > 0:
-            i_enter = int(high_indices[0])
-            i_exit  = int(high_indices[-1])
+        if launch_type == "grand_slam":
+            # Search for SHAB float anywhere from the release peak onward.
+            i_enter = i_peak
+            i_exit  = n - 1
         else:
-            i_peak  = int(np.nanargmax(el))
-            i_enter = i_exit = i_peak
+            # Standard / helium-augmented: balloon ascends, peaks at float.
+            high_indices = np.where(el >= alt_threshold)[0]
+            if len(high_indices) > 0:
+                i_enter = int(high_indices[0])
+                i_exit  = int(high_indices[-1])
+            else:
+                i_enter = i_exit = i_peak
 
         # Rolling-mean velocity within the high-altitude slice only.
         # Window ≈ 1/6 of the high-altitude span, capped so it stays meaningful.
@@ -229,9 +250,17 @@ class BalloonEvaluator:
         ascent_mask = np.zeros(n, dtype=bool)
         ascent_mask[:i_enter] = v[:i_enter] > v_linear
 
-        # Descent: linear fall after the balloon leaves the float altitude band
+        # Descent: linear fall after the balloon leaves the float altitude band.
+        # For Grand Slam, "after the float" is what matters — `i_exit` was
+        # widened to the end of the trajectory, so use the actual float-end
+        # index instead.
         descent_mask = np.zeros(n, dtype=bool)
-        descent_mask[i_exit:] = v[i_exit:] < -v_linear
+        if launch_type == "grand_slam":
+            flt_idx = np.where(float_mask)[0]
+            descent_start = int(flt_idx[-1] + 1) if flt_idx.size else i_peak
+        else:
+            descent_start = i_exit
+        descent_mask[descent_start:] = v[descent_start:] < -v_linear
 
         return ascent_mask, float_mask, descent_mask, i_enter, i_exit
 
@@ -258,7 +287,17 @@ class BalloonEvaluator:
         v_sim  = np.array(ss["v"])
         t_sim  = ss["time_local"]
 
-        asc_m, flt_m, des_m, i_enter_sim, i_exit_sim = self._detect_phases(el_sim, v_sim, min_alt)
+        asc_m, flt_m, des_m, i_enter_sim, i_exit_sim = self._detect_phases(
+            el_sim, v_sim, min_alt, launch_type=self.launch_type,
+        )
+
+        # For non-standard launches (helium-augmented, grand-slam) the balloon is
+        # carried up by helium / a weather balloon — EarthSHAB's solar-balloon
+        # ascent model doesn't apply. Blank out the ascent mask so all
+        # ascent-derived metrics report N/A.
+        skip_ascent = self.launch_type in self.NON_STANDARD_LAUNCH_TYPES
+        if skip_ascent:
+            asc_m = np.zeros_like(asc_m)
 
         def _mean(arr, mask): return float(np.mean(arr[mask])) if mask.any() else math.nan
         def _std(arr, mask):  return float(np.std(arr[mask]))  if mask.any() else math.nan
@@ -272,7 +311,7 @@ class BalloonEvaluator:
         flt_idx_sim = np.where(flt_m)[0]
         time_to_float_sim = (
             (pd.Timestamp(t_sim[flt_idx_sim[0]]) - pd.Timestamp(t_sim[0])).total_seconds() / 60.0
-            if flt_idx_sim.size else math.nan
+            if flt_idx_sim.size and not skip_ascent else math.nan
         )
 
         sim_metrics = FlightMetrics(
@@ -299,7 +338,12 @@ class BalloonEvaluator:
         v_truth_smooth = (pd.Series(v_truth)
                           .rolling(window=5, center=True, min_periods=1)
                           .median().to_numpy())
-        asc_t, flt_t, des_t, i_enter_truth, i_exit_truth = self._detect_phases(el_truth, v_truth_smooth, min_alt)
+        asc_t, flt_t, des_t, i_enter_truth, i_exit_truth = self._detect_phases(
+            el_truth, v_truth_smooth, min_alt, launch_type=self.launch_type,
+        )
+
+        if skip_ascent:
+            asc_t = np.zeros_like(asc_t)
 
         elapsed_truth = (
             pd.Timestamp(t_truth[-1]) - pd.Timestamp(t_truth[0])
@@ -308,7 +352,7 @@ class BalloonEvaluator:
         flt_idx_truth = np.where(flt_t)[0]
         time_to_float_truth = (
             (pd.Timestamp(t_truth[flt_idx_truth[0]]) - pd.Timestamp(t_truth[0])).total_seconds() / 60.0
-            if flt_idx_truth.size else math.nan
+            if flt_idx_truth.size and not skip_ascent else math.nan
         )
 
         truth_metrics = FlightMetrics(

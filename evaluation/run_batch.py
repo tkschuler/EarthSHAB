@@ -264,6 +264,7 @@ def run_batch(note: str):
         launch_id      = f"{launch_org}_{launch.get('shab_name','?')}_{launch_date}"
         launch_payload = float(launch.get("payload_weight_kg") or math.nan)
         launch_balsize = float(launch.get("balloon_size") or math.nan)
+        launch_type    = launch.get("launch_type", "standard")
         attempted.append(launch_id)
 
         print(f"── {launch_id} ──")
@@ -282,6 +283,7 @@ def run_batch(note: str):
                         launch_date=launch_date,
                         payload_weight_kg=launch_payload,
                         balloon_size_m=launch_balsize,
+                        launch_type=launch_type,
                     ))
             continue
 
@@ -302,7 +304,12 @@ def run_batch(note: str):
             aprs_fmt = ""
             try:
                 overrides = _build_overrides(launch, ft, orig)
-                ev = BalloonEvaluator(config_overrides=overrides, output_dir=launch_dir)
+                # launch_type is optional — defaults to "standard" if absent
+                ev = BalloonEvaluator(
+                    config_overrides=overrides,
+                    output_dir=launch_dir,
+                    launch_type=launch_type,
+                )
                 ev.run()
                 aprs_fmt = (ev.sim_state or {}).get("aprs_format", "") or ""
                 result = ev.compute_metrics()
@@ -314,6 +321,7 @@ def run_batch(note: str):
                     launch_date=launch_date,
                     payload_weight_kg=launch_payload,
                     balloon_size_m=launch_balsize,
+                    launch_type=launch_type,
                 ))
                 print(f"  [{ft}] done\n")
             except Exception:
@@ -327,6 +335,7 @@ def run_batch(note: str):
                     launch_date=launch_date,
                     payload_weight_kg=launch_payload,
                     balloon_size_m=launch_balsize,
+                    launch_type=launch_type,
                 ))
                 launch_errors.append(f"{ft}: {short_msg}")
 

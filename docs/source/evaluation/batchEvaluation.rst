@@ -105,14 +105,67 @@ forecast files.
 
 **Optional fields** (fall back to current ``config_earth.py`` defaults if omitted):
 
-``callsign``, ``campaign``, ``landing_time``, ``areaDensityEnv``, ``cp``,
-``absEnv``, ``emissEnv``, ``Upsilon``, and any ``earth_properties`` field
-(``Cp_air0``, ``Cv_air0``, ``Rsp_air``, ``P0``, ``emissGround``, ``albedo``).
+``callsign``, ``campaign``, ``landing_time``, ``launch_type``,
+``areaDensityEnv``, ``cp``, ``absEnv``, ``emissEnv``, ``Upsilon``, and any
+``earth_properties`` field (``Cp_air0``, ``Cv_air0``, ``Rsp_air``, ``P0``,
+``emissGround``, ``albedo``).
 
 .. tip::
     When the ``campaign`` field is included, the HTML report groups all
     launches that share a campaign name into their own sub-table with its own
     campaign-average row (see :ref:`batch-html-summary`).
+
+
+.. _launch-types:
+
+Launch Types
+~~~~~~~~~~~~
+
+The optional ``launch_type`` field describes how the SHAB got off the ground.
+EarthSHAB's solar-balloon physics model only describes a self-ascending
+solar balloon, so for non-standard deployments the ascent metrics are not
+meaningful — see the rules below.
+
+.. list-table::
+   :widths: 22 78
+   :header-rows: 1
+
+   * - Value
+     - Meaning
+   * - ``"standard"`` (default)
+     - Conventional ground release — SHAB ascends under solar buoyancy alone.
+       Full ascent / float / descent metrics are scored.
+   * - ``"helium_augmented"``
+     - SHAB is partially filled with helium so that buoyancy carries it up
+       faster than solar heating alone could.  Float and descent are still
+       physically comparable to the model, but the helium-driven ascent rate
+       is not — **ascent metrics are reported as N/A** for these flights.
+   * - ``"grand_slam"``
+     - SHAB is carried aloft by a separate weather balloon and released
+       *above* its natural float altitude.  After release, the SHAB
+       *descends* through the air column until it reaches its float, then
+       floats normally before landing.
+
+       For Grand Slam two evaluator behaviours change:
+
+       * **Ascent metrics are reported as N/A** (the carry-up is not the
+         model's ascent).
+       * The float-detection bracket is widened from "near peak altitude"
+         to the **entire post-apex region of the trajectory**.  Without this
+         the detector would clip to the brief weather-balloon release
+         plateau and miss the actual SHAB float that follows the descent.
+
+If the field is omitted, the evaluator behaves as if it were ``"standard"``.
+The ``compare_batches.py`` and ``summary.html`` reports include a ``Type``
+column so you can see at a glance which model assumption was applied to
+each row.
+
+.. note::
+   ``launch_type`` does **not** change the forward simulation itself —
+   EarthSHAB still simulates a self-ascending solar balloon either way.
+   The flag only changes which phase metrics are scored against ground
+   truth, so non-physical comparisons don't pollute the per-campaign
+   averages.
 
 **Example entry:**
 
@@ -307,11 +360,11 @@ Each row represents one launch × one forecast type.  Columns are grouped:
    * - Group
      - Columns
    * - Identity
-     - ``Launch``, ``Fcst`` (GFS / ERA5), ``Payload (kg)``, ``Bal Ø (m)``
+     - ``Launch``, ``Fcst`` (GFS / ERA5), ``Type`` (see :ref:`launch-types`), ``Payload (kg)``, ``Bal Ø (m)``
    * - Float Alt (m)
      - ``Sim``, ``Truth``, ``%Δ`` (signed percentage difference Sim vs Truth)
    * - Ascent (m/s)
-     - ``Sim``, ``Truth``, ``%Δ``
+     - ``Sim``, ``Truth``, ``%Δ`` — **N/A for ``helium_augmented`` and ``grand_slam`` rows** (the model's solar-ascent physics does not apply when buoyancy is augmented or the SHAB is carried up by a weather balloon)
    * - Descent (m/s)
      - ``Sim``, ``Truth``, ``%Δ``
    * - Time to Float (min)
