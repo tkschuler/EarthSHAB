@@ -4,13 +4,32 @@
 Batch Evaluation
 ========================
 
-The batch evaluation system lets you run trajectory simulations for a library of historical balloon launches and compare the results across different versions of the codebase.
-Each batch is tagged with the current **git hash** so you can trace exactly which code state produced which results.
+The batch evaluator runs the full library of historical balloon launches in
+``evaluation/launches.json`` against the **current state of the codebase**, tags
+the results with the current git hash, and writes everything — metrics CSV,
+interactive HTML report, per-launch comparison plots, and trajectory maps —
+into a self-contained timestamped folder.
+
+Useful for:
+
+* establishing a **baseline** before changing the model or tuning hyperparameters,
+* measure the **effect of a code change** across many flights at once,
+
+Every batch is reproducible from ``batch_info.json`` (git hash, branch, commit
+message, and a snapshot of ``launches.json`` are all stored alongside the
+results).
+
+For a single-flight workflow with finer-grained per-flight tuning, see
+:ref:`single-evaluation`.  All assumptions in
+:ref:`single-evaluation-assumptions` (phase detection, smoothing, NaN handling,
+reforecast construction, sunset detection) apply identically to batch runs —
+each launch is processed by the exact same :py:class:`evaluation.evaluate.BalloonEvaluator`.
+
 
 System Overview
 ---------------
 
-The system lives entirely in the ``evaluation/`` directory and consists of four components:
+The system lives entirely in the ``evaluation/`` directory:
 
 .. list-table::
    :widths: 35 65
@@ -20,18 +39,20 @@ The system lives entirely in the ``evaluation/`` directory and consists of four 
      - Purpose
    * - ``evaluation/launches.json``
      - Master metadata file — one entry per historical launch
+   * - ``evaluation/launches.example.json``
+     - Template you can copy to bootstrap your own ``launches.json``
    * - ``evaluation/run_batch.py``
-     - Runs all launches and saves results to a timestamped batch folder
-   * - ``evaluation/compare_batches.py``
-     - Compares metrics between two batch runs side-by-side
+     - Runs all launches and writes a timestamped batch folder
    * - ``tests/test_validate_launches.py``
-     - Validates that all files referenced in ``launches.json`` exist and are correctly formatted
+     - Auto-parametrized validation that every file referenced in ``launches.json`` exists and is correctly formatted
 
 
 Step 1 — Populate ``launches.json``
 -------------------------------------
 
-``launches.json`` is the single source of truth for all historical flights. Each entry describes one balloon launch and points to its trajectory and forecast files.
+``launches.json`` is the single source of truth for all historical flights.
+Each entry describes one balloon launch and points to its trajectory and
+forecast files.
 
 **Required fields** (the batch will skip the launch if any are missing):
 
@@ -47,16 +68,16 @@ Step 1 — Populate ``launches.json``
      - Balloon identifier (e.g. ``"SHAB14V"``)
    * - ``organization``
      - string
-     - Launching organization (e.g. ``"UA"``)
+     - Launching organization (e.g. ``"UA"``, ``"NRL"``, ``"JPL"``)
    * - ``launch_time``
      - string
      - UTC launch time in ISO format: ``"2022-08-22 14:36:00"``
    * - ``sim_time_hr``
      - number
-     - Simulation duration in hours. Set this manually — APRS trackers often lose signal near the ground at launch and landing, so auto-detection is unreliable.
+     - Simulation duration in hours.  **Set this manually** — APRS trackers often lose signal near the ground at launch and landing, so auto-detection is unreliable.  Pad by 1–2 hours past expected landing.
    * - ``aprs_file``
      - string
-     - Filename only (e.g. ``"SHAB14V-APRS.csv"``). File must exist in ``balloon_data/``.
+     - Filename only (e.g. ``"SHAB14V-APRS.csv"``).  File must exist in ``balloon_data/``.
    * - ``launch_lat``
      - number
      - Launch latitude in decimal degrees
@@ -65,7 +86,7 @@ Step 1 — Populate ``launches.json``
      - Launch longitude in decimal degrees
    * - ``launch_alt_m``
      - number
-     - Ground elevation at launch site in meters
+     - Ground elevation at launch site in meters (also used as ``min_alt`` for landing detection)
    * - ``payload_weight_kg``
      - number
      - Payload mass in kg
@@ -74,17 +95,24 @@ Step 1 — Populate ``launches.json``
      - Envelope mass in kg
    * - ``balloon_shape``
      - string
-     - ``"sphere"`` or ``"trapezoid"``
+     - ``"sphere"``
    * - ``balloon_size``
      - number
-     - Balloon diameter in meters
+     - Balloon diameter in meters (sphere) or characteristic length (trapezoid)
    * - ``gfs_file`` and/or ``era5_file``
      - string
-     - Forecast filename (e.g. ``"gfs_0p25_20220822_12.nc"``). At least one is required. Set to ``null`` if not available.
+     - Forecast filename (e.g. ``"gfs_0p25_20220822_12.nc"``).  At least one is required; set the other to ``null`` if not available.
 
 **Optional fields** (fall back to current ``config_earth.py`` defaults if omitted):
 
-``callsign``, ``landing_time``, ``areaDensityEnv``, ``cp``, ``absEnv``, ``emissEnv``, ``Upsilon``, and any ``earth_properties`` field (``Cp_air0``, ``Cv_air0``, ``Rsp_air``, ``P0``, ``emissGround``, ``albedo``).
+``callsign``, ``campaign``, ``landing_time``, ``areaDensityEnv``, ``cp``,
+``absEnv``, ``emissEnv``, ``Upsilon``, and any ``earth_properties`` field
+(``Cp_air0``, ``Cv_air0``, ``Rsp_air``, ``P0``, ``emissGround``, ``albedo``).
+
+.. tip::
+    When the ``campaign`` field is included, the HTML report groups all
+    launches that share a campaign name into their own sub-table with its own
+    campaign-average row (see :ref:`batch-html-summary`).
 
 **Example entry:**
 
@@ -94,9 +122,10 @@ Step 1 — Populate ``launches.json``
      "shab_name": "SHAB14V",
      "organization": "UA",
      "callsign": "SHAB14V",
+     "campaign": "Schuler-ABQ",
      "launch_time": "2022-08-22 14:36:00",
      "landing_time": null,
-     "sim_time_hr": 15,
+     "sim_time_hr": 14,
      "aprs_file": "SHAB14V-APRS.csv",
      "gfs_file": "gfs_0p25_20220822_12.nc",
      "era5_file": "SHAB14V_ERA5_20220822_20220823.nc",
@@ -110,49 +139,25 @@ Step 1 — Populate ``launches.json``
    }
 
 .. note::
-   If a launch has both a GFS and an ERA5 forecast file, the batch runner will produce **two separate evaluations** — one per forecast type — in the same launch output folder.
+
+   If a launch has both a GFS and an ERA5 forecast file, the batch runner will
+   produce **two separate evaluations** — one per forecast type — in the same
+   launch output folder.  Both rows appear independently in ``summary.csv``
+   and ``summary.html``.
 
 
 Step 2 — Validate Before Running
 ----------------------------------
 
-Before running a batch, check that all referenced files exist and are correctly formatted:
+Before running a batch, check that all referenced files exist and are correctly
+formatted:
 
 .. code-block:: bash
 
-   pytest tests/test_validate_launches.py -v
+   pytest tests/test_validate_launches.py --spec
 
-A passing run looks like this — one row per test per launch:
-
-.. code-block:: text
-
-   tests/test_validate_launches.py::test_launches_json_exists PASSED
-   tests/test_validate_launches.py::test_required_fields_present[UA_SHAB14V_2022-08-22] PASSED
-   tests/test_validate_launches.py::test_aprs_file_exists[UA_SHAB14V_2022-08-22] PASSED
-   tests/test_validate_launches.py::test_gfs_file_exists[UA_SHAB14V_2022-08-22] PASSED
-   tests/test_validate_launches.py::test_era5_file_exists[UA_SHAB14V_2022-08-22] PASSED
-   ...
-   33 passed, 1 warning in 0.15s
-
-The tests are **automatically parametrized** — adding a new launch to ``launches.json`` instantly adds a full set of validation tests for it.
-
-**Extending the test suite:**
-
-To add new validation rules, open ``tests/test_validate_launches.py`` and add a new test function. The configurable constants at the top of the file control which fields are required and what values are considered valid:
-
-.. code-block:: python
-
-   # To require a new field, add it here:
-   REQUIRED_FIELDS = ["shab_name", "organization", ...]
-
-   # To support a new balloon shape, add it here:
-   VALID_SHAPES = {"sphere", "trapezoid"}
-
-   # To support a new APRS CSV format, add a column set here:
-   APRS_COLUMN_SETS = [
-       {"time", "lat", "lng", "altitude"},             # APRS.fi standard
-       {"Date", "Time(UTC)", "Latitude", "Altitude(m)"}, # Custom onboard
-   ]
+The tests are **auto-parametrized** — adding a new launch to ``launches.json``
+instantly adds a full set of validation tests for it.
 
 
 Step 3 — Run a Batch
@@ -164,15 +169,28 @@ Run all launches against the **current codebase state**:
 
    python -m evaluation.run_batch --note "baseline evaluation"
 
-The ``--note`` flag is required. Use it to describe what changed since the last batch (e.g. ``"tuned Upsilon coefficient"``). The note is stored with the results so you can remember why each batch was run.
+The ``--note`` flag is **required**.  Use it to describe what changed since the
+last batch (e.g. ``"tuned Upsilon coefficient"``).  The note is stored with the
+results so you can remember why each batch was run.
 
 The runner will:
 
-1. Detect the current git hash and branch
-2. Create a timestamped output folder: ``evaluation/batches/2026-04-28T1423_a3f9c12/``
-3. For each launch in ``launches.json``, run a GFS and/or ERA5 evaluation
-4. Skip failed launches with a full traceback printed to the console — the batch continues
-5. Write a ``summary.csv`` and ``batch_info.json`` at the batch level
+1. Detect the current git hash, branch, commit message, and dirty flag
+2. Snapshot the original ``config_earth`` state (so per-launch overrides cannot
+   bleed into each other)
+3. Create a timestamped output folder: ``evaluation/batches/2026-04-28T1423_a3f9c12/``
+4. For each launch in ``launches.json``:
+
+   * validate required fields and file paths,
+   * build a complete config-override dict for each forecast type the launch
+     supports,
+   * run a GFS evaluation and/or an ERA5 evaluation,
+   * write per-launch CSV / PNG / interactive HTML map outputs,
+   * append one summary row per forecast type
+5. Skip failed launches with a full traceback printed to the console — the
+   batch always continues
+6. Write ``summary.csv``, ``summary.html``, and ``batch_info.json`` at the batch
+   level
 
 **Console output example:**
 
@@ -196,8 +214,9 @@ The runner will:
      Running GFS...
      [GFS] done
 
-   Summary → Evaluation/batches/2026-04-28T1423_a3f9c12/summary.csv
-   Batch info → Evaluation/batches/2026-04-28T1423_a3f9c12/batch_info.json
+   Summary → evaluation/batches/2026-04-28T1423_a3f9c12/summary.csv
+   Report  → evaluation/batches/2026-04-28T1423_a3f9c12/summary.html
+   Batch info → evaluation/batches/2026-04-28T1423_a3f9c12/batch_info.json
 
    ============================================================
      Batch complete: 2/2 launches succeeded
@@ -214,8 +233,9 @@ Each batch produces a self-contained folder:
 
    evaluation/batches/
    └── 2026-04-28T1423_a3f9c12/
-       ├── batch_info.json           ← git hash, note, runtime, launch status
+       ├── batch_info.json           ← git hash, note, runtime, launch status, launches.json snapshot
        ├── summary.csv               ← all metrics, one row per launch × forecast type
+       ├── summary.html              ← interactive sortable, color-coded report
        ├── UA_SHAB14V_2022-08-22/
        │   ├── SHAB14V-APRS_GFS_2022_8_22.csv
        │   ├── SHAB14V-APRS_GFS_2022_8_22.png
@@ -230,7 +250,7 @@ Each batch produces a self-contained folder:
 
 **``batch_info.json``** records everything needed to reproduce or understand the batch:
 
-.. code-block:: json
+.. code-block:: text
 
    {
      "batch_id": "2026-04-28T1423_a3f9c12",
@@ -239,108 +259,118 @@ Each batch produces a self-contained folder:
      "git_branch": "devel",
      "git_commit_message": "Added batch evaluator",
      "git_dirty": false,
-     "earthshab_version": "1.2.1",
+     "earthshab_version": "1.3",
      "total_runtime_s": 142.3,
      "per_launch_avg_runtime_s": 71.15,
      "launches_attempted": ["UA_SHAB14V_2022-08-22", "UA_SHAB1_2020-10-01"],
      "launches_succeeded": ["UA_SHAB14V_2022-08-22", "UA_SHAB1_2020-10-01"],
-     "launches_failed": {}
+     "launches_failed": {},
+     "launches_json_snapshot": { ... full launches.json ... }
    }
 
 .. note::
-   ``git_dirty: true`` means there were uncommitted changes when the batch ran. Results from dirty batches should be treated as exploratory — commit your changes before a batch you intend to keep.
+   ``git_dirty: true`` means there were uncommitted changes when the batch ran.
+   Results from dirty batches should be treated as exploratory — commit your
+   changes before a batch you intend to keep.
 
 
-Example Output
---------------
+.. _batch-html-summary:
 
-Each launch produces a **comparison plot** showing simulation vs. ground truth across three panels: altitude profile, vertical velocity (ascent / float / descent phases), and temperature/pressure.
+Batch Summary Table
+--------------------------------------
 
-|eval_plot|
 
-.. |eval_plot| image:: ../../../img/evaluation_comparison_SHAB14V_GFS.png
+|eval_html|
+
+.. |eval_html| image:: ../../../img/evaluation_batch_summary_html.png
    :width: 100%
-   :alt: SHAB14V GFS evaluation comparison plot
-
-The **metrics report** is also written as a CSV for each launch:
-
-.. code-block:: text
-
-   ====================================================================
-     EarthSHAB Evaluation: SHAB14V-APRS
-   ====================================================================
-     Metric                               Sim      Truth       Diff  Unit
-   --------------------------------------------------------------------
-     Float Alt Mean (m)                 18988      20396      -1407  m
-     Float Alt Std (m)                    378        447        -69  m
-     Ascent Rate Mean (m/s)              1.91       2.36      -0.45  m/s
-     Ascent Rate Std (m/s)               0.33       0.96      -0.63  m/s
-     Descent Rate Mean (m/s)            -2.82      -2.37      -0.44  m/s
-     Elapsed Time (min)                 779.8      789.0       -9.3  min
-     Landing Lat (°)                  34.7816    34.5468     0.2347  °
-     Landing Lon (°)                -106.7869  -109.1340     2.3471  °
-   --------------------------------------------------------------------
-     Distance Off (m)                                        216697  m
-     Landing Time (MST)  2022-08-22 20:35   2022-08-22 20:46  -11.2  min
-   --------------------------------------------------------------------
-     Temperature MAE                                          38.55  K
-     Pressure MAE                                               659  Pa
-   --------------------------------------------------------------------
-     GFS Forecast + Truth Altitude (reforecast landing vs truth)
-     Distance Off (m)                                         44811  m
-   ====================================================================
+   :alt: Batch summary HTML report
 
 
-Step 4 — Compare Batches
---------------------------
+**Tables**
 
-After making a change to the codebase and running a second batch, compare the results:
+The page always contains an **Overall Summary** table covering every launch ×
+forecast pair in the batch.  In addition, every distinct value of the optional
+``campaign`` field becomes its own **Campaign sub-table** below — but only if
+the campaign contains at least 2 distinct balloons (single-flight campaigns
+are suppressed to avoid noise).  Each campaign sub-table has its own
+*Campaign Average* footer row.
 
-.. code-block:: bash
+**Columns**
 
-   python -m evaluation.compare_batches \
-       2026-04-28T1423_a3f9c12 \
-       2026-04-28T1601_b7d4e21
+Each row represents one launch × one forecast type.  Columns are grouped:
 
-The first argument is the **baseline** and the second is the **candidate**. The output shows metric deltas (baseline − candidate) for each launch and forecast type:
+.. list-table::
+   :widths: 22 78
+   :header-rows: 1
 
-.. code-block:: text
+   * - Group
+     - Columns
+   * - Identity
+     - ``Launch``, ``Fcst`` (GFS / ERA5), ``Payload (kg)``, ``Bal Ø (m)``
+   * - Float Alt (m)
+     - ``Sim``, ``Truth``, ``%Δ`` (signed percentage difference Sim vs Truth)
+   * - Ascent (m/s)
+     - ``Sim``, ``Truth``, ``%Δ``
+   * - Descent (m/s)
+     - ``Sim``, ``Truth``, ``%Δ``
+   * - Time to Float (min)
+     - ``Sim``, ``Truth``, ``Δ(min)`` (signed minutes, sim − truth)
+   * - Time to Ground (min)
+     - ``Sim``, ``Truth``, ``Δ(min)``
+   * - End-to-end errors
+     - ``Land Dist (km)`` great-circle landing miss, ``|Time Δ|`` (min, absolute landing-time miss), ``Temp MAE (K)``, ``Press MAE (Pa)``
 
-   ========================================================================
-     Batch comparison
-     Baseline  (A): 2026-04-28T1423_a3f9c12
-                  Note: baseline evaluation
-                  Commit: Added batch evaluator
-     Candidate (B): 2026-04-28T1601_b7d4e21
-                  Note: tuned Upsilon coefficient
-                  Commit: Tuned ascent resistance
-   ========================================================================
+The averages footer row shows the column-wise mean of all *successful* rows.
+Failed launches are shown as a single full-width red row with the failure
+message and are pinned to the bottom of any sort.
 
-     ── UA_SHAB14V_2022-08-22 [GFS] ──
+**Color coding**
 
-     Metric                                         A            B      Delta (A-B)
-     -------------------                   ----------   ----------   --------------
-     landing distance km                      +216.697      +198.312        +18.385
-     temp mae k                                +38.550       +36.210         +2.340
-     sim float alt mean m                    +18988.0     +19504.0          -516.0
+The color rules differ between *percent-difference* cells and
+*absolute-error* cells:
+
+.. list-table::
+   :widths: 30 15 25 30
+   :header-rows: 1
+
+   * - Cell type
+     - Green (≤)
+     - Yellow (≤)
+     - Red (>)
+   * - ``%Δ`` columns (Float / Ascent / Descent)
+     - 10 %
+     - 25 %
+     - 25 %
+   * - Time-to-float diff (min, abs)
+     - 15
+     - 45
+     - 45
+   * - Time-to-ground diff (min, abs)
+     - 30
+     - 90
+     - 90
+   * - Land Dist (km)
+     - 20
+     - 50
+     - 50
+   * - \|Time Δ\| (min, abs)
+     - 30
+     - 90
+     - 90
+   * - Temp MAE (K)
+     - 5
+     - 15
+     - 15
+   * - Press MAE (Pa)
+     - 500
+     - 2000
+     - 2000
+
+Cells with no value (NaN, missing, etc.) display as ``—`` and are uncolored.
 
 
-Workflow Summary
-----------------
+.. tip::
 
-The recommended workflow when iterating on the codebase:
-
-.. code-block:: bash
-
-   # 1. Add or update launches.json entries
-   # 2. Validate all data files
-   pytest tests/test_validate_launches.py -v
-
-   # 3. Run a baseline batch before making changes
-   python -m evaluation.run_batch --note "before tuning Upsilon"
-
-   # 4. Make your code changes, then run another batch
-   python -m evaluation.run_batch --note "after tuning Upsilon"
-
-   # 5. Compare
-   python -m evaluation.compare_batches <batch_a_id> <batch_b_id>
+    **Sorting**: Click any column header to sort that column's data. Failed-row entries 
+    always sort to the bottom regardless of direction.

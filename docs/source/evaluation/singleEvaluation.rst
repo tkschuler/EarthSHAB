@@ -4,26 +4,34 @@
 Single Evaluation
 ====================
 
-A single evaluation compares one simulation run against a historical balloon flight.
-It uses the current ``config_earth.py`` directly — no metadata file or batch runner needed.
+A single evaluation runs **one** simulation against **one** historical balloon
+flight and reports how close the simulation came to the truth.  It uses the
+current ``config_earth.py`` directly.
+
+Useful for:
+
+* Comparing an individual ground truth SHAB flight trajectory to the EarthSHAB model, with GFS or ERA5
+* tuning single physical parameters (``Upsilon``, interpolation methods, emissivity, etc.)
+
+For batch evaluating multiple flights and campaigns, see :ref:`batch-evaluation`.
+
 
 Prerequisites
 -------------
 
-You need two things before running an evaluation:
+Two required inputs must be in place before running the evaluation, with SHAB14V as an example:
 
-1. **A downloaded forecast file** (GFS or ERA5) in ``src/EarthSHAB/forecasts/``
-2. **A balloon trajectory CSV** in ``src/EarthSHAB/balloon_data/`` in the `APRS.fi <https://aprs.fi>`_ format
+1. **A downloaded forecast file** (GFS or ERA5) in ``src/EarthSHAB/forecasts/``.
+2. **A balloon trajectory CSV** in ``src/EarthSHAB/balloon_data/SHAB14V-APRS.csv``.
 
 .. note::
-   Balloon trajectory data can be downloaded after landing from `APRS.fi <https://aprs.fi>`_.
-   Search for your callsign and export the track as CSV.
+   Trajectory CSVs can be downloaded after landing from
+   `APRS.fi <https://aprs.fi>`_ and LightAPRS-W trajectory .csv formats are accepted. More coming soon.
+   The trajectory loader auto-detects the format from the column header.
 
 
 Configure ``config_earth.py``
-------------------------------
-
-Open ``src/EarthSHAB/config_earth.py`` and update the following sections to match your flight:
+-----------------------------
 
 **1. Point to your APRS trajectory file:**
 
@@ -37,7 +45,7 @@ Open ``src/EarthSHAB/config_earth.py`` and update the following sections to matc
 
    start_time = datetime.fromisoformat("2022-08-22 14:36:00")  # UTC
 
-**3. Set the launch coordinates:**
+**3. Set the launch coordinates and ground elevation:**
 
 .. code-block:: python
 
@@ -45,9 +53,9 @@ Open ``src/EarthSHAB/config_earth.py`` and update the following sections to matc
        start_time = start_time,
        sim_time = 15,        # hours — set 1–2 hours beyond actual flight duration
        start_coord = {
-           "lat": 34.60,     # launch latitude
-           "lon": -106.80,   # launch longitude
-           "alt": 1000.,     # ground elevation (m)
+           "lat": 34.60,
+           "lon": -106.80,
+           "alt": 1000.,     # ground elevation (m), also used as min_alt
            "timestamp": start_time,
        },
        min_alt = 1000.,
@@ -87,13 +95,17 @@ From the repository root:
 
    python -m evaluation.evaluate
 
-The evaluator will:
+The single evaluator does three steps:
 
-1. Run the **forward simulation** using the forecast winds
-2. Run the **reforecast simulation** — forecast winds applied to the actual APRS altitude profile
-3. Compare both against the ground-truth APRS track
-4. Print a metrics report to the console
-5. Save outputs to ``evaluation/``
+1. **Forward simulation** — runs the full physics-based trajectory prediction 
+   using the provided forecast (same as `main.py` and `predict.py`)
+2. **Reforecast simulation** — re-runs the same flight, but instead of using the
+   simulated altitude profile, it forces the balloon onto the *actual 
+   altitude profile* and only uses the forecast for horizontal winds.  This
+   isolates **wind error** from **vertical-motion error**.
+3. **Cross-comparison metrics** — phase detection, float statistics, landing
+   distance, temperature/pressure MAE. and outputs a statistics table,
+   multi-panel comparison PNG, and an interactive trajectory HTML.
 
 
 Single Evaluation Output
@@ -134,13 +146,41 @@ Single Evaluation Output
    Suggested start_time      : "2022-08-22 14:32:23"
 
 .. tip::
-   The **start-time analysis** at the bottom extrapolates the initial APRS ascent rate back to the
-   launch elevation and suggests a more accurate ``start_time``. If the suggested time differs
-   significantly from your configured value, update ``config_earth.py`` and re-run.
+   The **start-time analysis** at the bottom takes the first ascending APRS
+   points (``v > 0.5 m/s``), averages their vertical velocity, and linearly
+   extrapolates the first APRS altitude back down to ``min_alt``.  If the
+   suggested time differs significantly from your configured ``start_time``,
+   update ``config_earth.py`` and re-run.  APRS trackers often miss the begining
+   of ascent due to ground interference.
 
-**Comparison plot** — three panels showing altitude profile, vertical velocity by phase, and temperature/pressure vs. ISA model:
+**Comparison plot:**
 
 |eval_single_plot|
+
+*  **Altitude Profile**.  EarthSHAB Simulated trajectory in blue, APRS
+   ground truth in orange.  Colored bounding boxesshow the detected phase
+   windows for sim (solid fill) and truth (hatched fill):
+
+   * green   = ascent window
+   * purple  = float window
+   * red     = descent window
+
+   The float-altitude estimate is overlaid as a horizontal mean line bracketed
+   by ±1 σ rails.  Sim sunset (blue dotted) and truth sunset (orange dotted)
+   appear at the wall-clock instant the solar zenith first crosses 90°
+   (refraction-adjusted) along each trajectory.
+
+*  **Row 2 — Per-phase velocity windows**.  Three subplots zoomed to the
+   ascent / float / descent phase respectively.  Each subplot uses
+   *phase-aligned elapsed time* on the x-axis so sim and truth align
+   even when their wall-clock phase boundaries do not match.  Truth velocity
+   is drawn twice: faded markers for the raw finite-difference signal and a
+   solid line for the rolling-mean smoothed version.
+
+*  **Row 3 — Temperature and Pressure**.
+   Sim ``T_atm`` vs onboard sensor; sim altitude → ISA pressure vs onboard
+   barometer.  X-axis is elapsed time for both traces, allowing
+   visual comparison even if launch wall-clock times differ slightly.
 
 .. |eval_single_plot| image:: ../../../img/evaluation_comparison_SHAB14V_GFS.png
    :width: 100%
@@ -154,30 +194,131 @@ Single Evaluation Output
 
    * - File
      - Contents
-   * - ``SHAB14V-APRS_GFS_2022_8_22.csv``
+   * - ``<stem>.csv``
      - All metrics in tabular form (Sim, Truth, Diff)
-   * - ``SHAB14V-APRS_GFS_2022_8_22.png``
-     - Comparison plot (three-panel figure)
-   * - ``EVALUATION_SHAB14V-APRS_GFS_2022_8_22.html``
-     - Interactive trajectory map
+   * - ``<stem>.png``
+     - Three-row comparison figure shown above
+   * - ``EVALUATION_<stem>.html``
+     - Interactive trajectory map (Google Maps): simulated trajectory, reforecast trajectory, and APRS ground-truth track on a single map
+
+The filename ``stem`` is built from the trajectory name, forecast type, and
+launch date — e.g. ``SHAB14V-APRS_GFS_2022_8_22``.
 
 
-Interpreting Results
---------------------
+.. _single-evaluation-assumptions:
 
-.. list-table::
-   :widths: 30 70
-   :header-rows: 1
+Calculations and Assumptions
+----------------------------
 
-   * - Metric
-     - What it tells you
-   * - **Float Alt Mean**
-     - How close the predicted float altitude is to actual. A large negative diff means the sim floated lower than reality — check envelope or payload mass.
-   * - **Ascent Rate Mean**
-     - Differences here often indicate incorrect balloon diameter or envelope properties.
-   * - **Distance Off**
-     - Great-circle distance between simulated and actual landing. Primarily driven by forecast wind accuracy.
-   * - **Reforecast Distance Off**
-     - Landing error when the *actual* altitude profile is used with forecast winds. Isolates horizontal wind error from vertical motion error.
-   * - **Temperature MAE**
-     - Difference between simulated atmospheric temperature and onboard sensor. Large values suggest radiation model tuning may help.
+Phase detection (ascent / float / descent)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Implemented in :py:meth:`~evaluation.evaluate.BalloonEvaluator._detect_phases`.
+
+The detector runs the same algorithm against both the simulation and the truth
+trajectory.  The goal is a robust three-way segmentation that survives noisy
+APRS data and survives "no float" trajectories where the balloon peaks and
+immediately falls.
+
+Step 1 — locate the high-altitude region
+   The maximum altitude is taken with ``np.nanmax`` (so a single dropped APRS
+   altitude reading does not collapse the detector).  Indices where
+   ``alt ≥ 0.90 · max_alt`` define the high-altitude bracket
+   ``[i_enter, i_exit]``.  NaN altitudes evaluate ``False`` and are naturally
+   excluded.  If no point qualifies, ``i_enter = i_exit = argmax(alt)``.
+
+Step 2 — find the float window inside the bracket
+   The vertical velocity is smoothed with a centred rolling mean.  Window size
+   is ``max(10, min(span // 6, 600))`` where ``span = i_exit − i_enter``, so it
+   adapts to the length of the high-altitude region but is capped to avoid
+   trivial smoothing on long flights.
+
+   The candidate float mask is ``|rolling-mean v| < v_float`` (default
+   ``v_float = 1.0 m/s``).  Of all contiguous True blocks, the **largest** is
+   chosen.  It is then **rejected** if it is shorter than ``max(10, span // 4)``
+   — this rejects spurious float detections caused by the velocity zero-crossing
+   at the apex of a "straight up, straight down" trajectory.
+
+Step 3 — trim the float window
+   Even after thresholding, the start of the candidate block contains the
+   *deceleration into float* (rolling mean still > 0.3 m/s) and the end contains
+   the *rapid descent out of float* (rolling mean < −0.5 m/s).  The block is
+   trimmed inward until the rolling mean satisfies these tighter bounds.  If
+   trimming destroys the block (length < ``min_len``), the float is discarded.
+
+Step 4 — ascent and descent
+   Ascent and descent masks live strictly **outside** the high-altitude bracket
+   to keep them clear of the curved transition regions:
+
+   * ``ascent_mask  = (v > v_linear) & (i < i_enter)``
+   * ``descent_mask = (v < −v_linear) & (i ≥ i_exit)``
+
+   ``v_linear`` defaults to ``1.0 m/s``.
+
+
+Truth-velocity smoothing
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Before phase detection, the truth velocity is passed through a **5-sample centred 
+rolling median** (``min_periods=1``).  The unsmoothed (raw) velocity is shown as
+faded markers.  The smoothed version (solid line) is used in the
+phase detector and the truth ascent/descent rate metrics.
+
+NaN handling
+~~~~~~~~~~~~
+
+* **Phase detection**: ``np.nanmax`` and ``np.nanargmax`` for altitude;
+  ``alt >= threshold`` evaluates ``False`` on NaN, so NaN points cannot leak
+  into the high-altitude bracket.
+* **Trajectory map**: ``_drop_nan_coords`` filters any ``(lat, lon)`` pair where
+  either coordinate is NaN before the polyline is drawn.  This stops gmplot from
+  drawing a line through ``(0, 0)``.
+
+Altitude "Reforecast" (truth altitude profile + forecasted wind)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The **reforecast landing distance** removes the vertical-motion error, showing the 
+balloon trajectory had it flown the *exact* altitude profile but in the *forecast* wind field.
+
+1. The forecast is queried at each trajectory point ``(time, lat, lon, alt)`` to get the
+   forecasted wind vector ``(u, v)`` that would have acted on the balloon at that instant.
+2. The wind is integrated forward in time using the *ground-truth* altitude profile
+   (no buoyancy, no envelope dynamics), producing a **reforecasted trajectory**.
+
+
+Onboard temperature & pressure
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* ``Temperature MAE`` — the simulated atmospheric temperature ``T_atm`` is
+  linearly interpolated to each APRS timestamp and compared against the parsed
+  onboard temperature, in kelvin.
+* ``Pressure MAE`` — the **ISA-1976** pressure model is evaluated at each APRS
+  altitude and compared against the parsed onboard barometer reading, in pascals.
+  This is a sanity check on the APRS pressure sensor and on the altitude
+  estimate, **not** on the simulator.
+
+Both metrics report ``N/A`` if no parseable readings exist.
+
+Sunset detection
+~~~~~~~~~~~~~~~~
+
+Sunset for sim and truth is computed independently:
+
+* **Sim sunset**: scans every 60 sim steps; converts local time to UTC using the
+  configured GMT offset and tests
+  ``solar_zenith_adjusted(t_utc, lat, lon, alt) ≥ π/2``.  The first crossing
+  is the sunset.
+* **Truth sunset**: same test, but using each APRS row's actual lat/lon/altitude
+  and the row timestamp.  Crucially, the APRS dataframe is sorted by ``time``
+  first because aprs.fi exports are newest-first by default.  No model data is
+  used for this calculation.
+
+Both crossings are drawn on the altitude / velocity / temperature / pressure
+panels so you can visually correlate sunset cooling with descent onset.
+
+.. note::
+   Sunset times can differ significantly between sim and truth, even on the same flight,
+   because of differences in the simulated vs ground truth horizontal trajectory.  This is a
+   good example of how vertical-motion error can cause a balloon to experience a different 
+   wind field and therefore a different sunset time, which in turn affects the descent onset
+   and landing location. 

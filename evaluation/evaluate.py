@@ -13,7 +13,6 @@ Batch example (future):
         results[mp] = ev.compute_metrics()
 """
 
-import csv
 import os
 import re
 import math
@@ -24,13 +23,13 @@ import numpy as np
 import pandas as pd
 import fluids
 from geographiclib.geodesic import Geodesic
-from termcolor import colored
 import matplotlib.pyplot as plt
 
 import EarthSHAB.config_earth as config_earth
 from EarthSHAB.simulate import BalloonSimulation
 from EarthSHAB.radiation import solar_zenith_adjusted
 from evaluation.plot_evaluation import plot_comparison
+from evaluation import reporting
 from EarthSHAB.Plotting.plot_trajectory_map import plot_map
 from EarthSHAB.Plotting.plot_windmap import plot_windmap
 
@@ -397,31 +396,6 @@ class BalloonEvaluator:
 
         return self.result
 
-    @staticmethod
-    def _suggest_start_time(df: pd.DataFrame, min_alt: float, gmt: int):
-        """Estimate actual launch time by linearly extrapolating the initial APRS
-        ascent rate back to min_alt.
-
-        Returns (suggested_utc, first_aprs_utc, v_mean_ms) or (None, None, nan)
-        if there is insufficient ascending data.
-        """
-        # Skip the first row (dt=0 → v_truth=0) and find initial ascending points
-        ascending = df.iloc[1:][df.iloc[1:]['v_truth'] > 0.5].head(5)
-        if ascending.empty:
-            return None, None, math.nan
-
-        v_mean    = float(ascending['v_truth'].mean())
-        first_alt = float(df['altitude'].iloc[0])
-        first_mst = pd.Timestamp(df['time'].iloc[0])
-
-        # Time to ascend from min_alt to first_alt at the measured initial rate
-        dt_s = (first_alt - min_alt) / v_mean
-        suggested_mst = first_mst - pd.Timedelta(seconds=dt_s)
-
-        suggested_utc    = suggested_mst + pd.Timedelta(hours=gmt)
-        first_aprs_utc   = first_mst    + pd.Timedelta(hours=gmt)
-        return suggested_utc, first_aprs_utc, v_mean
-
     def _compute_temp_mae(self, ss: dict, df: pd.DataFrame) -> float:
         """Interpolate sim T_atm to APRS timestamps, return MAE vs onboard sensor."""
         valid = df["temp_k"].notna()
@@ -459,139 +433,20 @@ class BalloonEvaluator:
         if result is None:
             result = self.result
 
-        self._report_body(result)
+        traj_path = config_earth.simulation.get('balloon_trajectory', '') or ''
+        reporting.print_report(
+            result,
+            df_truth=self.df_truth,
+            traj_path=traj_path,
+            current_start_utc=config_earth.simulation['start_time'],
+            min_alt=config_earth.simulation['min_alt'],
+            gmt=self.GMT,
+        )
 
         os.makedirs(self._output_dir, exist_ok=True)
         csv_path = os.path.join(self._output_dir, f"{self._stem()}.csv")
-        self._write_csv(result, csv_path)
+        reporting.write_metrics_csv(result, csv_path)
         print(f"  Report saved → {csv_path}")
-
-    def _report_body(self, result: EvaluationResult):
-        traj_path = config_earth.simulation.get('balloon_trajectory', '') or ''
-        name = traj_path.split("/")[-1].replace(".csv", "") or "Unknown"
-
-        W = 68
-
-        def _fmt(v, dec=1):
-            return "N/A" if (isinstance(v, float) and math.isnan(v)) else f"{v:.{dec}f}"
-
-        def _row(label, sv, tv, dv, unit):
-            return f"  {label:<30} {sv:>9}  {tv:>9}  {dv:>9}  {unit}"
-
-        s, t = result.sim, result.truth
-
-        def _diff(a, b):
-            return a - b if not (math.isnan(a) or math.isnan(b)) else math.nan
-
-        rows = [
-            ("Float Alt Mean (m)",       s.float_alt_mean,     t.float_alt_mean,     _diff(s.float_alt_mean,     t.float_alt_mean),     "m",   0),
-            ("Float Alt Std (m)",        s.float_alt_std,      t.float_alt_std,       _diff(s.float_alt_std,      t.float_alt_std),      "m",   0),
-            ("Ascent Rate Mean (m/s)",   s.ascent_rate_mean,   t.ascent_rate_mean,   _diff(s.ascent_rate_mean,   t.ascent_rate_mean),   "m/s", 2),
-            ("Ascent Rate Std (m/s)",    s.ascent_rate_std,    t.ascent_rate_std,    _diff(s.ascent_rate_std,    t.ascent_rate_std),    "m/s", 2),
-            ("Descent Rate Mean (m/s)",  s.descent_rate_mean,  t.descent_rate_mean,  _diff(s.descent_rate_mean,  t.descent_rate_mean),  "m/s", 2),
-            ("Descent Rate Std (m/s)",   s.descent_rate_std,   t.descent_rate_std,   _diff(s.descent_rate_std,   t.descent_rate_std),   "m/s", 2),
-            ("Elapsed Time (min)",       s.elapsed_time_min,   t.elapsed_time_min,   _diff(s.elapsed_time_min,   t.elapsed_time_min),   "min", 1),
-            ("Landing Lat (°)",          s.landing_lat,        t.landing_lat,        _diff(s.landing_lat,        t.landing_lat),        "°",   4),
-            ("Landing Lon (°)",          s.landing_lon,        t.landing_lon,        _diff(s.landing_lon,        t.landing_lon),        "°",   4),
-        ]
-
-        land_dist_m = (
-            result.landing_distance_km * 1000
-            if not math.isnan(result.landing_distance_km) else math.nan
-        )
-
-        print()
-        print("=" * W)
-        print(f"  EarthSHAB Evaluation: {name}")
-        print("=" * W)
-        print(f"  {'Metric':<30} {'Sim':>9}  {'Truth':>9}  {'Diff':>9}  Unit")
-        print("-" * W)
-        for label, sv, tv, dv, unit, dec in rows:
-            print(_row(label, _fmt(sv, dec), _fmt(tv, dec), _fmt(dv, dec), unit))
-        print("-" * W)
-        print(_row("Distance Off (m)",   "",  "", _fmt(land_dist_m, 0), "m"))
-
-        t_sim_str   = str(s.landing_time)[:16] if s.landing_time else "N/A"
-        t_truth_str = str(t.landing_time)[:16] if t.landing_time else "N/A"
-        print(_row("Landing Time (MST)", t_sim_str, t_truth_str,
-                   _fmt(result.landing_time_diff_min, 1), "min"))
-        print("-" * W)
-        print(_row("Temperature MAE",    "", "", _fmt(result.temp_mae_k, 2), "K"))
-        print(_row("Pressure MAE",       "", "", _fmt(result.pressure_mae_pa, 0), "Pa"))
-        print("-" * W)
-        print(f"  GFS Forecast + Truth Altitude (reforecast landing vs truth)")
-        print(f"  {'Metric':<30} {'GFS+TA':>9}  {'Truth':>9}  {'Diff':>9}  Unit")
-        gfs = result
-        print(_row("Landing Lat (°)",
-                   _fmt(gfs.gfs_truth_landing_lat, 4),
-                   _fmt(t.landing_lat, 4),
-                   _fmt(_diff(gfs.gfs_truth_landing_lat, t.landing_lat), 4), "°"))
-        print(_row("Landing Lon (°)",
-                   _fmt(gfs.gfs_truth_landing_lon, 4),
-                   _fmt(t.landing_lon, 4),
-                   _fmt(_diff(gfs.gfs_truth_landing_lon, t.landing_lon), 4), "°"))
-        print(_row("Distance Off (m)", "", "", _fmt(gfs.gfs_truth_landing_dist_m, 0), "m"))
-        print("=" * W)
-
-        # ── Start-time suggestion ──────────────────────────────────────────
-        if self.df_truth is not None:
-            min_alt = config_earth.simulation['min_alt']
-            current_utc = config_earth.simulation['start_time']
-            sugg_utc, first_aprs_utc, v_mean = self._suggest_start_time(
-                self.df_truth, min_alt, self.GMT
-            )
-            print()
-            print("  Start-time analysis")
-            print(f"  Current config start_time : {current_utc} UTC")
-            if first_aprs_utc is not None:
-                print(f"  First APRS transmission   : {first_aprs_utc} UTC  "
-                      f"({self.df_truth['altitude'].iloc[0]:.0f} m)")
-            if sugg_utc is not None:
-                print(f"  Estimated launch time     : {sugg_utc.strftime('%Y-%m-%d %H:%M:%S')} UTC"
-                      f"  (extrapolated at {v_mean:.2f} m/s from first APRS point)")
-                print(f"  Suggested start_time      : \"{sugg_utc.strftime('%Y-%m-%d %H:%M:%S')}\"")
-
-    def _write_csv(self, result: EvaluationResult, path: str):
-        """Write evaluation metrics to a structured CSV file."""
-        s, t = result.sim, result.truth
-
-        def _v(x, dec=4):
-            return "" if (isinstance(x, float) and math.isnan(x)) else f"{x:.{dec}f}"
-
-        def _diff(a, b):
-            return a - b if not (math.isnan(a) or math.isnan(b)) else math.nan
-
-        land_dist_m = result.landing_distance_km * 1000 if not math.isnan(result.landing_distance_km) else math.nan
-
-        rows = [
-            ("Float Alt Mean",        "m",   _v(s.float_alt_mean, 0),    _v(t.float_alt_mean, 0),    _v(_diff(s.float_alt_mean,    t.float_alt_mean),    0)),
-            ("Float Alt Std",         "m",   _v(s.float_alt_std,  0),    _v(t.float_alt_std,  0),    _v(_diff(s.float_alt_std,     t.float_alt_std),     0)),
-            ("Ascent Rate Mean",      "m/s", _v(s.ascent_rate_mean, 2),  _v(t.ascent_rate_mean, 2),  _v(_diff(s.ascent_rate_mean,  t.ascent_rate_mean),  2)),
-            ("Ascent Rate Std",       "m/s", _v(s.ascent_rate_std,  2),  _v(t.ascent_rate_std,  2),  _v(_diff(s.ascent_rate_std,   t.ascent_rate_std),   2)),
-            ("Descent Rate Mean",     "m/s", _v(s.descent_rate_mean, 2), _v(t.descent_rate_mean, 2), _v(_diff(s.descent_rate_mean, t.descent_rate_mean), 2)),
-            ("Descent Rate Std",      "m/s", _v(s.descent_rate_std,  2), _v(t.descent_rate_std,  2), _v(_diff(s.descent_rate_std,  t.descent_rate_std),  2)),
-            ("Elapsed Time",          "min", _v(s.elapsed_time_min, 1),  _v(t.elapsed_time_min, 1),  _v(_diff(s.elapsed_time_min,  t.elapsed_time_min),  1)),
-            ("Landing Lat",           "deg", _v(s.landing_lat, 4),       _v(t.landing_lat, 4),       _v(_diff(s.landing_lat,       t.landing_lat),       4)),
-            ("Landing Lon",           "deg", _v(s.landing_lon, 4),       _v(t.landing_lon, 4),       _v(_diff(s.landing_lon,       t.landing_lon),       4)),
-            ("Landing Time (MST)",    "",    str(s.landing_time)[:16] if s.landing_time else "",
-                                             str(t.landing_time)[:16] if t.landing_time else "",
-                                             _v(result.landing_time_diff_min, 1)),
-            ("Distance Off",          "m",   "", "", _v(land_dist_m, 0)),
-            ("Temperature MAE",       "K",   "", "", _v(result.temp_mae_k, 2)),
-            ("Pressure MAE",          "Pa",  "", "", _v(result.pressure_mae_pa, 0)),
-            ("GFS+TA Landing Lat",    "deg", _v(result.gfs_truth_landing_lat, 4),
-                                             _v(t.landing_lat, 4),
-                                             _v(_diff(result.gfs_truth_landing_lat, t.landing_lat), 4)),
-            ("GFS+TA Landing Lon",    "deg", _v(result.gfs_truth_landing_lon, 4),
-                                             _v(t.landing_lon, 4),
-                                             _v(_diff(result.gfs_truth_landing_lon, t.landing_lon), 4)),
-            ("GFS+TA Distance Off",   "m",   "", "", _v(result.gfs_truth_landing_dist_m, 0)),
-        ]
-
-        with open(path, 'w', newline='') as f:
-            w = csv.writer(f)
-            w.writerow(["Metric", "Unit", "Sim", "Truth", "Diff"])
-            w.writerows(rows)
 
     # ── Plot ─────────────────────────────────────────────────────────────────
 
