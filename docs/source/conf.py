@@ -13,7 +13,7 @@
 
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../..'))
+sys.path.insert(0, os.path.abspath('../../src/EarthSHAB/'))
 
 
 # -- Project information -----------------------------------------------------
@@ -23,7 +23,7 @@ copyright = '2021-2026'
 author = 'Tristan Schuler'
 
 # The full version, including alpha/beta/rc tags
-release = '1.2.0'
+release = '1.3.0'
 
 # The suffix of source filenames.
 #source_suffix = '.rst'
@@ -49,6 +49,8 @@ extensions = [
     'sphinx.ext.viewcode',
 ]
 
+autosummary_generate = True
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
@@ -71,7 +73,7 @@ html_theme = "sphinx_rtd_theme" #"sphinx_rtd_theme" #'alabaster'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = []
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.

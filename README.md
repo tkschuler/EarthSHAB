@@ -1,4 +1,6 @@
 [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-3110/)
+[![Docs](https://github.com/tkschuler/EarthSHAB/actions/workflows/docs.yml/badge.svg)](https://github.com/tkschuler/EarthSHAB/actions/workflows/docs.yml)
+[![License](https://img.shields.io/badge/license-see%20LICENSE-lightgrey.svg)](LICENSE)
 
 # EarthSHAB
 I have made some edits and also set up automatic system time and time zone for images.
@@ -7,34 +9,30 @@ I also transfer basic payload weight into trajectory computations.
 Solar high altitude balloons (SHAB) are a simple and lightweight option for aerial exploration and meteorological data collection both terrestrially and on other planets. By using a
 lightweight material that absorbs visual light and emits low levels of thermal radiation, solar balloons behave similarly to hot air balloons, but are capable of ascending to much higher altitudes. Unlike hot air balloons, which use a heat source to raise the temperature of the internal air, solar balloons generate heat by absorbing solar radiation, providing a free source of lift and eliminating the need for a lighter than air gas or carrying fuel.
 
-EarthSHAB is an open source software platform for predicting the flight paths of solar balloon on Earth, adapted from [MarsSHAB](https://github.com/tkschuler/SolarBalloon), developed at the University of Arizona. Altitude profiles for a SHAB flight are generated using heat transfer modeling and dynamic analysis. By incorporating weather forecasts from NOAA, complete 3D SHAB trajectories can also be predicted.  
+EarthSHAB is an open source software platform for predicting the flight paths of solar balloon on Earth, adapted from [MarsSHAB](https://github.com/tkschuler/SolarBalloon), developed at the University of Arizona. Altitude profiles for a SHAB flight are generated using heat transfer modeling and dynamic analysis. By incorporating weather forecasts from NOAA, complete 3D SHAB trajectories can also be predicted.
 
-## Installation
+**Features**
 
+* 3D trajectory prediction with heat-transfer + dynamic balloon physics
+* Forecast support for **GFS** (NOAA) and **ERA5** (ECMWF) reanalysis
+* Multi-altitude *rainbow* trajectory predictions
+* Interactive HTML trajectory and wind-vector maps
+* Evaluation suite for comparing simulations against historical APRS flights, with batch / campaign reporting
 
-**1. Clone the repository**
+See the [full documentation](https://tkschuler.github.io/EarthSHAB/) and the [Changelog](Changelog) for what's new.
+
+## Quickstart
+
 ```
 git clone https://github.com/tkschuler/EarthSHAB.git
 cd EarthSHAB
+pip install -r requirements.txt && pip install -e .
+python -m EarthSHAB.main # run your first trajectory prediction with the included archived GFS forecast
 ```
 
-**2. Create a virtual environment (optional but recommended)**
+See [Installation](https://tkschuler.github.io/EarthSHAB/installation.html) for the recommended conda setup (needed for `cfgrib` / ERA5).
 
-It's reccomended to install cfgrib with conda rather than pip
 
-Using ``conda``:
-```
-conda create -n earthshab python=3.11 pip
-conda activate earthshab
-conda install conda-forge::cfgrib
-```
-
-**3. Install dependencies**
-
-```
-pip install -r requirements.txt
-pip install -e .
-```
 
 ## Examples
 
@@ -44,11 +42,22 @@ pip install -e .
 
 ``main.py*``, ``predict.py``, and ``trapezoid.py`` show examples of how to produce relevant and html-based trajectory maps using the Google maps API.
 
-These examples can all be run with the included GFS and ERA forecasts as well as a SHAB balloon trajectory (SHAB14-V) in the required APRS.fi csv format.
 
 <img src = "img/rainbow_trajectories_altitude.png" />
 
 <img src = "img/rainbow_trajectories_map.PNG" />
+
+## Evaluation against historical flights
+
+``evaluation/evaluate.py`` runs a single EarthSHAB simulation against a real APRS balloon track and reports how close the model came. It runs a forward simulation, a *reforecast* (forecast winds applied to the truth altitude profile to isolate wind error from vertical-motion error), detects the ascent / float / descent phases for both sim and truth, and writes a console report, a per-launch CSV, an interactive trajectory HTML, and the comparison plot below.
+
+```
+python -m evaluation.evaluate
+```
+
+<img src = "img/evaluation_comparison_SHAB14V_GFS.png" />
+
+For sweeping a collection of flights at once and comparing across code revisions, see ``evaluation/run_batch.py`` and the [Evaluation docs](https://tkschuler.github.io/EarthSHAB/evaluation/index.html).
 
 ## Citing EarthSHAB
 

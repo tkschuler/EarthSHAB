@@ -1,0 +1,22 @@
+{
+  "launches": [
+    {
+      "shab_name": "SHAB14V",
+      "organization": "UA",
+      "callsign": "SHAB14V",
+      "launch_time": "2022-08-22 14:36:00",
+      "landing_time": null,
+      "sim_time_hr": 15,
+      "aprs_file": "SHAB14V-APRS.csv",
+      "gfs_file": "gfs_0p25_20220822_12.nc",
+      "era5_file": "SHAB14V_ERA5_20220822_20220823.nc",
+      "launch_lat": 34.60,
+      "launch_lon": -106.80,
+      "launch_alt_m": 1000.0,
+      "payload_weight_kg": 0.9,
+      "envelope_weight_kg": 2.1,
+      "balloon_shape": "sphere",
+      "balloon_size": 5.8
+    }
+  ]
+}

@@ -7,9 +7,10 @@ EarthSHAB Usage
 .. toctree::
    :maxdepth: 1
    :caption: Downloading and Saving Forecasts:
-   
+
    downloadGFS
    downloadERA5
+
 
 
 Quick Start
@@ -20,11 +21,11 @@ Quick Start
 3. **Edit the configuration file** (``config.py``)  
 4. **Run a simulation**
 
-``main.py`` *will run as is with the provided examples GFS and ERA5 forecasts*
+``main.py`` *will run as is with the provided examples GFS and ERA5 forecasts*.  From the parent directory: run 
 
 .. code-block:: bash
 
-   python main.py
+   python3 -m EarthSHAB.main
 
 
 You should see:
@@ -66,7 +67,7 @@ Many parameters can be adjusted for running EarthSHAB simulations and the parame
 Other Examples
 ===================
 
-``predict.py`` uses EarthSHAB to generate a collection of altitude and trajectory predictions at different float altitudes. Estimating float altitudes for a standard charcoal SHAB balloon are challenging and can range from SHAB to SHAB even if all the **balloon_properties** are the same and the balloons are launches on the same day. This example produces a rainbow altitude plot and interactive google maps trajectory prediction. The float altitudes are adjusted by changing the payload mass in .25 increments to simulate varrying float altitudes.
+``python3 -m EarthSHAB.predict`` uses EarthSHAB to generate a collection of altitude and trajectory predictions at different float altitudes. Estimating float altitudes for a standard charcoal SHAB balloon are challenging and can range from SHAB to SHAB even if all the **balloon_properties** are the same and the balloons are launches on the same day. This example produces a rainbow altitude plot and interactive google maps trajectory prediction. The float altitudes are adjusted by changing the payload mass in .25 increments to simulate varrying float altitudes.
 
 |pic1| |pic2|
 
@@ -76,4 +77,4 @@ Other Examples
 .. |pic2| image:: ../../../img/rainbow_trajectories_map.PNG
    :width: 48%
 
-``trajectory.py`` provides a rough example of how to use EarthSHAB with a manual altitude profile to estimate wind-based trajectory predictions.  Alternatively, you can generate a csv file in the *aprs.fi* format and inclue it in ``config.py``. 
+``python3 -m EarthSHAB.trapezoid`` provides a rough example of how to use EarthSHAB with a manual altitude profile to estimate wind-based trajectory predictions.  Alternatively, you can generate a csv file in the *aprs.fi* format and inclue it in ``config.py``. 

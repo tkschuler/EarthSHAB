@@ -8,6 +8,7 @@ netCDF4==1.7.4
 numpy==2.2.6
 pandas==3.0.2
 pytest==9.0.2
+pytest-spec==6.0.0
 pytz==2024.2
 Requests==2.33.1
 scipy==1.17.1

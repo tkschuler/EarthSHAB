@@ -1,14 +1,27 @@
+version 1.3 
+===============================
+* Fixed bug in calculating sunset off of sim trajectory for ground-truth data
+* Sunset tracking added to model and trajectory plots
+* Evaluation Suite against Historical Data
+    * Recreating https://journals.ametsoc.org/view/journals/atot/41/12/JTECH-D-24-0045.1.xml?tab_body=pdf
+    * Single-flight evaluator: `python -m evaluation.evaluate`
+        * Forward simulation + reforecast (forecast winds applied to truth altitude profile) with plots
+        * Phase detection (ascent / float / descent)
+    * Batch evaluator: `python -m evaluation.run_batch --note "..."`
+    * Multi-format APRS loader (aprs.fi standard, raw onboard logger, LightAPRS-W variants)
+
 version 1.2.1
 ===============================
-* Reorganization for simplifying main + modularity
-    * simulate.py added, and individual plots added to Plotting/
+* Reorganizing into Python package Structure
+* Make main more modular
+    * simulate.py added, and individual plotting scripts added to Plotting/
 
 
 version 1.2.0
 ===============================
 * New saveNETCDF.py script with discontinuation of NOAA's OpenDAP Server
     * Also works with AWS GFS Script (slightly different results due to formatting/conversion)
-* Now supports Python==3.11 and many newer dependencies 
+* Now supports Python==3.11 and many newer dependencies
 * Added some intial forecast processing test cases between GFS sources
 * Added Edge Case Handling for GFS boundary loopups to match ERA5 behavior
 * Note: GFS download from NOAA vs AWS has slight differences

@@ -1,4 +1,4 @@
 docs/** linguist-vendored
-forecasts/** linguist-vendored
-trajectories/** linguist-vendored
-balloon_data/** linguist-vendored
+src/EarthSHAB/forecasts/** linguist-vendored
+src/EarthSHAB/trajectories/** linguist-vendored
+src/EarthSHAB/balloon_data/** linguist-vendored
