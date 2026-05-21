@@ -7,6 +7,7 @@ the U.S. Standard Atmosphere tables from 1976, and the fluids library is used fo
 
 import numpy as np
 import netCDF4
+from scipy.interpolate import CubicSpline
 from termcolor import colored
 import math
 from geographiclib.geodesic import Geodesic
@@ -16,6 +17,37 @@ from backports.datetime_fromisoformat import MonkeyPatch
 MonkeyPatch.patch_fromisoformat()   #Hacky solution for Python 3.6 to use ISO format Strings
 
 import EarthSHAB.config_earth as config_earth
+
+
+def _spline_uv(alt_m, h_ascending, u_ascending, v_ascending):
+    """CubicSpline on u and v independently across the altitude profile.
+
+    extrapolate=False; when alt_m is outside [h_min, h_max] falls back to
+    np.interp (which clamps to endpoints), avoiding spline overshoot above
+    the highest pressure level where the balloon often actually flies.
+
+    h_ascending, u_ascending, v_ascending must be in ascending order of h.
+    Duplicate h values (which can occur after fill_missing_data clamps
+    NaN-extrapolation at the top of the profile to the last valid altitude)
+    are filtered out — CubicSpline requires strictly increasing x.
+    """
+    h_arr = np.asarray(h_ascending)
+    u_arr = np.asarray(u_ascending)
+    v_arr = np.asarray(v_ascending)
+    # Keep only strictly increasing samples.
+    keep = np.concatenate(([True], np.diff(h_arr) > 0))
+    h_s, u_s, v_s = h_arr[keep], u_arr[keep], v_arr[keep]
+
+    h_lo, h_hi = h_s[0], h_s[-1]
+    if alt_m < h_lo or alt_m > h_hi or len(h_s) < 4:
+        return (
+            float(np.interp(alt_m, h_s, u_s)),
+            float(np.interp(alt_m, h_s, v_s)),
+        )
+    cs_u = CubicSpline(h_s, u_s, extrapolate=False)
+    cs_v = CubicSpline(h_s, v_s, extrapolate=False)
+    return float(cs_u(alt_m)), float(cs_v(alt_m))
+
 
 class GFS:
     def __init__(self, centered_coord):
@@ -269,11 +301,6 @@ class GFS:
         h0 = self.hgtprs[int(hour_index),:,lat_i,lon_i]
         h0 = self.fill_missing_data(h0)
 
-        u0 = np.interp(coord["alt"],h0,u_0)
-        v0 = np.interp(coord["alt"],h0,v_0)
-
-        bearing_t0, speed_t0 = self.interpolateBearing(h0, u_0, v_0, coord["alt"])
-
         #t1
 
         v_1 = self.vgdrps0[int(hour_index)+1,:,lat_i,lon_i]
@@ -285,23 +312,40 @@ class GFS:
         h1 = self.hgtprs[int(hour_index)+1,:,lat_i,lon_i]
         h1 = self.fill_missing_data(h1)
 
-        u1 = np.interp(coord["alt"],h1,u_1) # Round hour index to next timestep
-        v1 = np.interp(coord["alt"],h1,v_1)
+        # linear_full path (np.interp on u,v across full altitude profile,
+        # then linear in time). Always computed for diagnostic comparison
+        # (returned as u_diag, v_diag below).
+        u0_lf = np.interp(coord["alt"], h0, u_0)
+        v0_lf = np.interp(coord["alt"], h0, v_0)
+        u1_lf = np.interp(coord["alt"], h1, u_1)
+        v1_lf = np.interp(coord["alt"], h1, v_1)
+        u_lf  = np.interp(hour_index, [int(hour_index), int(hour_index)+1], [u0_lf, u1_lf])
+        v_lf  = np.interp(hour_index, [int(hour_index), int(hour_index)+1], [v0_lf, v1_lf])
 
-        bearing_t1, speed_t1 = self.interpolateBearing(h1, u_1, v_1, coord["alt"])
+        method = config_earth.forecast.get('wind_interpolation', 'linear_neighbors')
 
+        if method == 'linear_neighbors':
+            bearing_t0, speed_t0 = self.interpolateBearing(h0, u_0, v_0, coord["alt"])
+            bearing_t1, speed_t1 = self.interpolateBearing(h1, u_1, v_1, coord["alt"])
+            bearing_interpolated, speed_interpolated = self.interpolateBearingTime(
+                bearing_t0, speed_t0, bearing_t1, speed_t1, hour_index)
+            u = speed_interpolated * np.cos(np.radians(bearing_interpolated))
+            v = speed_interpolated * np.sin(np.radians(bearing_interpolated))
+        elif method == 'linear_full':
+            u, v = u_lf, v_lf
+        elif method == 'spline_full':
+            u0_sp, v0_sp = _spline_uv(coord["alt"], h0, u_0, v_0)
+            u1_sp, v1_sp = _spline_uv(coord["alt"], h1, u_1, v_1)
+            u = np.interp(hour_index, [int(hour_index), int(hour_index)+1], [u0_sp, u1_sp])
+            v = np.interp(hour_index, [int(hour_index), int(hour_index)+1], [v0_sp, v1_sp])
+        else:
+            raise ValueError(
+                f"Unknown wind_interpolation: {method!r}. "
+                "Expected 'linear_neighbors', 'linear_full', or 'spline_full'."
+            )
 
-        #Old Method
-        u_old = np.interp(hour_index,[int(hour_index),int(hour_index)+1],[u0,u1])
-        v_old = np.interp(hour_index,[int(hour_index),int(hour_index)+1],[v0,v1])
-
-        #New Method (Bearing/speed  linear interpolation):
-        bearing_interpolated, speed_interpolated =  self.interpolateBearingTime(bearing_t0, speed_t0, bearing_t1, speed_t1, hour_index )
-
-        u_new = speed_interpolated * np.cos(np.radians(bearing_interpolated))
-        v_new = speed_interpolated * np.sin(np.radians(bearing_interpolated))
-
-        return [u_new, v_new, u_old, v_old]
+        # Return selected (u, v) for sim use, plus linear_full as diagnostic baseline.
+        return [u, v, u_lf, v_lf]
 
     def windVectorToBearing(self, u, v):
         """Helper function to conver u-v wind components to bearing and speed.

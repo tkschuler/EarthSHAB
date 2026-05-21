@@ -375,6 +375,8 @@ def run_batch(note: str):
         "git_commit_message":      git["git_commit_message"],
         "git_dirty":               git["git_dirty"],
         "earthshab_version":       _earthshab_version(),
+        "wind_interpolation":      config_earth.forecast.get(
+                                       "wind_interpolation", "linear_neighbors"),
         "total_runtime_s":         round(total_runtime, 2),
         "per_launch_avg_runtime_s": round(avg_runtime, 2),
         "launches_attempted":      attempted,

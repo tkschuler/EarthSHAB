@@ -9,7 +9,7 @@ Produces a single compare.html with:
   - Win/Loss count table (per metric, per group)
   - Per-launch diff table (3 sub-cells per metric: A | B | Δ)
   - Per-metric overview plots (GFS and ERA5 side-by-side)
-  - Reforecast diagnostics section (GFS-only, separate header)
+  - Reforecast diagnostics section (per forecast type, separate header)
 
 Colored cells indicate improvement (green) or regression (red); gray = within
 the noise floor. Columns are sortable (click headers).
@@ -63,8 +63,10 @@ def _pct(v) -> str:
 
 def _td(raw, txt, style="", align="center"):
     """One <td> with data-val for sorting."""
-    style_attr = f' style="{style}"' if style else ""
-    return f'<td data-val="{_html.escape(str(raw))}" style="text-align:{align}"{style_attr}>{txt}</td>'
+    combined = f"text-align:{align}"
+    if style:
+        combined += f";{style}"
+    return f'<td data-val="{_html.escape(str(raw))}" style="{combined}">{txt}</td>'
 
 
 def _delta_cell(m_cell: dict, fmt: str) -> str:
@@ -184,12 +186,17 @@ def _build_header_section(batch_a: BatchData, batch_b: BatchData) -> str:
     def info_block(label: str, b: BatchData) -> str:
         info = b.info or {}
         dirty = " <span style='color:orange'>(dirty)</span>" if info.get("git_dirty") else ""
+        wind = info.get("wind_interpolation")
+        wind_line = (
+            f"<b>Wind interp:</b> {_html.escape(str(wind))}<br>" if wind else ""
+        )
         return (
             f"<div class='batch-card'>"
             f"<h3>{label}</h3>"
             f"<b>Batch ID:</b> {_html.escape(b.batch_id)}<br>"
             f"<b>Timestamp:</b> {_html.escape(str(info.get('timestamp_utc', '')))}<br>"
             f"<b>Git:</b> {_html.escape(info.get('git_hash', ''))}{dirty}<br>"
+            f"{wind_line}"
             f"<b>Note:</b> {_html.escape(str(info.get('note', '')))}"
             f"</div>"
         )
@@ -389,29 +396,40 @@ def write_compare_html(out_dir: str, batch_a: BatchData, batch_b: BatchData,
     if reforecast_section:
         ref_m = reforecast_section["metric"]
         ref_rows = reforecast_section["rows"]
-        ref_agg  = reforecast_section["aggregate"]
+        ref_aggs = reforecast_section.get("aggregates")
+        if ref_aggs is None and "aggregate" in reforecast_section:
+            ref_aggs = [reforecast_section["aggregate"]]
         ref_header = _build_metric_header([ref_m], ["Launch", "Forecast", "Campaign"])
         ref_body   = _build_per_launch_body(ref_rows, [ref_m])
         ref_agg_header = _build_metric_header([ref_m], ["Group", "—", "N"])
-        ref_agg_body   = _build_aggregate_body([ref_agg], [ref_m])
-        # Plot
+        ref_agg_body   = _build_aggregate_body(ref_aggs, [ref_m])
+        # Plots: GFS + ERA5 side-by-side (bar above, scatter below).
+        ref_forecasts = sorted({r["forecast_type"] for r in ref_rows})
+        bar_cells = ""
+        sc_cells  = ""
+        for ft in ref_forecasts:
+            bk = (ref_m["key"], ft, "bar")
+            sk = (ref_m["key"], ft, "scatter")
+            if bk in plot_files:
+                bar_cells += (
+                    f"<td><div class='plot-label'>{_html.escape(ft)}</div>"
+                    f"<img src='{plot_files[bk]}' alt='reforecast {ft} bar'></td>"
+                )
+            if sk in plot_files:
+                sc_cells += (
+                    f"<td><div class='plot-label'>{_html.escape(ft)}</div>"
+                    f"<img src='{plot_files[sk]}' alt='reforecast {ft} scatter'></td>"
+                )
         ref_plot = ""
-        bar_key = (ref_m["key"], "GFS", "bar")
-        sc_key  = (ref_m["key"], "GFS", "scatter")
-        if bar_key in plot_files or sc_key in plot_files:
-            cells = ""
-            if bar_key in plot_files:
-                cells += f"<td><img src='{plot_files[bar_key]}' alt='reforecast bar'></td>"
-            if sc_key in plot_files:
-                cells += f"<td><img src='{plot_files[sc_key]}' alt='reforecast scatter'></td>"
+        if bar_cells or sc_cells:
             ref_plot = (
                 f"<div class='metric-plot-card'><h3>{_html.escape(ref_m['label'])}</h3>"
-                f"<table class='plot-grid'><tr>{cells}</tr></table></div>"
+                f"<table class='plot-grid'><tr>{bar_cells}</tr><tr>{sc_cells}</tr></table></div>"
             )
         reforecast_html = (
-            "<div class='section'><h2>Reforecast diagnostics (GFS-only)</h2>"
+            "<div class='section'><h2>Reforecast diagnostics</h2>"
             "<p style='color:#555;font-size:0.85em'>Reforecast = sim re-run against truth altitude profile, "
-            "isolating wind-forecast error from altitude-model error.</p>"
+            "isolating wind-forecast error from altitude-model error. Computed per forecast type.</p>"
             f"<h3>Aggregate</h3><table id='tbl-ref-agg'>{ref_agg_header}{ref_agg_body}</table>"
             f"<h3>Per launch</h3><table id='tbl-ref-detail'>{ref_header}{ref_body}</table>"
             f"{ref_plot}"

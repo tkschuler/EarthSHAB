@@ -25,6 +25,19 @@ forecast = dict(
     forecast_type = "GFS",      # GFS or ERA5
     forecast_start_time = forecast_start_time, # Forecast start time, should match a downloaded forecast in the forecasts directory
     GFSrate = 60,               # (s) After how many iterated dt steps are new wind speeds are looked up
+
+    # Wind interpolation method used inside GFS/ERA5 wind_alt_Interpolate2:
+    #   'linear_neighbors' - (default, historical) bearing+speed linearly
+    #                        interpolated between the 2 nearest pressure
+    #                        levels, with angle-wrap correction.
+    #   'linear_full'      - np.interp on u and v independently across the
+    #                        full altitude profile.
+    #   'spline_full'      - scipy CubicSpline on u and v across the full
+    #                        altitude profile; extrapolate=False, with
+    #                        np.interp fallback when alt is outside the
+    #                        profile bounds (avoids spline overshoot above
+    #                        the highest pressure level).
+    wind_interpolation = 'spline_full',
 )
 
 #These parameters are for both downloading new forecasts, and running simulations with downloaded forecasts.

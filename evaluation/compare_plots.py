@@ -112,7 +112,7 @@ def generate_all_plots(per_launch, available_metrics, reforecast_section,
     """Generate bar + scatter PNGs for every metric x forecast_type pair.
 
     Returns dict[(metric_key, forecast_type, kind)] -> filename (relative to out_dir).
-    For reforecast: only GFS plots are generated.
+    Reforecast plots are generated for every forecast type that has data.
     """
     files: dict = {}
     forecasts = sorted({r["forecast_type"] for r in per_launch}) or ["GFS"]
@@ -145,7 +145,7 @@ def generate_all_plots(per_launch, available_metrics, reforecast_section,
             files[(m["key"], ft, "bar")]     = bar_fname
             files[(m["key"], ft, "scatter")] = scatter_fname
 
-    # Reforecast: GFS-only.
+    # Reforecast: one bar+scatter per forecast type (shared bounds across types).
     if reforecast_section:
         m = reforecast_section["metric"]
         rows = reforecast_section["rows"]
@@ -161,13 +161,18 @@ def generate_all_plots(per_launch, available_metrics, reforecast_section,
                 if isinstance(v, float) and not math.isnan(v):
                     vals.append(v)
         axis_limit = (max(vals) * 1.05) if vals else 1.0
-        bar_fname     = f"plot_{m['key']}_GFS_bar.png"
-        scatter_fname = f"plot_{m['key']}_GFS_scatter.png"
-        _bar_chart(rows, m, os.path.join(out_dir, bar_fname),
-                   y_abs_limit, title_extra="(GFS reforecast)")
-        _scatter_chart(rows, m, os.path.join(out_dir, scatter_fname),
-                       axis_limit, title_extra="(GFS reforecast)")
-        files[(m["key"], "GFS", "bar")]     = bar_fname
-        files[(m["key"], "GFS", "scatter")] = scatter_fname
+        ref_forecasts = sorted({r["forecast_type"] for r in rows})
+        for ft in ref_forecasts:
+            subset = [r for r in rows if r["forecast_type"] == ft]
+            if not subset:
+                continue
+            bar_fname     = f"plot_{m['key']}_{ft}_bar.png"
+            scatter_fname = f"plot_{m['key']}_{ft}_scatter.png"
+            _bar_chart(subset, m, os.path.join(out_dir, bar_fname),
+                       y_abs_limit, title_extra=f"({ft} reforecast)")
+            _scatter_chart(subset, m, os.path.join(out_dir, scatter_fname),
+                           axis_limit, title_extra=f"({ft} reforecast)")
+            files[(m["key"], ft, "bar")]     = bar_fname
+            files[(m["key"], ft, "scatter")] = scatter_fname
 
     return files

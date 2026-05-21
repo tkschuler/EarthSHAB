@@ -472,13 +472,13 @@ def main(argv=None) -> int:
                                          asym["intersection_ok"], available_metrics)
     aggregates = compute_aggregates(per_launch, available_metrics)
 
-    # Reforecast (GFS-only) — compute on the GFS subset.
+    # Reforecast — computed for every (launch, forecast_type) pair that has data.
     reforecast_section = None
     if available_reforecast:
-        gfs_subset = {k for k in asym["intersection_ok"] if k[1] == "GFS"}
-        ref_rows = compute_per_launch_rows(batch_a.df, batch_b.df, gfs_subset, [available_reforecast])
-        ref_agg  = compute_aggregate(ref_rows, [available_reforecast], None, "Reforecast (GFS)")
-        reforecast_section = {"rows": ref_rows, "aggregate": ref_agg, "metric": available_reforecast}
+        ref_rows = compute_per_launch_rows(batch_a.df, batch_b.df,
+                                           asym["intersection_ok"], [available_reforecast])
+        ref_aggs = compute_aggregates(ref_rows, [available_reforecast])
+        reforecast_section = {"rows": ref_rows, "aggregates": ref_aggs, "metric": available_reforecast}
 
     # Output directory.
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H%M")
