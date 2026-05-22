@@ -15,6 +15,7 @@ import sys
 import EarthSHAB.config_earth as config_earth
 import EarthSHAB.GFS as GFS
 import EarthSHAB.ERA5 as ERA5
+from EarthSHAB.GFS import _spline_uv
 
 class Windmap:
     def __init__(self):
@@ -428,6 +429,177 @@ class Windmap:
         plt.plot(T_atm,el, label = "ISA Model")
         plt.legend(loc='upper right')
     """
+
+    def _profile_at(self, hour_index, lat, lon):
+        """Return (u, v, h) pressure-level wind profile at a (time, lat, lon),
+        with NaNs removed and ERA5 reversed/geopotential-converted to match
+        the conventions used by GFS/ERA5.wind_alt_Interpolate2.
+
+        Looks up lat/lon directly against the FULL netCDF lat/lon arrays
+        attached to self (self.lat / self.lon), since self.ugrdprs etc. are
+        also the full netCDF variables.
+        """
+        g = 9.80665
+        if config_earth.forecast['forecast_type'] == "GFS":
+            lon_q = float(lon) % 360.0
+        else:
+            lon_q = float(lon)
+        lat_i = self.closest(self.lat, float(lat))
+        lon_i = self.closest(self.lon, lon_q)
+
+        u = self.ugrdprs[hour_index, :, lat_i, lon_i].filled(np.nan)
+        v = self.vgrdprs[hour_index, :, lat_i, lon_i].filled(np.nan)
+        h = np.asarray(self.hgtprs[hour_index, :, lat_i, lon_i])
+        nans = ~np.isnan(u)
+        u, v, h = u[nans], v[nans], h[nans]
+        if config_earth.forecast['forecast_type'] == "ERA5":
+            u = np.flip(u); v = np.flip(v); h = np.flip(h) / g
+        return u, v, h
+
+    @staticmethod
+    def _interp_linear_neighbors(h_query, h, u, v):
+        """Reproduces GFS.interpolateBearing semantics across a query grid:
+        for each h_query, find enclosing pressure levels, linearly interp
+        bearing+speed (with 0/360° wrap correction), convert back to u,v.
+        """
+        u_out = np.empty_like(h_query, dtype=float)
+        v_out = np.empty_like(h_query, dtype=float)
+        bearing = np.degrees(np.arctan2(v, u)) % 360.0
+        speed   = np.hypot(u, v)
+        for q_idx, hq in enumerate(h_query):
+            # find enclosing indices
+            if hq <= h[0]:
+                i0, i1 = 0, 1
+            elif hq >= h[-1]:
+                i0, i1 = len(h) - 2, len(h) - 1
+            else:
+                i1 = int(np.searchsorted(h, hq))
+                i0 = i1 - 1
+            a1, a2 = bearing[i0], bearing[i1]
+            if abs(a2 - a1) > 180:
+                if a2 > a1:
+                    a1 += 360
+                else:
+                    a2 += 360
+            sp = np.interp(hq, [h[i0], h[i1]], [speed[i0], speed[i1]])
+            dr = np.interp(hq, [h[i0], h[i1]], [a1, a2]) % 360
+            u_out[q_idx] = sp * np.cos(np.radians(dr))
+            v_out[q_idx] = sp * np.sin(np.radians(dr))
+        return u_out, v_out
+
+    def _interp_method(self, method, h_query, h, u, v):
+        """Compute (u, v) on h_query using the named production interpolation.
+
+        :param method: one of ``'linear_neighbors'``, ``'linear_full'``, ``'spline_full'``
+        """
+        if method == 'linear_neighbors':
+            return self._interp_linear_neighbors(h_query, h, u, v)
+        if method == 'linear_full':
+            return np.interp(h_query, h, u), np.interp(h_query, h, v)
+        if method == 'spline_full':
+            u_out = np.empty_like(h_query, dtype=float)
+            v_out = np.empty_like(h_query, dtype=float)
+            for i, hq in enumerate(h_query):
+                u_out[i], v_out[i] = _spline_uv(hq, h, u, v)
+            return u_out, v_out
+        raise ValueError(
+            f"Unknown wind_interpolation method {method!r}. "
+            "Expected 'linear_neighbors', 'linear_full', or 'spline_full'."
+        )
+
+    def plotWindMethod(self, hour_index, lat, lon, method='linear_full',
+                       alt_step=100.0, ax=None, vmin=None, vmax=None,
+                       alt_max=None, show_title=True):
+        """3D polar windrose for a single production interpolation method.
+
+        Same visual conventions as :func:`plotWind2` (polar projection,
+        radius = altitude, angle = bearing, color = wind speed), but the
+        wind profile is interpolated using the named production method
+        from ``config_earth.forecast['wind_interpolation']`` instead of
+        the ad-hoc visualization-only schemes in ``plotWind2``. This
+        makes the panel a faithful picture of what the simulator
+        actually sees with that method.
+
+        :param method: ``'linear_neighbors'``, ``'linear_full'``, or ``'spline_full'``
+        :type method: str
+        :param alt_step: Altitude sample spacing [m] for the dense query grid
+        :type alt_step: float
+        :param ax: Optional pre-existing polar matplotlib Axes
+        :param vmin: Color-scale lower bound for wind speed [m/s] (shared bounds across panels)
+        :param vmax: Color-scale upper bound for wind speed [m/s]
+        :param alt_max: Outer radial limit [m] (shared across panels)
+        :returns: (Figure, PathCollection) — the scatter handle lets the
+                  caller attach a colorbar
+        """
+        u_lvl, v_lvl, h_lvl = self._profile_at(hour_index, lat, lon)
+        if len(h_lvl) < 2:
+            raise RuntimeError(f"Not enough valid pressure levels at ({lat}, {lon}).")
+        h_dense = np.arange(h_lvl[0], h_lvl[-1] + alt_step / 2.0, alt_step)
+
+        u, v = self._interp_method(method, h_dense, h_lvl, u_lvl, v_lvl)
+        speed = np.hypot(u, v)
+        bearing_deg = np.degrees(np.arctan2(v, u)) % 360.0
+
+        if ax is None:
+            fig = plt.figure(figsize=(7, 7))
+            ax = fig.add_subplot(111, projection='polar')
+        else:
+            fig = ax.figure
+
+        sc = ax.scatter(np.radians(bearing_deg), h_dense, c=speed,
+                        cmap='winter', s=4, vmin=vmin, vmax=vmax)
+        # Overlay the raw pressure-level samples (larger black-edged dots).
+        lvl_speed   = np.hypot(u_lvl, v_lvl)
+        lvl_bearing = np.degrees(np.arctan2(v_lvl, u_lvl)) % 360.0
+        ax.scatter(np.radians(lvl_bearing), h_lvl, c=lvl_speed, cmap='winter',
+                   s=45, edgecolor='black', linewidth=0.6,
+                   vmin=vmin, vmax=vmax, zorder=10)
+        ax.set_xticks(ax.get_xticks())
+        ax.set_xticklabels(['E', '', 'N', '', 'W', '', 'S', ''])
+        if alt_max is not None:
+            ax.set_ylim(0, alt_max)
+        if show_title:
+            ax.set_title(method, fontsize=12, pad=14)
+        return fig, sc
+
+    def plotWindMethodsComparison(self, hour_index, lat, lon, alt_step=100.0):
+        """Three side-by-side polar windrose panels — one per production
+        interpolation method — with shared color and radial scales.
+        """
+        u_lvl, v_lvl, h_lvl = self._profile_at(hour_index, lat, lon)
+        if len(h_lvl) < 2:
+            raise RuntimeError(f"Not enough valid pressure levels at ({lat}, {lon}).")
+        h_dense = np.arange(h_lvl[0], h_lvl[-1] + alt_step / 2.0, alt_step)
+
+        # Pre-compute speeds across all methods so panels share color bounds.
+        all_speeds = [np.hypot(u_lvl, v_lvl)]
+        for m in ('linear_neighbors', 'linear_full', 'spline_full'):
+            uu, vv = self._interp_method(m, h_dense, h_lvl, u_lvl, v_lvl)
+            all_speeds.append(np.hypot(uu, vv))
+        vmin = 0.0
+        vmax = float(np.max(np.concatenate(all_speeds)))
+        alt_max = float(h_dense[-1])
+
+        forecast_type = config_earth.forecast['forecast_type']
+        fig = plt.figure(figsize=(18, 7))
+        axes = [fig.add_subplot(1, 3, i + 1, projection='polar') for i in range(3)]
+        sc_last = None
+        for ax, method in zip(axes,
+                              ('linear_neighbors', 'linear_full', 'spline_full')):
+            _, sc_last = self.plotWindMethod(
+                hour_index, lat, lon, method=method, alt_step=alt_step,
+                ax=ax, vmin=vmin, vmax=vmax, alt_max=alt_max,
+            )
+        fig.suptitle(
+            f"{forecast_type} wind interpolation comparison — "
+            f"({lat:.3f}, {lon:.3f}) @ {self.new_timestamp}\n"
+            "radius = altitude (m), angle = bearing, color = speed (m/s)",
+            fontsize=12,
+        )
+        # Single shared colorbar on the right.
+        fig.colorbar(sc_last, ax=axes, orientation='vertical',
+                     shrink=0.85, pad=0.05, label='Wind Speed (m/s)')
+        return fig
 
     def makePlots(self):
         print(self.hour_index)

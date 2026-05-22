@@ -13,7 +13,7 @@ EarthSHAB API
    solve_states
    sphere_balloon
    windmap
-   
+
 * :ref:`genindex`
 * :ref:`modindex`
 
