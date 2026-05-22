@@ -1,4 +1,5 @@
 [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-3110/)
+[![Tests](https://github.com/tkschuler/EarthSHAB/actions/workflows/tests.yml/badge.svg)](https://github.com/tkschuler/EarthSHAB/actions/workflows/tests.yml)
 [![Docs](https://github.com/tkschuler/EarthSHAB/actions/workflows/docs.yml/badge.svg)](https://github.com/tkschuler/EarthSHAB/actions/workflows/docs.yml)
 [![License](https://img.shields.io/badge/license-see%20LICENSE-lightgrey.svg)](LICENSE)
 
