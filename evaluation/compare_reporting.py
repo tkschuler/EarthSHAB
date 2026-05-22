@@ -4,7 +4,7 @@ Produces a single compare.html with:
   - Minimal header (batch IDs, timestamps, git hashes, notes for A and B)
   - Schema-mismatch warning banner (if any metrics were dropped)
   - Asymmetries section (only-in-A, only-in-B, failed-in-one)
-  - TL;DR block (one line per primary metric x forecast type)
+  - Summary block (one line per primary metric x forecast type)
   - Aggregate table (Overall, per forecast_type, per campaign)
   - Win/Loss count table (per metric, per group)
   - Per-launch diff table (3 sub-cells per metric: A | B | Δ)
@@ -208,10 +208,10 @@ def _build_header_section(batch_a: BatchData, batch_b: BatchData) -> str:
     )
 
 
-def _build_tldr_section(lines: list[str]) -> str:
+def _build_summary_section(lines: list[str]) -> str:
     body = _html.escape("\n".join(lines)) if lines else "(no primary metrics available)"
     return (
-        "<div class='section'><h2>TL;DR</h2>"
+        "<div class='section'><h2>Summary</h2>"
         f"<pre style='background:#fff;padding:12px;border:1px solid #ccc;border-radius:4px;"
         f"font-size:0.95em;line-height:1.5'>{body}</pre></div>"
     )
@@ -377,7 +377,7 @@ def write_compare_html(out_dir: str, batch_a: BatchData, batch_b: BatchData,
                        per_launch: list[dict], aggregates: list[dict],
                        reforecast_section: Optional[dict],
                        asymmetries: dict, missing: dict,
-                       available_metrics: list[dict], tldr_lines: list[str],
+                       available_metrics: list[dict], summary_lines: list[str],
                        plot_files: dict) -> str:
     leading = ["Launch", "Forecast", "Campaign"]
     per_launch_header = _build_metric_header(available_metrics, leading)
@@ -456,7 +456,7 @@ def write_compare_html(out_dir: str, batch_a: BatchData, batch_b: BatchData,
     &nbsp;&nbsp;<span style='color:#666'>Click any column header to sort ↑↓</span>
   </div>
 
-  {_build_tldr_section(tldr_lines)}
+  {_build_summary_section(summary_lines)}
   {_build_asymmetries_section(asymmetries)}
 
   <div class='section'>

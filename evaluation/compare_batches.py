@@ -77,7 +77,7 @@ REFORECAST_METRIC = {
     "abs_floor": 1000.0, "fmt": ".0f",
 }
 
-# Headlines shown in the stdout/HTML TL;DR block (in order).
+# Headlines shown in the stdout/HTML Summary block (in order).
 PRIMARY_METRIC_KEYS = [
     "landing_distance_km",
     "time_to_ground_diff_min",
@@ -386,10 +386,10 @@ def compute_aggregates(rows: list[dict], available_metrics: list[dict]) -> list[
     return out
 
 
-# ── TL;DR ─────────────────────────────────────────────────────────────────────
+# ── Summary ─────────────────────────────────────────────────────────────────────
 
 
-def build_tldr_lines(rows: list[dict], available_metrics: list[dict]) -> list[str]:
+def build_summary_lines(rows: list[dict], available_metrics: list[dict]) -> list[str]:
     """Build short headline strings: one per primary metric per forecast type."""
     keys_by = {m["key"]: m for m in available_metrics}
     forecasts = sorted({r["forecast_type"] for r in rows})
@@ -494,11 +494,11 @@ def main(argv=None) -> int:
         reforecast_section, out_dir,
     )
 
-    # TL;DR.
-    tldr = build_tldr_lines(per_launch, available_metrics)
+    # Summary.
+    summary_lines = build_summary_lines(per_launch, available_metrics)
     print()
-    print("TL;DR:")
-    for line in tldr:
+    print("Summary:")
+    for line in summary_lines:
         print(line)
     print()
 
@@ -511,7 +511,7 @@ def main(argv=None) -> int:
         reforecast_section=reforecast_section,
         asymmetries=asym, missing=missing,
         available_metrics=available_metrics,
-        tldr_lines=tldr, plot_files=plot_files,
+        summary_lines=summary_lines, plot_files=plot_files,
     )
     print(f"  Wrote: {html_path}")
     return 0

@@ -20,8 +20,8 @@ and overview bar + scatter plots for every metric. This builds on
    error, so **negative Δ means improvement** (and is colored green).
 
 
-Quick start
------------
+Running a comparison
+--------------------
 
 .. code-block:: bash
 
@@ -43,8 +43,8 @@ Self-comparison (``compare_batches X X``) is allowed and useful as a
 sanity check — every delta should be zero.
 
 
-Output structure
-----------------
+Comparison output folder
+------------------------
 
 Each comparison writes a self-contained folder next to ``batches/``:
 
@@ -67,9 +67,23 @@ relative path so the folder is portable.
 HTML report
 -----------
 
+The example below is the per-launch detail table from the linear_neighbors → linear_full
+comparison, filtered to the Sandia launches. Each metric occupies three sub-cells
+(``A | B | Δ``), and Δ cells are colored only when the change clears both the
+absolute and percent thresholds — green for improvement, red for regression,
+gray for "within noise". Metrics that don't depend on wind interpolation
+(time-to-float, temp MAE, ascent rate, etc.) stay at "+0.0 (+0.0%)" across the
+board, which is itself a useful sanity check.
+
+|cmp_html|
+
+.. |cmp_html| image:: ../../../img/compare_html_sandia_table.png
+   :width: 100%
+   :alt: Per-launch deltas table from compare.html, filtered to Sandia launches
+
 The report opens with a **summary** block — 5–7 lines covering the headline
 metrics (landing distance, landing time error, float altitude error) to
-see whether the change helped or hurt. 
+see whether the change helped or hurt.
 
 Below the summary:
 

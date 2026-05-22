@@ -37,7 +37,7 @@ forecast = dict(
     #                        np.interp fallback when alt is outside the
     #                        profile bounds (avoids spline overshoot above
     #                        the highest pressure level).
-    wind_interpolation = 'spline_full',
+    wind_interpolation = 'linear_neighbors',
 )
 
 #These parameters are for both downloading new forecasts, and running simulations with downloaded forecasts.

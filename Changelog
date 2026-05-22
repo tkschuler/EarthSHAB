@@ -1,6 +1,10 @@
 version 1.3.1 (pre-release)
 ===============================
 * Added evaluation support for Helium Augmented and GrandSlam flights (ignoring ascent phase in evaluation)
+* Added new wind interpolation methods, selectable via `config_earth.forecast['wind_interpolation']`
+* Added batch comparison script `python -m evaluation.compare_batches <A> <B>`
+* Fixed blank GFS hodograph in `plot_windmap` - `plotWind2` was indexing the full netCDF arrays with cropped-region indices, landing in the wrong geographic cell
+
 
 version 1.3 
 ===============================
