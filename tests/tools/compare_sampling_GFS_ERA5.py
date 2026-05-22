@@ -4,7 +4,7 @@
 # while allowing different native time resolutions.
 #
 # Usage:
-#   python -m tests.compare_sampling_GFS_ERA5
+#   python -m tests.tools.compare_sampling_GFS_ERA5
 #
 # Notes:
 # - Avoids cftime calendar subtraction errors by converting timestamps to plain

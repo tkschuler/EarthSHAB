@@ -56,6 +56,7 @@ VALID_LAUNCH_TYPES = {"standard", "helium_augmented", "grand_slam"}
 APRS_COLUMN_SETS = [
     {"time", "lat", "lng", "altitude"},                              # APRS.fi standard
     {"Date", "Time(UTC)", "Latitude", "Longitude", "Altitude(m)"},   # Custom onboard
+    {"UTC_Date_Time", "Lat", "Lon", "Altitude_m"},                   # LightAPRS-W / StratoTrack
 ]
 
 GFS_REQUIRED_VARS  = {"ugrdprs", "vgrdprs", "hgtprs", "lat", "lon", "lev", "time"}

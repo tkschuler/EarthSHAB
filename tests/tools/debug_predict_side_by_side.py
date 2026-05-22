@@ -9,7 +9,7 @@
 # the vertical state shared between them.
 #
 # Usage:
-#   python -m tests.debug_predict_side_by_side
+#   python -m tests.tools.debug_predict_side_by_side
 #
 # Optional knobs near the top:
 #   CONTINUE_WITH = "GFS"   # or "ERA5"

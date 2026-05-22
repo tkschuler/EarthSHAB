@@ -3,9 +3,9 @@
 # the same meteorological data but use different formatting / naming conventions.
 #
 # Run:
-#   pytest -q tests/compare_ERA5.py
+#   pytest -q tests/tools/compare_ERA5.py
 # or for print output:
-#   pytest -q -s tests/compare_ERA5.py
+#   pytest -q -s tests/tools/compare_ERA5.py
 #
 # Notes:
 # - This script normalizes:
