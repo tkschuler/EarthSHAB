@@ -1,3 +1,101 @@
+version 2.0.0 (prerelease — TODO)
+===============================
+BREAKING: unified forecast format. Consolidate GFS and ERA5 readers into a
+single Forecast class operating on CF-compliant ECMWF-style netCDF. Archived
+v1 forecasts will require one-time conversion.
+
+Phased plan (strangler-fig, evaluation suite as safety net):
+
+* Phase 0: Safety net is the unit test suite
+    * `tests/` (945 tests) covers analytical truth for 10 scenarios across
+      both readers, cross-reader equality, smoke tests, and the 2 real
+      forecast files pinned in config_earth. Every phase must keep it green
+    * (Internal-only) flight-data eval baseline is not part of this repo;
+      run it privately at each phase against your own archived flights as
+      an additional check beyond the unit tests
+
+* Phase 1: Define canonical schema
+    * Write `docs/forecast-schema-v2.md`: CF-1.7, ECMWF-style. Variables `u,
+      v, t, z`; dims `time/level/latitude/longitude`; lat descending; level
+      ascending hPa; time as CF "hours since"; geopotential `z` in m²/s²
+    * Verify existing ERA5 archived files already conform (likely a no-op
+      semantically — if eval drifts here, a hidden dependency on
+      non-canonical detail has been found)
+
+* Phase 2: Update ERA5.py to read the canonical format directly
+    * Current ERA5.py reads the v1 "processed" format (dims `time`, `level`
+      ascending hPa, `z` already pre-divided by g) — output of the now-
+      obsolete `convert_era52gfs.py`. The raw Copernicus CDS downloads
+      (e.g., `BASS_ERA5_20210721_20210722.nc`) are ALREADY in the v2
+      canonical format and currently require the "-processed" intermediate
+    * Rewrite ERA5.py to consume v2 directly: read dims `valid_time` /
+      `pressure_level` / `latitude` / `longitude`; drop the `[::-1]` level
+      flip (canonical `pressure_level` is descending hPa → altitude is
+      already ascending with index); keep the `z / g` geopotential→meters
+      conversion (canonical `z` is m²/s²)
+    * Delete `forecast_processing/convert_era52gfs.py` and the
+      `*-processed.nc` artifacts; archived raw `BASS_ERA5_*.nc` files load
+      through the updated reader as-is
+    * Pre-Sep-2024 ERA5 archives (e.g., `SHAB14V_ERA5_20220822_20220823.nc`,
+      CF-1.6, dims in reverse order) are handled later by `migrate_v1`
+    * Verify the unit test suite still passes; both real-forecast tests in
+      `test_real_forecasts.py` now need the BASS file (v2-format) as their
+      reference
+
+* Phase 3: Make saveNETCDF.py write canonical
+    * Update the GFS downloader to emit canonical-format files directly:
+      rename vars `ugrdprs/vgrdprs/hgtprs/tmpprs` → `u/v/z/t`; rename dims
+      `time/lev/lat/lon` → `valid_time/pressure_level/latitude/longitude`;
+      convert `hgtprs` (meters) → `z` (m²/s²) by multiplying by g; convert
+      longitude from `[0, 360)` to `[-180, 180)`; flip latitude to
+      descending; re-encode time as `seconds since 1970-01-01` with
+      `calendar="proleptic_gregorian"`; add `Conventions = "CF-1.7"`
+    * GFS-downloaded canonical files become readable by the v2 ERA5.py
+
+* Phase 4: Migrate archived v1 forecasts
+    * Add `python -m EarthSHAB.forecast_processing.migrate_v1 <file_or_dir>`
+      CLI: detects v1 GFS-style (`ugrdprs` vars), v1 ERA5 "processed"
+      (`time`/`level` dims), and pre-Sep-2024 ERA5 (CF-1.6 with reversed
+      dim order); converts each to v2 canonical in place; backs up original
+      as `<name>.v1.nc`. Idempotent
+    * Add ForecastFormatError raised by the reader when a v1 file is
+      detected, with the exact migration CLI in the message
+    * Add `docs/migration-v2.md`: what changed, how to detect v1 files,
+      how to convert, why no auto-conversion (explicit > silent data mutation)
+
+* Phase 5: Collapse the readers
+    * Rename `ERA5.py` → `Forecast.py` (it's the canonical reader now)
+    * Delete `GFS.py`, `forecast_processing/convert_gfs2era5.py`
+      (`convert_era52gfs.py` already deleted in Phase 2)
+    * Update `config_earth.forecast['forecast_type']` semantics — single
+      forecast type, source distinguished by file provenance metadata
+
+* Phase 6: Test suite cleanup
+    * Drop `reader_type` parametrization from `tests/conftest.py` — single
+      reader, ~half the test count (~470 instead of 945)
+    * Delete `tests/tools/reader_adapter.py` (no schema mismatches left to
+      normalize)
+    * Simplify `tests/tools/make_dummy_forecasts.py` to emit only canonical
+      schema; delete `_write_gfs_style` and the GFS time pre-shift hack
+
+* Phase 7: Documentation + release
+    * README banner: v2.0 breaking change + link to migration doc
+    * Final eval pass against the Phase 0 baseline — must match within
+      existing cross-method tolerance for every flight
+    * Net diff target: ~-800 lines
+
+Sequencing: each phase a separate commit (preferably PR). If eval drifts
+between phases, the cause is localized to the latest phase.
+
+Latent bugs in v1 surfaced by the test suite (worth fixing during this
+refactor since the offending code is being deleted):
+* ERA5.py:167 — unpacks 3 values from a 2D `np.nonzero`; only fires on
+  partial mask at the level-0 sample slice
+* GFS.py:70 — hardcoded `"days since 0001-01-01"` units with
+  `has_year_zero=True` produce cftime objects and a 2-day calendar offset
+  vs stdlib datetime
+
+
 version 1.3.1
 ===============================
 * Added evaluation support for Helium Augmented and GrandSlam flights (ignoring ascent phase in evaluation)
