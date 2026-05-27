@@ -1,5 +1,18 @@
 """
-This version was edited to integrate with EarthSHAB.
+ERA5 reader for the v2 canonical forecast format.
+
+As of EarthSHAB v2.0, this reader consumes the netCDF schema returned
+directly by the Copernicus CDS API (post-September 2024):
+  - dimensions: valid_time, pressure_level, latitude, longitude
+  - variables:  u, v, z (geopotential m^2/s^2), t (temperature K)
+  - pressure_level stored DESCENDING in hPa (1000 → 1) → altitude
+    ASCENDING with level index. No `[::-1]` flip is needed.
+  - latitude stored DESCENDING; longitude stored ASCENDING in [-180, 180).
+See docs/forecast-schema-v2.md for the full spec.
+
+The previous "processed" intermediate (produced by the now-removed
+convert_era52gfs.py) is no longer supported. Archived v1 files must be
+converted with the migrate_v1 CLI before they can be loaded.
 
 Contributing authors: Craig Motell and Michael Rodriguez of NIWC Pacific
 Edited and integrated: Tristan Schuler
@@ -103,8 +116,9 @@ class ERA5:
         self.start_time = config_earth.simulation['start_time']
         self.min_alt_m = self.start_coord['alt']
 
-        time_arr = self.file.variables['time']
-        #Convert from epoch to human readable time. Different than GFS for now.
+        time_arr = self.file.variables['valid_time']
+        # CDS v2 stores valid_time as "seconds since 1970-01-01" with
+        # calendar=proleptic_gregorian. CF-standard decode.
         self.time_convert = netCDF4.num2date(time_arr[:], time_arr.units, time_arr.calendar)
         self.model_start_datetime = self.time_convert[0] #reanalysis should be same time as gfs predictions for now
         self.model_end_datetime = self.time_convert[-1]
@@ -129,7 +143,7 @@ class ERA5:
         # Import the netcdf4 subset to speed up table lookup in this script
         g = 9.80665 # gravitation constant used to convert geopotential height to height
 
-        self.levels = self.file.variables['level'][:]
+        self.levels = self.file.variables['pressure_level'][:]
         #these are typos, fix later.  Should be ugrdprs0
         self.ugdrps0 = self.file.variables['u'][self.start_time_idx:self.end_time_idx+1, :, self.lat_max_idx:self.lat_min_idx, self.lon_min_idx:self.lon_max_idx]
         self.vgdrps0 = self.file.variables['v'][self.start_time_idx:self.end_time_idx+1, :, self.lat_max_idx:self.lat_min_idx, self.lon_min_idx:self.lon_max_idx]
@@ -368,18 +382,17 @@ class ERA5:
         h1 = self.hgtprs[int(hour_index) +1 , :, lat_idx, lon_idx]
         h1 = self.fill_missing_data(h1)
 
-        # ERA5 stores pressure levels in descending altitude order; reverse to
-        # get ascending arrays once and reuse below.
-        h0_asc, u0_asc, v0_asc = h0[::-1], u_0[::-1], v_0[::-1]
-        h1_asc, u1_asc, v1_asc = h1[::-1], u_1[::-1], v_1[::-1]
+        # v2 canonical: pressure_level is DESCENDING in hPa, so altitude
+        # ASCENDS with level index — column is already in the order np.interp
+        # and CubicSpline want. No [::-1] flip (which was a v1 compensation).
 
         # linear_full path: np.interp on u,v across the full altitude profile,
         # then linear in time. Always computed for diagnostic comparison
         # (returned as last two values).
-        u0_lf = np.interp(alt_m, h0_asc, u0_asc)
-        v0_lf = np.interp(alt_m, h0_asc, v0_asc)
-        u1_lf = np.interp(alt_m, h1_asc, u1_asc)
-        v1_lf = np.interp(alt_m, h1_asc, v1_asc)
+        u0_lf = np.interp(alt_m, h0, u_0)
+        v0_lf = np.interp(alt_m, h0, v_0)
+        u1_lf = np.interp(alt_m, h1, u_1)
+        v1_lf = np.interp(alt_m, h1, v_1)
         fp = [int(hour_index), int(hour_index) + 1]
         u_lf = np.interp(hour_index, fp, [u0_lf, u1_lf])
         v_lf = np.interp(hour_index, fp, [v0_lf, v1_lf])
@@ -387,8 +400,8 @@ class ERA5:
         method = config_earth.forecast.get('wind_interpolation', 'linear_neighbors')
 
         if method == 'linear_neighbors':
-            bearing_t0, speed_t0 = self.interpolateBearing(h0_asc, u0_asc, v0_asc, alt_m)
-            bearing_t1, speed_t1 = self.interpolateBearing(h1_asc, u1_asc, v1_asc, alt_m)
+            bearing_t0, speed_t0 = self.interpolateBearing(h0, u_0, v_0, alt_m)
+            bearing_t1, speed_t1 = self.interpolateBearing(h1, u_1, v_1, alt_m)
             bearing_interpolated, speed_interpolated = self.interpolateBearingTime(
                 bearing_t0, speed_t0, bearing_t1, speed_t1, hour_index)
             u = speed_interpolated * np.cos(np.radians(bearing_interpolated))
@@ -396,8 +409,8 @@ class ERA5:
         elif method == 'linear_full':
             u, v = u_lf, v_lf
         elif method == 'spline_full':
-            u0_sp, v0_sp = _spline_uv(alt_m, h0_asc, u0_asc, v0_asc)
-            u1_sp, v1_sp = _spline_uv(alt_m, h1_asc, u1_asc, v1_asc)
+            u0_sp, v0_sp = _spline_uv(alt_m, h0, u_0, v_0)
+            u1_sp, v1_sp = _spline_uv(alt_m, h1, u_1, v_1)
             u = np.interp(hour_index, fp, [u0_sp, u1_sp])
             v = np.interp(hour_index, fp, [v0_sp, v1_sp])
         else:

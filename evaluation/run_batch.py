@@ -19,6 +19,7 @@ Output structure:
 import argparse
 import copy
 import csv
+import gc
 import json
 import math
 import os
@@ -28,6 +29,7 @@ import time
 import traceback
 from datetime import datetime, timezone
 
+import matplotlib.pyplot as plt
 import pandas as pd
 
 import EarthSHAB.config_earth as config_earth
@@ -341,6 +343,16 @@ def run_batch(note: str):
 
         elapsed = time.monotonic() - launch_start
         per_launch_times.append(elapsed)
+
+        # Release accumulated matplotlib figures (evaluate.py and windmap.py
+        # don't close their figs explicitly). Without this, ~6-7 launches in
+        # the process segfaults from accumulated figure + netCDF handle state.
+        plt.close('all')
+        # Force GC so lingering GFS/ERA5 reader objects (each holds an open
+        # netCDF4.Dataset) are reclaimed; netCDF4 closes the file in __del__.
+        # Without this, HDF5 chunk-cache memory from raw CDS files accumulates
+        # across launches and the process segfaults on the 6th-7th launch.
+        gc.collect()
 
         if launch_errors:
             failed[launch_id] = "; ".join(launch_errors)

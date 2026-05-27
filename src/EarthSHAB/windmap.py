@@ -63,12 +63,12 @@ class Windmap:
 
             self.lat  = self.file.variables['latitude'][:]
             self.lon  = self.file.variables['longitude'][:]
-            self.levels = self.file.variables['level'][:]
+            self.levels = self.file.variables['pressure_level'][:]
 
             self.vgrdprs = self.file.variables['v']
             self.ugrdprs = self.file.variables['u']
             self.hgtprs = self.file.variables['z']
-            self.tmpprs = self.file.variables['time'] #are t and time the same? #THIS IS WRONG SHOULD BE TEMPERATURE
+            self.tmpprs = self.file.variables['t']  # v2: 't' is temperature (was 'time' bug in v1)
 
             self.hour_index, self.new_timestamp = self.getHourIndex(self.start_time)
 
@@ -177,9 +177,8 @@ class Windmap:
         h = h[nans]
 
         if config_earth.forecast['forecast_type'] == "ERA5":
-            u = np.flip(u)
-            v = np.flip(v)
-            h = np.flip(h)
+            # v2: pressure_level descending in hPa → altitude ascending with
+            # index → no flip needed. Still convert geopotential (z) to meters.
             h = h / g
 
         bearing, r, _, _ = self.windVectorToBearing(u, v, h)
@@ -229,8 +228,8 @@ class Windmap:
 
     def _profile_at(self, hour_index, lat, lon):
         """Return (u, v, h) pressure-level wind profile at a (time, lat, lon),
-        with NaNs removed and ERA5 reversed/geopotential-converted to match
-        the conventions used by GFS/ERA5.wind_alt_Interpolate2.
+        with NaNs removed and ERA5 geopotential-converted to match the
+        conventions used by GFS/ERA5.wind_alt_Interpolate2.
 
         Looks up lat/lon directly against the FULL netCDF lat/lon arrays
         attached to self (self.lat / self.lon), since self.ugrdprs etc. are
@@ -250,7 +249,9 @@ class Windmap:
         nans = ~np.isnan(u)
         u, v, h = u[nans], v[nans], h[nans]
         if config_earth.forecast['forecast_type'] == "ERA5":
-            u = np.flip(u); v = np.flip(v); h = np.flip(h) / g
+            # v2: pressure_level descending in hPa → altitude ascending with
+            # index → no flip needed. Still convert geopotential (z) to meters.
+            h = h / g
         return u, v, h
 
     @staticmethod
