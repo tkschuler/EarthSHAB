@@ -19,6 +19,47 @@ MonkeyPatch.patch_fromisoformat()   #Hacky solution for Python 3.6 to use ISO fo
 import EarthSHAB.config_earth as config_earth
 
 
+class ForecastFormatError(ValueError):
+    """Raised when a forecast file is not in the v2 canonical schema.
+
+    The message includes the exact migrate_v1 CLI invocation a user should
+    run to upgrade the file in place. There is no auto-conversion in the
+    reader by design (explicit > silent data mutation).
+    """
+
+
+# Variable / dimension signatures used to recognise legacy formats and emit
+# a targeted migration message. Mirrors the detection in
+# EarthSHAB.forecast_processing.migrate_v1; the two must stay in agreement.
+_V1_GFS_VARS = {"ugrdprs", "vgrdprs", "hgtprs"}
+_V1_ERA5_DIMS = {"time", "level", "latitude", "longitude"}
+_V2_REQUIRED_DIMS = {"valid_time", "pressure_level", "latitude", "longitude"}
+
+
+def _raise_if_v1(file: netCDF4.Dataset, path: str) -> None:
+    vars_ = set(file.variables.keys())
+    dims_ = set(file.dimensions.keys())
+
+    if _V2_REQUIRED_DIMS.issubset(dims_):
+        return  # canonical v2 — proceed
+
+    if _V1_GFS_VARS.issubset(vars_):
+        legacy = "v1 GFS (ugrdprs/vgrdprs/hgtprs variables)"
+    elif _V1_ERA5_DIMS.issubset(dims_):
+        legacy = "v1 ERA5 (time/level dim naming)"
+    else:
+        legacy = "unrecognized layout (neither v2 canonical nor a known v1 format)"
+
+    raise ForecastFormatError(
+        f"{path}: detected {legacy}; EarthSHAB v2.0+ requires the canonical "
+        "schema documented in docs/forecast-schema-v2.md. Convert this file "
+        "in place with:\n"
+        f"    python -m EarthSHAB.forecast_processing.migrate_v1 {path}\n"
+        "The original will be backed up alongside it as <name>.v1.nc. "
+        "See docs/migration-v2.md for details."
+    )
+
+
 def _spline_uv(alt_m, h_ascending, u_ascending, v_ascending):
     """CubicSpline on u and v independently across the altitude profile.
 
@@ -58,7 +99,10 @@ class GFS:
         self.sim_time = config_earth.simulation['sim_time']
         #self.hours3 = config_earth.netcdf_gfs['hours3']
 
-        self.file = netCDF4.Dataset(config_earth.netcdf_gfs["nc_file"])  # Only accepting manual uploads for now
+        forecast_path = config_earth.netcdf_gfs["nc_file"]
+        self.file = netCDF4.Dataset(forecast_path)  # Only accepting manual uploads for now
+        _raise_if_v1(self.file, forecast_path)
+
         self.gfs_time = config_earth.netcdf_gfs['nc_start']
         self.res = config_earth.netcdf_gfs['res']
 
