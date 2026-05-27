@@ -69,6 +69,8 @@ Phased plan (strangler-fig, evaluation suite as safety net):
       (`convert_era52gfs.py` already deleted in Phase 2)
     * Update `config_earth.forecast['forecast_type']` semantics — single
       forecast type, source distinguished by file provenance metadata
+    * Keep in mind that GFS does masked values of the full forecast array,
+     whereas ERA5 only saves the subset.  Come up with a standard format.
 
 * Phase 6: Test suite cleanup
     * Drop `reader_type` parametrization from `tests/conftest.py` — single
