@@ -281,8 +281,18 @@ def download_gfs_grib_to_netcdf():
                 time.sleep(FETCH_DELAY)
                 continue
 
-            valid_time = run_date + datetime.timedelta(hours=fhr)
-            ds = ds.expand_dims("time").assign_coords(time=[np.datetime64(valid_time, "ns")])
+            # cfgrib creates datasets with 'time', 'step', and 'valid_time' coords.
+            # Drop 'step' and keep 'valid_time' for the canonical format.
+            if "step" in ds.coords:
+                ds = ds.drop_vars("step")
+            if "time" in ds.coords and "valid_time" in ds.coords:
+                # Drop the forecast reference time, keep valid_time
+                ds = ds.drop_vars("time")
+
+            # Ensure valid_time is a dimension
+            if "valid_time" in ds.coords and "valid_time" not in ds.dims:
+                ds = ds.expand_dims("valid_time")
+
             hourly_datasets.append(ds)
 
             time.sleep(FETCH_DELAY)
@@ -291,64 +301,114 @@ def download_gfs_grib_to_netcdf():
         raise RuntimeError("No data was successfully downloaded. Check your config and network connectivity.")
 
     print("\nMerging all forecast hours …")
-    combined = xr.concat(hourly_datasets, dim="time")
+    combined = xr.concat(hourly_datasets, dim="valid_time")
 
+    # Phase 3: Convert to canonical v2 format
+    # Rename variables: gh → z, u/v/t stay the same
     rename_map = {
-        "u": "ugrdprs",
-        "v": "vgrdprs",
-        "t": "tmpprs",
-        "gh": "hgtprs",
-        "isobaricInhPa": "lev",
-        "latitude": "lat",
-        "longitude": "lon",
+        "gh": "z",
+        "isobaricInhPa": "pressure_level",
+        "latitude": "latitude",  # keep name
+        "longitude": "longitude",  # keep name
     }
-    combined = combined.rename(rename_map)
+    combined = combined.rename({k: v for k, v in rename_map.items() if k in combined})
 
-    if "lev" in combined.coords:
-        combined["lev"].attrs["units"] = "hPa"
-        combined["lev"].attrs["long_name"] = "pressure level"
+    # Convert geopotential height (m) to geopotential (m²/s²) by multiplying by g
+    g = 9.80665
+    combined["z"] = combined["z"] * g
+    combined["z"].attrs["units"] = "m**2 s**-2"
+    combined["z"].attrs["long_name"] = "Geopotential"
+    combined["z"].attrs["standard_name"] = "geopotential"
 
-    for old, new in [("latitude", "lat"), ("longitude", "lon")]:
-        if old in combined.dims:
-            combined = combined.rename({old: new})
+    # Convert longitude from [0, 360) to [-180, 180)
+    lon_vals = combined["longitude"].values
+    lon_vals = np.where(lon_vals >= 180, lon_vals - 360, lon_vals)
+    combined = combined.assign_coords(longitude=lon_vals)
 
-    time_values = combined["time"].values
+    # Sort by longitude to maintain ascending order after conversion
+    combined = combined.sortby("longitude")
+
+    # Flip latitude to descending order (north to south)
+    combined = combined.sortby("latitude", ascending=False)
+
+    # Set coordinate attributes
+    combined["pressure_level"].attrs["units"] = "hPa"
+    combined["pressure_level"].attrs["long_name"] = "pressure"
+    combined["pressure_level"].attrs["standard_name"] = "air_pressure"
+    combined["pressure_level"].attrs["positive"] = "down"
+    combined["pressure_level"].attrs["stored_direction"] = "decreasing"
+
+    combined["latitude"].attrs["units"] = "degrees_north"
+    combined["latitude"].attrs["long_name"] = "latitude"
+    combined["latitude"].attrs["standard_name"] = "latitude"
+    combined["latitude"].attrs["stored_direction"] = "decreasing"
+
+    combined["longitude"].attrs["units"] = "degrees_east"
+    combined["longitude"].attrs["long_name"] = "longitude"
+    combined["longitude"].attrs["standard_name"] = "longitude"
+
+    # Set u/v/t attributes
+    combined["u"].attrs["units"] = "m s**-1"
+    combined["u"].attrs["long_name"] = "U component of wind"
+    combined["u"].attrs["standard_name"] = "eastward_wind"
+
+    combined["v"].attrs["units"] = "m s**-1"
+    combined["v"].attrs["long_name"] = "V component of wind"
+    combined["v"].attrs["standard_name"] = "northward_wind"
+
+    combined["t"].attrs["units"] = "K"
+    combined["t"].attrs["long_name"] = "Temperature"
+    combined["t"].attrs["standard_name"] = "air_temperature"
+
+    # Convert time to seconds since 1970-01-01 (Unix epoch)
+    time_values = combined["valid_time"].values
     datetime_objects = [pd.Timestamp(t).to_pydatetime() for t in time_values]
 
     print(f"time values (datetime): {datetime_objects}")
 
-    julian_dates = nc.date2num(
+    epoch_seconds = nc.date2num(
         datetime_objects,
-        units="days since 0001-01-01",
-        calendar="standard",
-        has_year_zero=True,
+        units="seconds since 1970-01-01",
+        calendar="proleptic_gregorian",
     )
 
-    combined = combined.assign_coords(time=julian_dates.astype(np.float64))
-    combined["time"].attrs = {}  # Remove all attributes from the time variable
+    combined = combined.assign_coords(valid_time=epoch_seconds.astype(np.int64))
+    combined["valid_time"].attrs = {
+        "units": "seconds since 1970-01-01",
+        "calendar": "proleptic_gregorian",
+        "standard_name": "time",
+        "long_name": "time",
+    }
 
-    combined["time"].attrs["units"] = "days since 0001-01-01"
-    combined["time"].attrs["calendar"] = "standard"
+    # Add global CF-1.7 convention and provenance
+    combined.attrs["Conventions"] = "CF-1.7"
+    combined.attrs["institution"] = "NOAA/NCEP (GFS)"
+    combined.attrs["history"] = f"{pd.Timestamp.now().isoformat()} - Downloaded and converted by EarthSHAB saveNETCDF.py"
 
-    # Reorder coordinates and variables to match the old file
-    combined = combined.transpose("time", "lev", "lat", "lon")  # Correct dimension names
-    variable_order = ["hgtprs", "tmpprs", "ugrdprs", "vgrdprs"]  # Desired variable order
-    combined = xr.Dataset({var: combined[var] for var in variable_order if var in combined}, coords=combined.coords)
+    # Reorder dimensions to canonical order: valid_time, pressure_level, latitude, longitude
+    combined = combined.transpose("valid_time", "pressure_level", "latitude", "longitude")
 
-    # Remove unnecessary coordinates
-    for coord in ["step", "valid_time"]:
-        if coord in combined.coords:
+    # Order variables: u, v, z, t
+    variable_order = ["u", "v", "z", "t"]
+    combined = xr.Dataset(
+        {var: combined[var] for var in variable_order if var in combined},
+        coords=combined.coords
+    )
+
+    # Remove unnecessary coordinates (already handled above but double-check)
+    for coord in ["step", "time"]:
+        if coord in combined.coords and coord not in combined.dims:
             combined = combined.drop_vars(coord)
 
 
     print(f"Writing {out_path} …")
     encoding = {var: {"zlib": True, "complevel": 4} for var in combined.data_vars}
-    encoding["time"] = {"_FillValue": None}  # Remove _FillValue from the time variable
+    encoding["valid_time"] = {"_FillValue": None}  # Remove _FillValue from the time variable
     combined.to_netcdf(str(out_path), encoding=encoding)
     print(f"\nDone!  Saved to: {out_path}")
     print(f"  Dimensions : {dict(combined.sizes)}")
     print(f"  Variables  : {list(combined.data_vars)}")
-    print(f"  Time values (Julian dates): {julian_dates}")
+    print(f"  Time values (epoch seconds): {epoch_seconds}")
     return str(out_path)
 
 

@@ -64,55 +64,63 @@ class GFS:
 
         self.geod = Geodesic.WGS84
 
-        time_arr = self.file.variables['time']
+        # Phase 3: Read canonical v2 format
+        time_arr = self.file.variables['valid_time']
+        time_units = time_arr.units if hasattr(time_arr, 'units') else "seconds since 1970-01-01"
+        time_calendar = time_arr.calendar if hasattr(time_arr, 'calendar') else "proleptic_gregorian"
 
-        #Manually add time units, not imported with units formatted in saveNETCDF.py
-        self.time_convert = netCDF4.num2date(time_arr[:], units="days since 0001-01-01", has_year_zero=True)
+        self.time_convert = netCDF4.num2date(time_arr[:], units=time_units, calendar=time_calendar)
 
-
-        #Determine Index values from netcdf4 subset
-        netcdf_ranges = self.file.variables['ugrdprs'][:,0,:,:]
+        # Determine Index values from netcdf4 subset (using canonical variable name 'u')
+        netcdf_ranges = self.file.variables['u'][:,0,:,:]
         self.determineRanges(netcdf_ranges)
 
         self.lat = np.asarray(
-        self.file.variables['lat'][self.lat_min_idx:self.lat_max_idx + 1],
+            self.file.variables['latitude'][self.lat_min_idx:self.lat_max_idx + 1],
             dtype=float
         )
         self.lon = np.asarray(
-            self.file.variables['lon'][self.lon_min_idx:self.lon_max_idx + 1],
+            self.file.variables['longitude'][self.lon_min_idx:self.lon_max_idx + 1],
             dtype=float
         )
 
-        self.ugdrps0 = self.file.variables['ugrdprs'][
+        self.ugdrps0 = self.file.variables['u'][
             self.start_time_idx:self.end_time_idx + 1,
             :,
             self.lat_min_idx:self.lat_max_idx + 1,
             self.lon_min_idx:self.lon_max_idx + 1
         ]
-        self.vgdrps0 = self.file.variables['vgrdprs'][
-            self.start_time_idx:self.end_time_idx + 1,
-            :,
-            self.lat_min_idx:self.lat_max_idx + 1,
-            self.lon_min_idx:self.lon_max_idx + 1
-        ]
-        self.hgtprs = self.file.variables['hgtprs'][
+        self.vgdrps0 = self.file.variables['v'][
             self.start_time_idx:self.end_time_idx + 1,
             :,
             self.lat_min_idx:self.lat_max_idx + 1,
             self.lon_min_idx:self.lon_max_idx + 1
         ]
 
+        # Phase 3: Read geopotential (z) and convert to height in meters by dividing by g
+        g = 9.80665
+        self.hgtprs = self.file.variables['z'][
+            self.start_time_idx:self.end_time_idx + 1,
+            :,
+            self.lat_min_idx:self.lat_max_idx + 1,
+            self.lon_min_idx:self.lon_max_idx + 1
+        ] / g
+
         # min/max lat/lon degree values from netcdf4 subset
-        self.LAT_LOW  = self.file.variables['lat'][self.lat_min_idx]
-        self.LON_LOW  = self.file.variables['lon'][self.lon_min_idx]
-        self.LAT_HIGH = self.file.variables['lat'][self.lat_max_idx]
-        self.LON_HIGH = self.file.variables['lon'][self.lon_max_idx]
+        # Phase 3: canonical v2 format has descending latitude, so min/max are swapped in the array
+        lat_values = self.file.variables['latitude'][self.lat_min_idx:self.lat_max_idx + 1]
+        lon_values = self.file.variables['longitude'][self.lon_min_idx:self.lon_max_idx + 1]
+
+        self.LAT_LOW  = float(np.min(lat_values))
+        self.LAT_HIGH = float(np.max(lat_values))
+        self.LON_LOW  = float(np.min(lon_values))
+        self.LON_HIGH = float(np.max(lon_values))
 
         print("LAT RANGE: min: " + str(self.LAT_LOW), " (deg) max: " + str(self.LAT_HIGH) + " (deg) array size: " + str(self.lat_max_idx-self.lat_min_idx+1))
         print("LON RANGE: min: " + str(self.LON_LOW), " (deg) max: " + str(self.LON_HIGH) + " (deg) array size: " + str(self.lon_max_idx-self.lon_min_idx+1))
 
         # Import the netcdf4 subset to speed up table lookup in this script
-        self.levels = self.file.variables['lev'][:]
+        self.levels = self.file.variables['pressure_level'][:]
 
         #print("Data downloaded.\n\n")
         print()
@@ -186,10 +194,15 @@ class GFS:
     def getNearestLon(self, lon, min_unused=None, max_unused=None):
         """
         Determine the nearest longitude index using the actual stored longitude array.
-        GFS longitudes are stored in 0..360, so normalize the query the same way.
+        Phase 3: canonical v2 longitudes are in [-180, 180], so normalize the query the same way.
         """
-        lon_360 = float(lon) % 360.0
-        return self.closest(self.lon, lon_360)
+        lon_normalized = float(lon)
+        # Normalize to [-180, 180)
+        while lon_normalized >= 180:
+            lon_normalized -= 360
+        while lon_normalized < -180:
+            lon_normalized += 360
+        return self.closest(self.lon, lon_normalized)
 
     def getNearestAlt(self,hour_index,lat,lon,alt):
         """ Determines the nearest altitude based off of geo potential height of a .25 degree lat/lon area.
@@ -453,7 +466,14 @@ class GFS:
         d = math.pow((math.pow(y_wind_vel,2)+math.pow(x_wind_vel,2)),.5) * dt #dt multiplier
         g = self.geod.Direct(coord["lat"], coord["lon"], bearing, d)
 
-        if g['lat2'] < self.LAT_LOW or g['lat2']  > self.LAT_HIGH or (g['lon2'] % 360) < self.LON_LOW or (g['lon2'] % 360) > self.LON_HIGH:
+        # Phase 3: Check bounds with canonical v2 longitude in [-180, 180]
+        lon2_normalized = g['lon2']
+        while lon2_normalized >= 180:
+            lon2_normalized -= 360
+        while lon2_normalized < -180:
+            lon2_normalized += 360
+
+        if g['lat2'] < self.LAT_LOW or g['lat2'] > self.LAT_HIGH or lon2_normalized < self.LON_LOW or lon2_normalized > self.LON_HIGH:
             print(colored("WARNING: Trajectory is out of bounds of downloaded netcdf forecast", "yellow"))
 
         if coord["alt"] <= self.min_alt:
@@ -461,6 +481,3 @@ class GFS:
             return [coord['lat'],coord['lon'],x_wind_vel,y_wind_vel, x_wind_vel_old, y_wind_vel_old, bearing, self.lat[i], self.lon[j], self.hgtprs[0,z,i,j]] # hgtprs doesn't matter here so is set to 0
         else:
             return [g['lat2'],g['lon2'],x_wind_vel,y_wind_vel, x_wind_vel_old, y_wind_vel_old, bearing, self.lat[i], self.lon[j], self.hgtprs[0,z,i,j]]
-
-        if g['lat2'] < self.LAT_LOW or g['lat2'] > self.LAT_HIGH or g['lon2'] < self.LON_LOW or g['lon2'] > self.LON_HIGH:
-            print(colored("WARNING: Trajectory is out of bounds of downloaded netcdf forecast", "yellow"))

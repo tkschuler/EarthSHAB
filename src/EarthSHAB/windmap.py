@@ -45,15 +45,17 @@ class Windmap:
         #EDIT TO REMOVE THESE
         #Should I move these to ERA5 and GFS for organization?
         if config_earth.forecast['forecast_type'] == "GFS":
-            self.lat  = self.file.variables['lat'][:]
-            self.lon  = self.file.variables['lon'][:]
-            self.levels = self.file.variables['lev'][:]
+            # Phase 3: Use canonical v2 format variable names
+            self.lat  = self.file.variables['latitude'][:]
+            self.lon  = self.file.variables['longitude'][:]
+            self.levels = self.file.variables['pressure_level'][:]
 
-            self.vgrdprs = self.file.variables['vgrdprs']
-            self.ugrdprs = self.file.variables['ugrdprs']
-            self.hgtprs = self.file.variables['hgtprs']
+            self.vgrdprs = self.file.variables['v']
+            self.ugrdprs = self.file.variables['u']
+            # Phase 3: z is geopotential (m²/s²), keep as variable for later conversion
+            self.hgtprs = self.file.variables['z']
             try:
-                self.tmpprs = self.file.variables['tmpprs']
+                self.tmpprs = self.file.variables['t']
             except:
                 print(colored("Temperature not downloaded in this GFS forecast", "yellow"))
                 self.tmpprs = None
@@ -248,10 +250,10 @@ class Windmap:
         h = np.asarray(self.hgtprs[hour_index, :, lat_i, lon_i])
         nans = ~np.isnan(u)
         u, v, h = u[nans], v[nans], h[nans]
-        if config_earth.forecast['forecast_type'] == "ERA5":
-            # v2: pressure_level descending in hPa → altitude ascending with
-            # index → no flip needed. Still convert geopotential (z) to meters.
-            h = h / g
+        # Phase 3: Both GFS and ERA5 now use canonical v2 format with geopotential (z) in m²/s²
+        # Convert to height in meters
+        g = 9.80665
+        h = h / g
         return u, v, h
 
     @staticmethod
