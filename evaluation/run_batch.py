@@ -99,8 +99,10 @@ def _parse_gfs_filename(filename: str) -> tuple[str, str]:
     """Return (forecast_start_str, hour_str) from a GFS filename.
 
     Handles both gfs_0p25_YYYYMMDD_HH.nc and gfs_0p25_YYYYMMDD_HH_<suffix>.nc.
+    Uses basename so path components with underscores (e.g. "balloon_data/")
+    don't corrupt the split.
     """
-    stem  = filename.replace(".nc", "")
+    stem  = os.path.basename(filename).replace(".nc", "")
     parts = stem.split("_")
     date_part = parts[2]   # e.g. "20220822"
     hour_part = parts[3]   # e.g. "12"
