@@ -53,6 +53,7 @@ import netCDF4
 import numpy as np
 import pandas as pd
 import xarray as xr
+from tqdm import tqdm
 
 
 G = 9.80665  # standard gravity, used to convert hgtprs (m) -> z (m^2 s^-2)
@@ -68,7 +69,9 @@ FORMAT_V1_ERA5 = "v1_era5"
 FORMAT_UNKNOWN = "unknown"
 
 V2_REQUIRED_DIMS = {"valid_time", "pressure_level", "latitude", "longitude"}
-V2_REQUIRED_VARS = {"u", "v", "z", "t"}
+# `t` is intentionally optional: _finalize() drops it for archived GFS files
+# whose source layout had no `tmpprs` variable.
+V2_REQUIRED_VARS = {"u", "v", "z"}
 V1_GFS_VARS = {"ugrdprs", "vgrdprs", "hgtprs"}
 V1_ERA5_DIMS = {"time", "level", "latitude", "longitude"}
 
@@ -397,15 +400,34 @@ def main(argv: list[str] | None = None) -> int:
         "--dry-run", action="store_true",
         help="Report what would happen, but make no filesystem changes.",
     )
+    parser.add_argument(
+        "--verbose", "-v", action="store_true",
+        help="Print per-file status. Default mode shows a progress bar and "
+             "prints only ERROR lines plus an end-of-run summary.",
+    )
     args = parser.parse_args(argv)
 
-    exit_code = 0
-    for tgt in _iter_targets(args.targets):
+    targets = list(_iter_targets(args.targets))
+    counts = {"OK": 0, "SKIP": 0, "ERROR": 0, "DRY-RUN": 0}
+
+    bar = tqdm(targets, unit="file", disable=args.verbose, leave=True)
+    for tgt in bar:
+        bar.set_postfix_str(tgt.name[:50], refresh=False)
         msg = migrate_file(tgt, dry_run=args.dry_run)
-        print(msg)
-        if msg.startswith("ERROR"):
-            exit_code = 1
-    return exit_code
+        prefix = msg.split(" ", 1)[0]
+        counts[prefix] = counts.get(prefix, 0) + 1
+        if args.verbose:
+            print(msg)
+        elif prefix == "ERROR":
+            bar.write(msg)
+    bar.close()
+
+    print(
+        f"\nMigration summary: {counts['OK']} migrated, "
+        f"{counts['SKIP']} skipped, {counts['ERROR']} errors, "
+        f"{counts['DRY-RUN']} would-migrate (dry-run)"
+    )
+    return 1 if counts["ERROR"] else 0
 
 
 if __name__ == "__main__":

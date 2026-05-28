@@ -80,13 +80,41 @@ backup so the original is always recoverable.
 ## CLI reference
 
 ```
-python -m EarthSHAB.forecast_processing.migrate_v1 [--dry-run] <target> [<target> ...]
+python -m EarthSHAB.forecast_processing.migrate_v1 [--dry-run] [--verbose] <target> [<target> ...]
 ```
 
 - `<target>` is a `.nc` file or a directory. Directories are scanned
   non-recursively for `*.nc` files; existing `*.v1.nc` backups are skipped.
+- Default output is a `tqdm` progress bar plus a final summary line; only
+  `ERROR` lines stream to stdout. Pass `--verbose` (`-v`) to print one
+  status line per file (`OK` / `SKIP` / `ERROR` / `DRY-RUN`).
 - Exit status is `0` if every target was OK or SKIP, `1` if any ERROR.
 - Status prefixes are stable for tooling: `OK`, `SKIP`, `ERROR`, `DRY-RUN`.
+
+## Verifying the migration
+
+After running the converter, confirm no v1-format files remain:
+
+```bash
+python -m EarthSHAB.forecast_processing.verify_migration src/EarthSHAB/forecasts/
+```
+
+The verifier walks the same targets, inspects each `.nc` with the same
+`detect_format` logic the migrator uses, and reports any files that are still
+in `v1_gfs` or `v1_era5` layout or are structurally `unknown`. `.v1.nc`
+backups are skipped (counted separately). Exit status is `0` if every
+inspected file is `v2`, `1` if any file is v1 / unknown / can't be opened.
+
+```
+python -m EarthSHAB.forecast_processing.verify_migration [--verbose] <target> [<target> ...]
+```
+
+- Default output is a `tqdm` progress bar plus a final summary line; only
+  non-`v2` findings stream to stdout. Pass `--verbose` (`-v`) to print one
+  line per file.
+- A clean run ends with `OK: all inspected forecast files are v2 canonical.`
+- A failed run ends with `FAIL: N file(s) need attention. Re-run migrate_v1
+  on the listed paths.`
 
 ## Rolling back
 
