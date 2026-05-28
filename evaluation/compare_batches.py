@@ -481,11 +481,24 @@ def main(argv=None) -> int:
         reforecast_section = {"rows": ref_rows, "aggregates": ref_aggs, "metric": available_reforecast}
 
     # Output directory.
+    # Include the batch-timestamp HHMM portion of each batch_id so two
+    # comparisons whose batches share git hashes (different runs of the
+    # same commit) get distinct output dirs.
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H%M")
     short_a = _git_hash_from_id(a_id)
     short_b = _git_hash_from_id(b_id)
-    out_dir = os.path.join(COMPARISONS_DIR, f"{ts}_{short_a}_vs_{short_b}")
-    os.makedirs(out_dir, exist_ok=True)
+    a_hhmm = _hhmm_from_id(a_id)
+    b_hhmm = _hhmm_from_id(b_id)
+    out_dir = os.path.join(
+        COMPARISONS_DIR, f"{ts}_{a_hhmm}_{short_a}_vs_{b_hhmm}_{short_b}"
+    )
+    # Suffix on collision so back-to-back identical comparisons don't clobber.
+    if os.path.exists(out_dir):
+        n = 2
+        while os.path.exists(f"{out_dir}__{n}"):
+            n += 1
+        out_dir = f"{out_dir}__{n}"
+    os.makedirs(out_dir)
 
     # Plots.
     from evaluation.compare_plots import generate_all_plots
@@ -522,6 +535,18 @@ def _git_hash_from_id(batch_id: str) -> str:
     if "_" in batch_id:
         return batch_id.rsplit("_", 1)[-1]
     return batch_id
+
+
+def _hhmm_from_id(batch_id: str) -> str:
+    """Extract the HHMM portion from a batch_id like '2026-05-08T2002_4afc699' -> '2002'.
+
+    Returns the 4 chars after 'T' if present; otherwise an empty string. Used to
+    disambiguate output dirs when two batches share the same git hash.
+    """
+    if "T" in batch_id:
+        after_t = batch_id.split("T", 1)[1]
+        return after_t[:4]
+    return ""
 
 
 if __name__ == "__main__":
