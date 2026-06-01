@@ -39,6 +39,20 @@ import EarthSHAB.config_earth as config_earth
 from EarthSHAB.Forecast import Forecast
 
 
+# Skip the whole module on CI / dev boxes that don't have the configured
+# forecast file on disk. Current-day GFS predictions aren't committed to
+# the repo; the dummy-forecast tests already cover everything that can be
+# tested without a real file.
+if not Path(config_earth.forecast["file"]).exists():
+    pytest.skip(
+        f"configured forecast file not present: "
+        f"{config_earth.forecast['file']} — set forecast['file'] to a "
+        f"file that exists (e.g. src/EarthSHAB/forecasts/"
+        f"SHAB14V_ERA5_20220822_20220823.nc) to run this tier",
+        allow_module_level=True,
+    )
+
+
 # Loose physical bounds — chosen to catch order-of-magnitude bugs, not
 # subtle errors. Real wind speeds rarely exceed 100 m/s in the
 # stratosphere; balloons fly up to ~30000 m.
