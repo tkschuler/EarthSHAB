@@ -1,12 +1,12 @@
 """Tests for pure helper functions that don't need a netCDF file.
 
 Surface tested (per Q9(c) "pure tier"):
-    GFS.closest / ERA5.closestIdx         (via parametrized fixtures over class)
-    GFS.windVectorToBearing / ERA5.windVectorToBearing
-    GFS.interpolateBearing  / ERA5.interpolateBearing
-    GFS.interpolateBearingTime / ERA5.interpolateBearingTime
-    GFS.get2NearestAltIdxs  / ERA5.get2NearestAltIdxs
-    GFS.fill_missing_data   / ERA5.fill_missing_data
+    Forecast.closestIdx (alias: closest)
+    Forecast.windVectorToBearing
+    Forecast.interpolateBearing
+    Forecast.interpolateBearingTime
+    Forecast.get2NearestAltIdxs
+    Forecast.fill_missing_data
 
 These tests instantiate nothing — they call the methods on the class itself
 (unbound) where signature allows, or on a stub instance built with
@@ -14,7 +14,7 @@ These tests instantiate nothing — they call the methods on the class itself
 needing any forecast file or config_earth patching.
 
 The wind interp composite (``wind_alt_Interpolate2``) and the lookup helpers
-that read from instance attributes (``getNearestLat`` etc.) are tested in
+that read from instance attributes (``getNearestLatIdx`` etc.) are tested in
 test_dummy_forecasts.py / test_dummy_lookups.py against real instances.
 """
 
@@ -25,69 +25,62 @@ import math
 import numpy as np
 import pytest
 
-from EarthSHAB.ERA5 import ERA5
-from EarthSHAB.GFS import GFS
+from EarthSHAB.Forecast import Forecast
 
 
 # ---------------------------------------------------------------------------
 # Helpers: build a "bare" reader instance with no file open.
 # ---------------------------------------------------------------------------
 
-def _bare(cls):
+def _bare():
     """Allocate an instance without running __init__. Lets us call pure
     methods that don't touch instance attributes."""
-    return object.__new__(cls)
+    return object.__new__(Forecast)
 
 
-@pytest.fixture(params=[GFS, ERA5], ids=["GFS", "ERA5"])
-def cls(request):
-    return request.param
-
-
-@pytest.fixture(params=[GFS, ERA5], ids=["GFS", "ERA5"])
-def bare(request):
-    return _bare(request.param)
-
-
-def _closest_method(reader):
-    """Resolve closest/closestIdx polymorphically."""
-    if isinstance(reader, GFS):
-        return reader.closest
-    return reader.closestIdx
+@pytest.fixture
+def bare():
+    return _bare()
 
 
 # ---------------------------------------------------------------------------
-# closest / closestIdx
+# closestIdx
 # ---------------------------------------------------------------------------
 
 class TestClosest:
     def test_exact_match(self, bare):
         arr = [0.0, 1.0, 2.0, 3.0, 4.0]
-        assert _closest_method(bare)(arr, 2.0) == 2
+        assert bare.closestIdx(arr, 2.0) == 2
 
     def test_below_min_returns_first(self, bare):
         arr = [10.0, 20.0, 30.0]
-        assert _closest_method(bare)(arr, 0.0) == 0
+        assert bare.closestIdx(arr, 0.0) == 0
 
     def test_above_max_returns_last(self, bare):
         arr = [10.0, 20.0, 30.0]
-        assert _closest_method(bare)(arr, 1000.0) == 2
+        assert bare.closestIdx(arr, 1000.0) == 2
 
     def test_interior_query_picks_nearer(self, bare):
         arr = [0.0, 1.0, 5.0]
         # 0.6 is closer to 1.0 than to 0.0
-        assert _closest_method(bare)(arr, 0.6) == 1
+        assert bare.closestIdx(arr, 0.6) == 1
         # 0.4 is closer to 0.0
-        assert _closest_method(bare)(arr, 0.4) == 0
+        assert bare.closestIdx(arr, 0.4) == 0
 
     def test_equidistant_returns_first(self, bare):
         # min(...) is stable on first-equal: 1.5 is equidistant from 1.0 and 2.0
         arr = [1.0, 2.0]
-        assert _closest_method(bare)(arr, 1.5) == 0
+        assert bare.closestIdx(arr, 1.5) == 0
 
     def test_negative_values(self, bare):
         arr = [-10.0, -5.0, 0.0, 5.0]
-        assert _closest_method(bare)(arr, -7.0) == 1
+        assert bare.closestIdx(arr, -7.0) == 1
+
+    def test_closest_alias_matches(self, bare):
+        # `closest` is a back-compat alias to closestIdx (GFS used the former,
+        # ERA5 the latter — Phase 5 unified them). Verify they're the same.
+        arr = [0.0, 1.0, 2.0]
+        assert bare.closest(arr, 1.6) == bare.closestIdx(arr, 1.6)
 
 
 # ---------------------------------------------------------------------------
@@ -276,3 +269,11 @@ class TestFillMissingData:
         )
         out = bare.fill_missing_data(arr)
         assert np.all(np.isfinite(out))
+
+    def test_plain_ndarray_with_nan(self, bare):
+        # Phase 5 fill_missing_data also accepts plain ndarrays with literal
+        # NaN values (not just MaskedArrays), because the v2 reader's
+        # whole-array reads sometimes yield ndarrays.
+        arr = np.array([1.0, np.nan, 3.0])
+        out = bare.fill_missing_data(arr)
+        assert out[1] == pytest.approx(2.0, abs=1e-12)

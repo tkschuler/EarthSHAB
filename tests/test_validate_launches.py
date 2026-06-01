@@ -15,6 +15,7 @@ Extending:
 """
 
 import json
+import os
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -59,8 +60,13 @@ APRS_COLUMN_SETS = [
     {"UTC_Date_Time", "Lat", "Lon", "Altitude_m"},                   # LightAPRS-W / StratoTrack
 ]
 
-GFS_REQUIRED_VARS  = {"ugrdprs", "vgrdprs", "hgtprs", "lat", "lon", "lev", "time"}
-ERA5_REQUIRED_VARS = {"u", "v", "z", "latitude", "longitude", "level", "time"}
+# v2 canonical schema (Phase 5+): the same variable + dim names regardless of
+# whether the file is GFS- or ERA5-sourced.
+FORECAST_REQUIRED_VARS = {"u", "v", "z", "latitude", "longitude", "pressure_level", "valid_time"}
+# Back-compat aliases kept so existing helper functions / inline references
+# continue to resolve. Both point at the same v2 canonical set.
+GFS_REQUIRED_VARS  = FORECAST_REQUIRED_VARS
+ERA5_REQUIRED_VARS = FORECAST_REQUIRED_VARS
 
 # Time-alignment tolerances.
 # launch_time is stored in local time (MST); APRS raw format timestamps are UTC;
@@ -254,7 +260,7 @@ def _make_launch_class(launch: dict):
 
         # ── GFS forecast start (parsed from filename) ─────────────────────────
         if launch.get("gfs_file"):
-            parts = launch["gfs_file"].replace(".nc", "").split("_")
+            parts = os.path.basename(launch["gfs_file"]).replace(".nc", "").split("_")
             if len(parts) >= 4 and len(parts[2]) == 8 and parts[2].isdigit() and parts[3].isdigit():
                 gfs_start = datetime.strptime(f"{parts[2]}{parts[3].zfill(2)}", "%Y%m%d%H")
                 diff_hr = (launch_dt - gfs_start).total_seconds() / 3600
@@ -276,7 +282,9 @@ def _make_launch_class(launch: dict):
                 try:
                     import netCDF4 as nc
                     ds = nc.Dataset(era5_path)
-                    t_var = ds.variables.get("time")
+                    # v2 canonical uses `valid_time`; fall back to legacy `time`
+                    # for any v1 files that somehow slipped past migration.
+                    t_var = ds.variables.get("valid_time") or ds.variables.get("time")
                     if t_var is not None and hasattr(t_var, "units"):
                         t_dates = nc.num2date(t_var[:], units=t_var.units,
                                               calendar=getattr(t_var, "calendar", "standard"))
@@ -324,7 +332,10 @@ def _make_launch_class(launch: dict):
             assert path.exists(), f"GFS forecast not found: {path}"
 
         def test_gfs_filename_parseable(_):
-            parts = launch["gfs_file"].replace(".nc", "").split("_")
+            # Split on the basename only — some launches.json entries store
+            # a path prefix (e.g. "../balloon_data/Arizona/gfs_0p25_...") and
+            # that prefix can contain underscores that corrupt the split.
+            parts = os.path.basename(launch["gfs_file"]).replace(".nc", "").split("_")
             assert len(parts) >= 4, (
                 f"GFS filename must match gfs_0p25_YYYYMMDD_HH[_suffix].nc"
             )
