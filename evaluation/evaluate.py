@@ -555,7 +555,7 @@ class BalloonEvaluator:
             lat_aprs_gps=ss["lat_aprs_gps"],
             lon_aprs_gps=ss["lon_aprs_gps"],
             df=ss["df"],
-            gfs=ss["gfs"],
+            forecast=ss["forecast"],
             sim=self.sim,
             t=ss["t"],
             start=ss["start"],

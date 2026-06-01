@@ -43,15 +43,15 @@ def predict():
 
     t = sim_state["t"]
     start = sim_state["start"]
-    gfs = sim_state["gfs"]
+    forecast = sim_state["forecast"]
 
     plot_altitude_family(time_locals, elevations, masses, colors)
 
     region = zip(*[
-        (gfs.LAT_LOW, gfs.LON_LOW),
-        (gfs.LAT_HIGH, gfs.LON_LOW),
-        (gfs.LAT_HIGH, gfs.LON_HIGH),
-        (gfs.LAT_LOW, gfs.LON_HIGH)
+        (forecast.LAT_LOW, forecast.LON_LOW),
+        (forecast.LAT_HIGH, forecast.LON_LOW),
+        (forecast.LAT_HIGH, forecast.LON_HIGH),
+        (forecast.LAT_LOW, forecast.LON_HIGH)
     ])
     gmap1.polygon(*region, color='cornflowerblue', edge_width=1, alpha=.2)
     gmap1.draw(

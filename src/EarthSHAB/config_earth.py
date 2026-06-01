@@ -34,7 +34,7 @@ _default_gfs_file = (
 forecast = dict(
     file = _default_gfs_file,
     forecast_start_time = forecast_start_time, # used to build the default file path above
-    GFSrate = 60,               # (s) After how many iterated dt steps are new wind speeds are looked up
+    forecast_update_interval = 60,               # (s) After how many iterated dt steps are new wind speeds are looked up
 
     # Wind interpolation method used inside Forecast.wind_alt_Interpolate2:
     #   'linear_neighbors' - (default, historical) bearing+speed linearly

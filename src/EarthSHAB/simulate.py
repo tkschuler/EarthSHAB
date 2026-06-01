@@ -114,15 +114,13 @@ class BalloonSimulation:
         self.coord = config_earth.simulation['start_coord']
         self.t = config_earth.simulation['start_time']
         self.start = self.t
-        self.nc_start = config_earth.netcdf_gfs["nc_start"]
         self.min_alt = config_earth.simulation['min_alt']
         self.alt_sp = config_earth.simulation['alt_sp']
         self.v_sp = config_earth.simulation['v_sp']
         self.sim_time = config_earth.simulation['sim_time'] * int(3600 * (1 / self.dt))
         self.lat = [self.coord["lat"]]
         self.lon = [self.coord["lon"]]
-        self.GFSrate = config_earth.forecast['GFSrate']
-        self.hourstamp = config_earth.netcdf_gfs['hourstamp']
+        self.forecast_update_interval = config_earth.forecast['forecast_update_interval']
         self.balloon_trajectory = config_earth.simulation['balloon_trajectory']
         self.atm = fluids.atmosphere.ATMOSPHERE_1976(self.min_alt)
 
@@ -157,8 +155,8 @@ class BalloonSimulation:
 
         self.e = solve_states.SolveStates()
 
-        self.gfs = Forecast(self.coord)
-        self.forecast_type = self.gfs.source
+        self.forecast = Forecast(self.coord)
+        self.forecast_type = self.forecast.source
 
         self.lat_aprs_gps = [self.coord["lat"]]
         self.lon_aprs_gps = [self.coord["lon"]]
@@ -205,7 +203,7 @@ class BalloonSimulation:
                 self.t = self.t + pd.Timedelta(hours=(1 / 3600 * self.dt))
                 self.time_local.append(self.t - pd.Timedelta(hours=self.GMT))
 
-                if i % self.GFSrate == 0:
+                if i % self.forecast_update_interval == 0:
                     (
                         lat_new,
                         lon_new,
@@ -217,7 +215,7 @@ class BalloonSimulation:
                         nearest_lat,
                         nearest_lon,
                         nearest_alt,
-                    ) = self.gfs.getNewCoord(self.coords[i], self.dt * self.GFSrate)
+                    ) = self.forecast.getNewCoord(self.coords[i], self.dt * self.forecast_update_interval)
 
                 coord_new = {
                     "lat": lat_new,
@@ -281,7 +279,7 @@ class BalloonSimulation:
                         nearest_lat,
                         nearest_lon,
                         nearest_alt,
-                    ) = self.gfs.getNewCoord(self.coords_aprs[i], dt_aprs[i])
+                    ) = self.forecast.getNewCoord(self.coords_aprs[i], dt_aprs[i])
 
                     self.t = self.t + pd.Timedelta(seconds=dt_aprs[i + 1])
                     self.time_local_aprs.append(self.t - pd.Timedelta(hours=self.GMT))
@@ -318,15 +316,13 @@ class BalloonSimulation:
             "coord": self.coord,
             "t": self.t,
             "start": self.start,
-            "nc_start": self.nc_start,
             "min_alt": self.min_alt,
             "alt_sp": self.alt_sp,
             "v_sp": self.v_sp,
             "sim_time": self.sim_time,
             "lat": self.lat,
             "lon": self.lon,
-            "GFSrate": self.GFSrate,
-            "hourstamp": self.hourstamp,
+            "forecast_update_interval": self.forecast_update_interval,
             "balloon_trajectory": self.balloon_trajectory,
             "forecast_type": self.forecast_type,
             "atm": self.atm,
@@ -346,7 +342,7 @@ class BalloonSimulation:
             "burst": self.burst,
             "gmap1": self.gmap1,
             "e": self.e,
-            "gfs": self.gfs,
+            "forecast": self.forecast,
             "lat_aprs_gps": self.lat_aprs_gps,
             "lon_aprs_gps": self.lon_aprs_gps,
             "time_local_aprs": self.time_local_aprs,

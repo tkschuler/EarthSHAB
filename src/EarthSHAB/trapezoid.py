@@ -30,7 +30,7 @@ min_alt = config_earth.simulation['min_alt']
 float = config_earth.simulation['float']
 dt = config_earth.simulation['dt']
 sim = config_earth.simulation["sim_time"]
-GFSrate = config_earth.forecast["GFSrate"]
+forecast_update_interval = config_earth.forecast["forecast_update_interval"]
 
 simulation_time = sim*int(3600*(1/dt)) # Simulation time in seconds
 
@@ -42,8 +42,8 @@ lat = [coord["lat"]]
 lon = [coord["lon"]]
 
 
-gfs = Forecast(coord)
-forecast_type = gfs.source
+forecast = Forecast(coord)
+forecast_type = forecast.source
 
 burst = False
 gmap1 = gmplot.GoogleMapPlotter(coord["lat"],coord["lon"],8)
@@ -55,8 +55,8 @@ ttt=[t]
 for i in range(0,simulation_time):
     t = t + pd.Timedelta(hours=(1/3600*dt))
 
-    if i % GFSrate == 0:
-        lat_new,lon_new,x_wind_vel,y_wind_vel, x_wind_vel_old, y_wind_vel_old,bearing,nearest_lat, nearest_lon, nearest_alt = gfs.getNewCoord(coords[i], dt*GFSrate)
+    if i % forecast_update_interval == 0:
+        lat_new,lon_new,x_wind_vel,y_wind_vel, x_wind_vel_old, y_wind_vel_old,bearing,nearest_lat, nearest_lon, nearest_alt = forecast.getNewCoord(coords[i], dt*forecast_update_interval)
 
     coord_new  =	{
                       "lat": lat_new,                # (deg) Latitude
@@ -106,12 +106,12 @@ for i in range(0,simulation_time):
                         ") Nearest Alt: " + str(nearest_alt)),"cyan"))
 
 
-# Outline Downloaded NOAA forecast subset:
+# Outline the downloaded forecast subset:
 region= zip(*[
-    (gfs.LAT_LOW, gfs.LON_LOW),
-    (gfs.LAT_HIGH, gfs.LON_LOW),
-    (gfs.LAT_HIGH, gfs.LON_HIGH),
-    (gfs.LAT_LOW, gfs.LON_HIGH)
+    (forecast.LAT_LOW, forecast.LON_LOW),
+    (forecast.LAT_HIGH, forecast.LON_LOW),
+    (forecast.LAT_HIGH, forecast.LON_HIGH),
+    (forecast.LAT_LOW, forecast.LON_HIGH)
 ])
 
 # Google Plotting of Trajectory

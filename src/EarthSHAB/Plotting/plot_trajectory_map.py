@@ -56,7 +56,7 @@ def plot_map(
     lat_aprs_gps,
     lon_aprs_gps,
     df,
-    gfs,
+    forecast,
     sim,
     t,
     start,
@@ -89,18 +89,18 @@ def plot_map(
         gmap1.text(coord["lat"] - .2, coord["lon"] - .2, 'Simulated Trajectory with GFS Forecast', color='blue')
         draw_bounding_box(
             gmap1,
-            gfs.LAT_LOW,
-            sim.wrap_lon(gfs.lon).min(),
-            gfs.LAT_HIGH,
-            sim.wrap_lon(gfs.lon).max()
+            forecast.LAT_LOW,
+            sim.wrap_lon(forecast.lon).min(),
+            forecast.LAT_HIGH,
+            sim.wrap_lon(forecast.lon).max()
         )
 
     elif forecast_type == "ERA5":
         region = zip(*[
-            (gfs.LAT_LOW, gfs.LON_LOW),
-            (gfs.LAT_HIGH, gfs.LON_LOW),
-            (gfs.LAT_HIGH, gfs.LON_HIGH),
-            (gfs.LAT_LOW, gfs.LON_HIGH)
+            (forecast.LAT_LOW, forecast.LON_LOW),
+            (forecast.LAT_HIGH, forecast.LON_LOW),
+            (forecast.LAT_HIGH, forecast.LON_HIGH),
+            (forecast.LAT_LOW, forecast.LON_HIGH)
         ])
         gmap1.plot(lat, lon, 'red', edge_width=2.5)
         gmap1.text(coord["lat"] - .2, coord["lon"] - .2, 'Simulated Trajectory with ERA5 Reanalysis', color='red')

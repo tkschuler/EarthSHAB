@@ -101,7 +101,7 @@ def _patch_config_for_forecast(monkeypatch, nc_path: Path, start_dt: datetime) -
     forecast_dict = dict(
         file=str(nc_path),
         forecast_start_time=start_dt.isoformat(sep=" "),
-        GFSrate=60,
+        forecast_update_interval=60,
         wind_interpolation="linear_neighbors",
     )
     sim_dict = _synthetic_simulation_dict(start_dt)

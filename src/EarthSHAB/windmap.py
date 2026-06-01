@@ -19,13 +19,8 @@ class Windmap:
     def __init__(self):
 
         self.forecast = Forecast(config_earth.simulation['start_coord'])
-        # Back-compat alias for downstream code that referenced self.gfs / self.era5.
-        self.gfs = self.forecast
-        self.era5 = self.forecast
         self.file = self.forecast.file
         self.source = self.forecast.source
-
-        self.nc_start = config_earth.netcdf_gfs["nc_start"]
 
         self.start_time = config_earth.simulation["start_time"]
         self.coord = config_earth.simulation['start_coord']

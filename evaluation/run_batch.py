@@ -170,11 +170,13 @@ def _build_overrides(launch: dict, forecast_type: str, orig: dict) -> dict:
         overrides["forecast"] = {
             "file":                gfs_path,
             "forecast_start_time": forecast_start,
-            "GFSrate":             orig["forecast"]["GFSrate"],
+            "forecast_update_interval": orig["forecast"]["forecast_update_interval"],
             "wind_interpolation":  orig["forecast"].get("wind_interpolation", "linear_full"),
         }
-        # netcdf_gfs is still used by saveNETCDF.py for downloads; some
-        # downstream sim_state fields (nc_start, hourstamp) still read it.
+        # netcdf_gfs is still consumed by saveNETCDF.py for downloads; the
+        # Forecast reader doesn't look at it. Updating nc_file/nc_start/
+        # hourstamp here keeps the snapshot self-consistent for any tooling
+        # that inspects it after a batch run.
         overrides["netcdf_gfs"] = {
             "nc_file":       gfs_path,
             "nc_start":      forecast_start_dt,
@@ -190,11 +192,9 @@ def _build_overrides(launch: dict, forecast_type: str, orig: dict) -> dict:
         overrides["forecast"] = {
             "file":                era5_path,
             "forecast_start_time": orig["forecast"]["forecast_start_time"],
-            "GFSrate":             orig["forecast"]["GFSrate"],
+            "forecast_update_interval": orig["forecast"]["forecast_update_interval"],
             "wind_interpolation":  orig["forecast"].get("wind_interpolation", "linear_full"),
         }
-        # Keep netcdf_gfs in overrides so simulate.py's read of
-        # config_earth.netcdf_gfs['nc_start']/['hourstamp'] doesn't trip.
         overrides["netcdf_gfs"] = copy.deepcopy(orig["netcdf_gfs"])
 
     return overrides
