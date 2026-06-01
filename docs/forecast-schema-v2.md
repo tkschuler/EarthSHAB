@@ -18,7 +18,7 @@ reader, downloader, or converter must produce files that match this spec.
 | Attribute       | Required | Value                                                                                  |
 |-----------------|----------|----------------------------------------------------------------------------------------|
 | `Conventions`   | yes      | `"CF-1.7"` (string)                                                                    |
-| `institution`   | yes      | `"European Centre for Medium-Range Weather Forecasts"` for ERA5; source-appropriate for GFS |
+| `institution`   | yes      | `"NOAA/NCEP (GFS)"` for GFS files; `"ECMWF (ERA5)"` for ERA5 files                     |
 | `history`       | yes      | One line of provenance (timestamp + tool that wrote the file)                          |
 | `GRIB_centre`   | optional | Present on direct Copernicus downloads (`"ecmf"`). Tolerated; not required             |
 
@@ -26,6 +26,38 @@ The reader's format-detection logic uses `Conventions` + variable names. Any
 file lacking `Conventions == "CF-1.7"` AND containing the old GFS variables
 (`ugrdprs`, `vgrdprs`, `hgtprs`) is treated as a v1 file and refused with a
 migration message.
+
+### Source provenance
+
+`Forecast.source` (the field used for plot labels and evaluation grouping) is
+resolved from `institution`:
+
+* contains `"NOAA"`, `"GFS"`, or `"NCEP"` → `"GFS"`
+* contains `"ECMWF"` or `"ERA5"`         → `"ERA5"`
+* missing/empty                          → fall back to filename pattern
+  (basename contains `"gfs"` → `"GFS"`; contains `"era5"` → `"ERA5"`;
+  otherwise `"unknown"`)
+
+`saveNETCDF.py` and `migrate_v1.py` both write the appropriate `institution`
+value. Files already migrated prior to this convention (Phase 5) carry an
+empty `institution` and rely on the filename fallback.
+
+### Storage convention
+
+**Every v2 file is a tight bounding-box subset.** No full-world arrays with
+mask-based subsetting; the shape of `u/v/z/t` IS the data extent. Missing
+samples inside the subset (e.g., at high pressure levels above the model top)
+are represented as `_FillValue` / NaN and resolved by the reader's
+`fill_missing_data` 1-D interpolation. The reader does not perform any
+mask-based outer-bounding-box detection.
+
+This convention is enforced upstream:
+
+* `saveNETCDF.py` downloads via NOAA's GRIB filter `subregion` parameter, so
+  freshly downloaded GFS files are already subsets.
+* `migrate_v1.py`'s `_valid_subset_indices()` strips the masked padding from
+  v1 GFS global archives during conversion.
+* Raw Copernicus CDS ERA5 downloads have always been subsets.
 
 ---
 

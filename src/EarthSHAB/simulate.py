@@ -10,8 +10,7 @@ import re
 import copy
 
 import EarthSHAB.solve_states as solve_states
-import EarthSHAB.GFS as GFS
-import EarthSHAB.ERA5 as ERA5
+from EarthSHAB.Forecast import Forecast
 import EarthSHAB.radiation as radiation
 import EarthSHAB.config_earth as config_earth
 
@@ -125,7 +124,6 @@ class BalloonSimulation:
         self.GFSrate = config_earth.forecast['GFSrate']
         self.hourstamp = config_earth.netcdf_gfs['hourstamp']
         self.balloon_trajectory = config_earth.simulation['balloon_trajectory']
-        self.forecast_type = config_earth.forecast['forecast_type']
         self.atm = fluids.atmosphere.ATMOSPHERE_1976(self.min_alt)
 
         self.trajectory_name = None
@@ -159,10 +157,8 @@ class BalloonSimulation:
 
         self.e = solve_states.SolveStates()
 
-        if self.forecast_type == "GFS":
-            self.gfs = GFS.GFS(self.coord)
-        else:
-            self.gfs = ERA5.ERA5(self.coord)
+        self.gfs = Forecast(self.coord)
+        self.forecast_type = self.gfs.source
 
         self.lat_aprs_gps = [self.coord["lat"]]
         self.lon_aprs_gps = [self.coord["lon"]]

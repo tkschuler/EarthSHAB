@@ -13,66 +13,38 @@ from scipy.interpolate import CubicSpline
 import sys
 
 import EarthSHAB.config_earth as config_earth
-import EarthSHAB.GFS as GFS
-import EarthSHAB.ERA5 as ERA5
-from EarthSHAB.GFS import _spline_uv
+from EarthSHAB.Forecast import Forecast, _spline_uv
 
 class Windmap:
     def __init__(self):
 
-        if config_earth.forecast['forecast_type'] == "GFS":
-            self.gfs = GFS.GFS(config_earth.simulation['start_coord'])
-            self.file = self.gfs.file
-        else:
-            self.era5 = ERA5.ERA5(config_earth.simulation['start_coord'])
-            self.file = self.era5.file
+        self.forecast = Forecast(config_earth.simulation['start_coord'])
+        # Back-compat alias for downstream code that referenced self.gfs / self.era5.
+        self.gfs = self.forecast
+        self.era5 = self.forecast
+        self.file = self.forecast.file
+        self.source = self.forecast.source
 
-
-        #FIX THE DEFINING OF THESE Variables
-        #*******************
-        #self.res = config_earth.netcdf_gfs['res'] #fix this
-        self.nc_start = config_earth.netcdf_gfs["nc_start"] #fix this
+        self.nc_start = config_earth.netcdf_gfs["nc_start"]
 
         self.start_time = config_earth.simulation["start_time"]
         self.coord = config_earth.simulation['start_coord']
         self.LAT = self.coord["lat"]
         self.LON = self.coord["lon"]
 
-        # VERIFY TIMESTAMP INFO MAKES SENSE
-        hours = None
-        self.new_timestamp = None
-
-        #EDIT TO REMOVE THESE
-        #Should I move these to ERA5 and GFS for organization?
-        if config_earth.forecast['forecast_type'] == "GFS":
-            # Phase 3: Use canonical v2 format variable names
-            self.lat  = self.file.variables['latitude'][:]
-            self.lon  = self.file.variables['longitude'][:]
-            self.levels = self.file.variables['pressure_level'][:]
-
-            self.vgrdprs = self.file.variables['v']
-            self.ugrdprs = self.file.variables['u']
-            # Phase 3: z is geopotential (m²/s²), keep as variable for later conversion
-            self.hgtprs = self.file.variables['z']
-            try:
-                self.tmpprs = self.file.variables['t']
-            except:
-                print(colored("Temperature not downloaded in this GFS forecast", "yellow"))
-                self.tmpprs = None
-            self.hour_index, self.new_timestamp = self.getHourIndex(self.start_time)
-
-        if config_earth.forecast['forecast_type'] == "ERA5":
-
-            self.lat  = self.file.variables['latitude'][:]
-            self.lon  = self.file.variables['longitude'][:]
-            self.levels = self.file.variables['pressure_level'][:]
-
-            self.vgrdprs = self.file.variables['v']
-            self.ugrdprs = self.file.variables['u']
-            self.hgtprs = self.file.variables['z']
-            self.tmpprs = self.file.variables['t']  # v2: 't' is temperature (was 'time' bug in v1)
-
-            self.hour_index, self.new_timestamp = self.getHourIndex(self.start_time)
+        # v2 canonical schema: same variable names regardless of source.
+        self.lat = self.file.variables['latitude'][:]
+        self.lon = self.file.variables['longitude'][:]
+        self.levels = self.file.variables['pressure_level'][:]
+        self.vgrdprs = self.file.variables['v']
+        self.ugrdprs = self.file.variables['u']
+        self.hgtprs = self.file.variables['z']
+        try:
+            self.tmpprs = self.file.variables['t']
+        except KeyError:
+            print(colored("Temperature not present in this forecast", "yellow"))
+            self.tmpprs = None
+        self.hour_index, self.new_timestamp = self.getHourIndex(self.start_time)
 
     def closest(self,arr, k):
         return min(range(len(arr)), key = lambda i: abs(arr[i]-k))
@@ -84,12 +56,8 @@ class Windmap:
         else:
             return start <= x or x <= end
 
-    #THIS IS ASSUMING THE CORRECT ERA5 TIME PERIOD HAS BEEN DOWNLOADED
     def getHourIndex(self,start_time):
-        if config_earth.forecast['forecast_type'] == "GFS":
-            times = self.gfs.time_convert
-        else:
-            times = self.era5.time_convert
+        times = self.forecast.time_convert
         #Check is simulation start time is within netcdf file
         if not self.time_in_range(times[0], times[-1], self.start_time):
             print(colored("Simulation start time " + str(self.start_time) + " is not within netcdf timerange of " + str(times[0]) + " - " + str(times[-1]) , "red"))
@@ -155,33 +123,24 @@ class Windmap:
 
         """
 
-        if config_earth.forecast['forecast_type'] == "GFS":
-            lat_i = self.gfs.getNearestLat(lat, -90, 90.01)
-            lon_i = self.gfs.getNearestLon(lon, 0, 360)
-            ugrd, vgrd, hgt = self.gfs.ugdrps0, self.gfs.vgdrps0, self.gfs.hgtprs
-        elif config_earth.forecast['forecast_type'] == "ERA5":
-            lat_i = self.era5.getNearestLatIdx(lat, self.era5.lat_min_idx, self.era5.lat_max_idx)
-            lon_i = self.era5.getNearestLonIdx(lon, self.era5.lon_min_idx, self.era5.lon_max_idx)
-            ugrd, vgrd, hgt = self.ugrdprs, self.vgrdprs, self.hgtprs
+        lat_i = self.forecast.getNearestLatIdx(lat)
+        lon_i = self.forecast.getNearestLonIdx(lon)
+        # self.forecast.hgtprs is already geopotential / g (meters); use it directly.
+        ugrd, vgrd, hgt = self.forecast.ugdrps0, self.forecast.vgdrps0, self.forecast.hgtprs
 
-        g = 9.80665
-
-        u = ugrd[hour_index,:,lat_i,lon_i]
-        v = vgrd[hour_index,:,lat_i,lon_i]
-        h = hgt[hour_index,:,lat_i,lon_i]
+        u = ugrd[hour_index, :, lat_i, lon_i]
+        v = vgrd[hour_index, :, lat_i, lon_i]
+        h = hgt[hour_index, :, lat_i, lon_i]
 
         # Remove missing data
-        u = u.filled(np.nan)
-        v = v.filled(np.nan)
+        if np.ma.isMaskedArray(u):
+            u = u.filled(np.nan)
+        if np.ma.isMaskedArray(v):
+            v = v.filled(np.nan)
         nans = ~np.isnan(u)
         u = u[nans]
         v = v[nans]
-        h = h[nans]
-
-        if config_earth.forecast['forecast_type'] == "ERA5":
-            # v2: pressure_level descending in hPa → altitude ascending with
-            # index → no flip needed. Still convert geopotential (z) to meters.
-            h = h / g
+        h = np.asarray(h)[nans]
 
         bearing, r, _, _ = self.windVectorToBearing(u, v, h)
 
@@ -218,7 +177,7 @@ class Windmap:
                         np.interp(interp_alt, [h[i], h[i + 1]], [angle1, angle2]) % 360
                     )
 
-        forecast_type = config_earth.forecast['forecast_type']
+        forecast_type = self.forecast.source
         interp_label = "Spline" if interpolation == 'spline' else "Linear"
 
         fig = plt.figure(figsize=(10, 8))
@@ -229,30 +188,21 @@ class Windmap:
         fig.suptitle(f"Wind Interpolation using Speed/Direction {interp_label} Interpolation")
 
     def _profile_at(self, hour_index, lat, lon):
-        """Return (u, v, h) pressure-level wind profile at a (time, lat, lon),
-        with NaNs removed and ERA5 geopotential-converted to match the
-        conventions used by GFS/ERA5.wind_alt_Interpolate2.
-
-        Looks up lat/lon directly against the FULL netCDF lat/lon arrays
-        attached to self (self.lat / self.lon), since self.ugrdprs etc. are
-        also the full netCDF variables.
+        """Return (u, v, h) pressure-level wind profile at (time, lat, lon),
+        with masks/NaNs removed and geopotential converted to meters.
         """
         g = 9.80665
-        if config_earth.forecast['forecast_type'] == "GFS":
-            lon_q = float(lon) % 360.0
-        else:
-            lon_q = float(lon)
         lat_i = self.closest(self.lat, float(lat))
-        lon_i = self.closest(self.lon, lon_q)
+        lon_i = self.closest(self.lon, float(lon))
 
-        u = self.ugrdprs[hour_index, :, lat_i, lon_i].filled(np.nan)
-        v = self.vgrdprs[hour_index, :, lat_i, lon_i].filled(np.nan)
-        h = np.asarray(self.hgtprs[hour_index, :, lat_i, lon_i])
+        u_raw = self.ugrdprs[hour_index, :, lat_i, lon_i]
+        v_raw = self.vgrdprs[hour_index, :, lat_i, lon_i]
+        h_raw = self.hgtprs[hour_index, :, lat_i, lon_i]
+        u = u_raw.filled(np.nan) if np.ma.isMaskedArray(u_raw) else np.asarray(u_raw, dtype=float)
+        v = v_raw.filled(np.nan) if np.ma.isMaskedArray(v_raw) else np.asarray(v_raw, dtype=float)
+        h = np.asarray(h_raw, dtype=float)
         nans = ~np.isnan(u)
         u, v, h = u[nans], v[nans], h[nans]
-        # Phase 3: Both GFS and ERA5 now use canonical v2 format with geopotential (z) in m²/s²
-        # Convert to height in meters
-        g = 9.80665
         h = h / g
         return u, v, h
 
@@ -380,7 +330,7 @@ class Windmap:
         vmax = float(np.max(np.concatenate(all_speeds)))
         alt_max = float(h_dense[-1])
 
-        forecast_type = config_earth.forecast['forecast_type']
+        forecast_type = self.forecast.source
         fig = plt.figure(figsize=(18, 7))
         axes = [fig.add_subplot(1, 3, i + 1, projection='polar') for i in range(3)]
         sc_last = None

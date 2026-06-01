@@ -144,6 +144,12 @@ def _apply_canonical_attrs(ds: xr.Dataset) -> xr.Dataset:
     return ds
 
 
+_SOURCE_INSTITUTION = {
+    FORMAT_V1_GFS:  "NOAA/NCEP (GFS)",
+    FORMAT_V1_ERA5: "ECMWF (ERA5)",
+}
+
+
 def _finalize(ds: xr.Dataset, source_format: str) -> xr.Dataset:
     """Common end-of-pipeline: order dims, cast to float32, set attrs."""
     ds = ds.transpose("valid_time", "pressure_level", "latitude", "longitude")
@@ -157,7 +163,12 @@ def _finalize(ds: xr.Dataset, source_format: str) -> xr.Dataset:
     )
     canon = _apply_canonical_attrs(canon)
     canon.attrs["Conventions"] = "CF-1.7"
-    canon.attrs["institution"] = ds.attrs.get("institution", "")
+    # Source provenance for the v2 Forecast reader's self.source detection.
+    # An explicit institution overrides the per-format default so re-running
+    # the migration doesn't clobber a more specific value already on disk.
+    canon.attrs["institution"] = (
+        ds.attrs.get("institution") or _SOURCE_INSTITUTION.get(source_format, "")
+    )
     history_prev = ds.attrs.get("history", "").strip()
     stamp = datetime.now(timezone.utc).isoformat()
     new_line = (

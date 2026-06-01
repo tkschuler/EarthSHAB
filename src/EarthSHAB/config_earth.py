@@ -21,12 +21,22 @@ forecast_start_time =  "2026-05-27 06:00:00" # Forecast start time, should match
 start_time = datetime.fromisoformat("2026-05-27 15:00:00") # Simulation start time. The end time needs to be within the downloaded forecast
 balloon_trajectory = None  # Only Accepting Files in the Standard APRS.fi format for now
 
+# Single forecast file path. The reader (EarthSHAB.Forecast.Forecast) opens
+# this file regardless of whether it came from GFS or ERA5 — source is read
+# from the file's `institution` global attribute. To run an ERA5-based
+# simulation, point `file` at an ERA5 .nc instead.
+_default_gfs_file = (
+    parent_dir + "forecasts/gfs_0p25_"
+    + forecast_start_time[0:4] + forecast_start_time[5:7] + forecast_start_time[8:10]
+    + "_" + forecast_start_time[11:13] + ".nc"
+)
+
 forecast = dict(
-    forecast_type = "GFS",      # GFS or ERA5
-    forecast_start_time = forecast_start_time, # Forecast start time, should match a downloaded forecast in the forecasts directory
+    file = _default_gfs_file,
+    forecast_start_time = forecast_start_time, # used to build the default file path above
     GFSrate = 60,               # (s) After how many iterated dt steps are new wind speeds are looked up
 
-    # Wind interpolation method used inside GFS/ERA5 wind_alt_Interpolate2:
+    # Wind interpolation method used inside Forecast.wind_alt_Interpolate2:
     #   'linear_neighbors' - (default, historical) bearing+speed linearly
     #                        interpolated between the 2 nearest pressure
     #                        levels, with angle-wrap correction.
@@ -37,28 +47,22 @@ forecast = dict(
     #                        np.interp fallback when alt is outside the
     #                        profile bounds (avoids spline overshoot above
     #                        the highest pressure level).
-    wind_interpolation = 'linear_neighbors',
+    wind_interpolation = 'linear_full',
 )
 
-#These parameters are for both downloading new forecasts, and running simulations with downloaded forecasts.
+# GFS downloader configuration. Consumed only by saveNETCDF.py — the Forecast
+# reader does not look at this dict.
 netcdf_gfs = dict(
-    #DO NOT CHANGE
-    nc_file = (parent_dir + "forecasts/gfs_0p25_" + forecast['forecast_start_time'][0:4] + forecast['forecast_start_time'][5:7] + forecast['forecast_start_time'][8:10] + "_" + forecast['forecast_start_time'][11:13] + ".nc"),  # DO NOT CHANGE -  file structure for downloading .25 resolution NOAA forecast data.
-    nc_start = datetime.fromisoformat(forecast['forecast_start_time']),    # DO NOT CHANGE - Start time of the downloaded netCDF file
-    hourstamp = forecast['forecast_start_time'][11:13],  # parsed from gfs timestamp
+    nc_file = _default_gfs_file,     # output path for the downloaded forecast
+    nc_start = datetime.fromisoformat(forecast_start_time),  # forecast cycle to fetch
+    hourstamp = forecast_start_time[11:13],
 
-    res = 0.25,        # (deg) DO NOT CHANGE
+    res = 0.25,        # (deg) DO NOT CHANGE — GFS native resolution
 
-    #The following values are for savenetcdf.py for forecast downloading and saving
-    lat_range = 40,    # (.25 deg)
-    lon_range= 60,     # (.25 deg)
-    download_days = 1, # (1-10) Number of days to download for forecast This value is only used in saveNETCDF.py
+    lat_range = 40,    # (deg) bounding-box height to download
+    lon_range= 60,     # (deg) bounding-box width to download
+    download_days = 1, # (1-10) forecast horizon in days
 )
-
-netcdf_era5 = dict(
-    filename = "SHAB14V_ERA5_20220822_20220823.nc", #SHAB12/13/14/15V
-    resolution_hr = 1
-    )
 
 simulation = dict(
     start_time = start_time,    # (UTC) Simulation Start Time, updated above

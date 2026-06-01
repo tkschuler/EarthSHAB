@@ -91,7 +91,6 @@ def _snapshot_config() -> dict:
         "simulation":         copy.deepcopy(config_earth.simulation),
         "forecast":           copy.deepcopy(config_earth.forecast),
         "netcdf_gfs":         copy.deepcopy(config_earth.netcdf_gfs),
-        "netcdf_era5":        copy.deepcopy(config_earth.netcdf_era5),
     }
 
 
@@ -163,16 +162,19 @@ def _build_overrides(launch: dict, forecast_type: str, orig: dict) -> dict:
     }
 
     if forecast_type == "GFS":
-        gfs_file           = launch["gfs_file"]
-        gfs_path           = FORECASTS_DIR + gfs_file
+        gfs_file = launch["gfs_file"]
+        gfs_path = FORECASTS_DIR + gfs_file
         forecast_start, hour_str = _parse_gfs_filename(gfs_file)
-        forecast_start_dt  = datetime.fromisoformat(forecast_start)
+        forecast_start_dt = datetime.fromisoformat(forecast_start)
 
         overrides["forecast"] = {
-            "forecast_type":      "GFS",
+            "file":                gfs_path,
             "forecast_start_time": forecast_start,
-            "GFSrate":            orig["forecast"]["GFSrate"],
+            "GFSrate":             orig["forecast"]["GFSrate"],
+            "wind_interpolation":  orig["forecast"].get("wind_interpolation", "linear_full"),
         }
+        # netcdf_gfs is still used by saveNETCDF.py for downloads; some
+        # downstream sim_state fields (nc_start, hourstamp) still read it.
         overrides["netcdf_gfs"] = {
             "nc_file":       gfs_path,
             "nc_start":      forecast_start_dt,
@@ -184,16 +186,16 @@ def _build_overrides(launch: dict, forecast_type: str, orig: dict) -> dict:
         }
 
     elif forecast_type == "ERA5":
+        era5_path = FORECASTS_DIR + launch["era5_file"]
         overrides["forecast"] = {
-            "forecast_type":      "ERA5",
+            "file":                era5_path,
             "forecast_start_time": orig["forecast"]["forecast_start_time"],
-            "GFSrate":            orig["forecast"]["GFSrate"],
+            "GFSrate":             orig["forecast"]["GFSrate"],
+            "wind_interpolation":  orig["forecast"].get("wind_interpolation", "linear_full"),
         }
-        # ERA5.py prepends "src/EarthSHAB/forecasts/" itself — filename only
-        overrides["netcdf_era5"] = {
-            "filename":       launch["era5_file"],
-            "resolution_hr":  orig["netcdf_era5"]["resolution_hr"],
-        }
+        # Keep netcdf_gfs in overrides so simulate.py's read of
+        # config_earth.netcdf_gfs['nc_start']/['hourstamp'] doesn't trip.
+        overrides["netcdf_gfs"] = copy.deepcopy(orig["netcdf_gfs"])
 
     return overrides
 

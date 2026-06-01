@@ -63,14 +63,33 @@ Phased plan (strangler-fig, evaluation suite as safety net):
     * Add `docs/migration-v2.md`: what changed, how to detect v1 files,
       how to convert, why no auto-conversion (explicit > silent data mutation)
 
-* Phase 5: Collapse the readers
-    * Rename `ERA5.py` → `Forecast.py` (it's the canonical reader now)
-    * Delete `GFS.py`, `forecast_processing/convert_gfs2era5.py`
-      (`convert_era52gfs.py` already deleted in Phase 2)
-    * Update `config_earth.forecast['forecast_type']` semantics — single
-      forecast type, source distinguished by file provenance metadata
-    * Keep in mind that GFS does masked values of the full forecast array,
-     whereas ERA5 only saves the subset.  Come up with a standard format.
+* Phase 5: Collapse the readers — DONE
+    * `ERA5.py` and `GFS.py` collapsed into a single `Forecast.py`. The new
+      class `Forecast` reads the v2 canonical schema regardless of upstream
+      source. `forecast_processing/convert_gfs2era5.py` and the leftover
+      `convert_era52gfs.py` deleted.
+    * `config_earth.forecast['forecast_type']` retired — config now carries a
+      single `forecast['file']` path. Source (GFS vs ERA5) is read from the
+      file's `institution` global attribute (`"NOAA/NCEP (GFS)"` or
+      `"ECMWF (ERA5)"`) and exposed as `Forecast.source` for plot labels and
+      eval-pipeline grouping. Missing/empty `institution` falls back to a
+      filename-pattern sniff so already-migrated files Just Work without
+      re-stamping.
+    * Standard file format locked in: every v2 .nc is a tight bounding-box
+      subset. No full-world arrays with mask-based subsetting; the shape of
+      `u/v/z/t` IS the data extent. The old `determineRanges()` /
+      `lat_min_idx` / `lat_max_idx` / `start_time_idx` index bookkeeping is
+      gone — slices are `[:]`. `saveNETCDF.py` (GRIB-filter `subregion`) and
+      `migrate_v1.py` (`_valid_subset_indices`) already produced subset-only
+      files, so this is a code simplification, not a file rewrite.
+    * Forecast cadence (`resolution_hr`) is derived from the file's time
+      array rather than a config key. ERA5 1-hr and GFS 3-hr cadences both
+      work with no knob.
+    * `migrate_v1.py` now writes `institution` per source format.
+    * docs/forecast-schema-v2.md updated with the source-provenance and
+      subset-only conventions.
+    * Test fixtures (tests/) still reference the old per-source readers;
+      Phase 6 (test parametrization cleanup) finishes the job.
 
 * Phase 6: Test suite cleanup
     * Drop `reader_type` parametrization from `tests/conftest.py` — single
