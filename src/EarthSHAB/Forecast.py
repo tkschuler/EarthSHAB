@@ -408,6 +408,30 @@ class Forecast:
                 self.lat[lat_idx], self.lon[lon_idx],
                 self.hgtprs[0, z, lat_idx, lon_idx]]
 
+    def close(self):
+        """Close the underlying netCDF dataset.
+
+        CPython's __del__ on netCDF4.Dataset is unreliable enough that
+        long-running batch evaluators (evaluation/run_batch.py) accumulate
+        HDF5 chunk-cache state across launches and segfault around the
+        6th–7th iteration. Callers should `close()` explicitly when done.
+        Idempotent.
+        """
+        f = getattr(self, "file", None)
+        if f is not None:
+            try:
+                f.close()
+            except Exception:
+                pass
+            self.file = None
+
+    def __del__(self):
+        # Best-effort cleanup; exceptions during interpreter shutdown swallowed.
+        try:
+            self.close()
+        except Exception:
+            pass
+
     def datetime_epoch(self, timedate_obj):
         """Convert a datetime (or ISO string) to GMT epoch seconds."""
         gmt = timezone('GMT')

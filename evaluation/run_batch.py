@@ -352,10 +352,18 @@ def run_batch(note: str):
         # don't close their figs explicitly). Without this, ~6-7 launches in
         # the process segfaults from accumulated figure + netCDF handle state.
         plt.close('all')
-        # Force GC so lingering GFS/ERA5 reader objects (each holds an open
-        # netCDF4.Dataset) are reclaimed; netCDF4 closes the file in __del__.
-        # Without this, HDF5 chunk-cache memory from raw CDS files accumulates
-        # across launches and the process segfaults on the 6th-7th launch.
+        # Explicitly close every netCDF4.Dataset the evaluator may still hold
+        # a transitive reference to via ev.sim.gfs / its Windmap. CPython's
+        # netCDF4.Dataset.__del__ is unreliable enough that relying on it
+        # accumulates HDF5 chunk-cache state across launches and segfaults
+        # around the 6th–7th iteration.
+        try:
+            if 'ev' in locals() and getattr(ev, 'sim', None) is not None:
+                forecast = getattr(ev.sim, 'gfs', None)
+                if forecast is not None and hasattr(forecast, 'close'):
+                    forecast.close()
+        except Exception:
+            pass
         gc.collect()
 
         if launch_errors:
