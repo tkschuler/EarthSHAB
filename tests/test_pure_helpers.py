@@ -78,7 +78,7 @@ class TestClosest:
 
     def test_closest_alias_matches(self, bare):
         # `closest` is a back-compat alias to closestIdx (GFS used the former,
-        # ERA5 the latter — Phase 5 unified them). Verify they're the same.
+        # ERA5 the latter — v2 unified them). Verify they're the same.
         arr = [0.0, 1.0, 2.0]
         assert bare.closest(arr, 1.6) == bare.closestIdx(arr, 1.6)
 
@@ -271,7 +271,7 @@ class TestFillMissingData:
         assert np.all(np.isfinite(out))
 
     def test_plain_ndarray_with_nan(self, bare):
-        # Phase 5 fill_missing_data also accepts plain ndarrays with literal
+        # The v2 fill_missing_data also accepts plain ndarrays with literal
         # NaN values (not just MaskedArrays), because the v2 reader's
         # whole-array reads sometimes yield ndarrays.
         arr = np.array([1.0, np.nan, 3.0])

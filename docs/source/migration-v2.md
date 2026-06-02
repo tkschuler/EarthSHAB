@@ -25,10 +25,10 @@ The operation is idempotent. Re-running on the same directory only emits
 ```
 ForecastFormatError: forecasts/foo.nc: detected v1 GFS (ugrdprs/vgrdprs/hgtprs
 variables); EarthSHAB v2.0+ requires the canonical schema documented in
-docs/forecast-schema-v2.md. Convert this file in place with:
+docs/source/forecast-schema-v2.md. Convert this file in place with:
     python -m EarthSHAB.forecast_processing.migrate_v1 forecasts/foo.nc
 The original will be backed up alongside it as <name>.v1.nc. See
-docs/migration-v2.md for details.
+docs/source/migration-v2.md for details.
 ```
 
 The reader prints the exact command to run, with the offending path baked in.

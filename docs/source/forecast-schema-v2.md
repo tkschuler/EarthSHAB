@@ -42,8 +42,8 @@ resolved from `institution`:
   otherwise `"unknown"`)
 
 `saveNETCDF.py` and `migrate_v1.py` both write the appropriate `institution`
-value. Files already migrated prior to this convention (Phase 5) carry an
-empty `institution` and rely on the filename fallback.
+value. Files migrated before this convention was introduced carry an empty
+`institution` and rely on the filename fallback.
 
 ### Storage convention
 
@@ -220,7 +220,7 @@ The Forecast class auto-detects v1 vs v2 and refuses v1 with a clear migration m
 | Level (`lev`) order        | descending hPa                                             | same (`pressure_level` descending hPa) |
 | `Conventions` attr         | absent                                                     | `CF-1.7`                               |
 
-`saveNETCDF.py` is the place to do all the conversion at download time; archived files are migrated by the `migrate_v1` CLI (see Changelog v2.0.0 Phase 3).
+`saveNETCDF.py` is the place to do all the conversion at download time; archived files are migrated by the `migrate_v1` CLI (see [migration-v2.md](migration-v2.md)).
 
 ---
 

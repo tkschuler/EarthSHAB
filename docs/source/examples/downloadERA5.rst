@@ -8,10 +8,9 @@ Downloading ERA5 Forecasts
 	an `updated GRIB to netCDF conversion <https://confluence.ecmwf.int/display/CKB/GRIB+to+netCDF+conversion+on+new+CDS+and+ADS+systems>`_,
 	which changes both the formatting and the variable/dimension names of the downloaded files.
 
-	**As of EarthSHAB v2.0, this new post-September-2024 CDS NetCDF *is* the canonical format** (see the `v2 canonical schema
-	<https://github.com/tkschuler/EarthSHAB/blob/main/docs/forecast-schema-v2.md>`_). Raw downloads from the
+	**As of EarthSHAB v2.0, this new post-September-2024 CDS NetCDF *is* the canonical format** (see :doc:`../forecast-schema-v2`). Raw downloads from the
 	current CDS load directly with no conversion step. Only **pre-September-2024** ERA5 archives (and any older "processed" intermediates) need a one-time
-	conversion with ``python -m EarthSHAB.forecast_processing.migrate_v1`` — see the `migration guide <https://github.com/tkschuler/EarthSHAB/blob/main/docs/migration-v2.md>`_. The
+	conversion with ``python -m EarthSHAB.forecast_processing.migrate_v1`` — see the :doc:`migration guide <../migration-v2>`. The
 	`ERA5-Utils toolkit <https://github.com/tkschuler/ERA5-Utils>`_ remains useful for downloading complete ERA5 reanalysis (more pressure levels) via API.
 
 

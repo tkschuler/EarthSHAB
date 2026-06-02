@@ -2,7 +2,7 @@
 
 Builds tiny in-memory forecasts with known analytical fields in the v2
 canonical schema (see docs/forecast-schema-v2.md). Each scenario maps to
-exactly one .nc file — Phase 5 collapsed the GFS and ERA5 readers into a
+exactly one .nc file — v2 collapsed the GFS and ERA5 readers into a
 single Forecast class, so the GFS-vs-ERA5 cross-reader equality tests
 (and their dual-schema writers) are no longer needed.
 

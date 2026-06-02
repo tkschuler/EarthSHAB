@@ -9,6 +9,8 @@
    examples/index
    evaluation/index
    API/index
+   forecast-schema-v2
+   migration-v2
    citing
 
 

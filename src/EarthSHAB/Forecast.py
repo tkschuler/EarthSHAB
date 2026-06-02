@@ -1,9 +1,9 @@
 """Forecast reader for the v2 canonical schema.
 
 Single class for both GFS- and ERA5-sourced files. Source-specific quirks
-were eliminated in Phases 1–4; this module replaces both ERA5.py and GFS.py.
+were eliminated in the v2 refactor; this module replaces both ERA5.py and GFS.py.
 
-Standard v2 file format (locked in by Phase 5)::
+Standard v2 file format::
 
     dims:       valid_time, pressure_level, latitude, longitude
     data vars:  u, v, z, t  (z is geopotential m**2 s**-2; t may be absent)
@@ -17,8 +17,8 @@ Every file is a tight bounding-box subset — no full-world arrays with
 mask-based subsetting. The reader slices the entire stored array.
 
 Source provenance (self.source) is read from the ``institution`` global
-attribute. When that attribute is missing or empty (the case for already-
-migrated files predating Phase 5), the reader falls back to filename pattern::
+attribute. When that attribute is missing or empty (the case for older
+already-migrated files), the reader falls back to filename pattern::
 
     - basename containing 'gfs' (case-insensitive) -> 'GFS'
     - basename containing 'era5'                   -> 'ERA5'
@@ -75,11 +75,11 @@ def _raise_if_v1(file: netCDF4.Dataset, path: str) -> None:
 
     raise ForecastFormatError(
         f"{path}: detected {legacy}; EarthSHAB v2.0+ requires the canonical "
-        "schema documented in docs/forecast-schema-v2.md. Convert this file "
+        "schema documented in docs/source/forecast-schema-v2.md. Convert this file "
         "in place with:\n"
         f"    python -m EarthSHAB.forecast_processing.migrate_v1 {path}\n"
         "The original will be backed up alongside it as <name>.v1.nc. "
-        "See docs/migration-v2.md for details."
+        "See docs/source/migration-v2.md for details."
     )
 
 

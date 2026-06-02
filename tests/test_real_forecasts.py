@@ -8,7 +8,7 @@ directory. The file is:
     (typically a GFS file derived from forecast_start_time, or an ERA5 file
      pointed at manually)
 
-Phase 5 collapsed the two readers, so these tests now exercise a single
+v2 collapsed the two readers, so these tests now exercise a single
 Forecast instance regardless of whether the file is GFS- or ERA5-sourced.
 The Forecast.source attribute records the upstream provenance and is
 asserted to be one of the expected values.

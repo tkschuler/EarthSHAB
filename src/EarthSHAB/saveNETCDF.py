@@ -303,7 +303,7 @@ def download_gfs_grib_to_netcdf():
     print("\nMerging all forecast hours …")
     combined = xr.concat(hourly_datasets, dim="valid_time")
 
-    # Phase 3: Convert to canonical v2 format
+    # Convert to canonical v2 format
     # Rename variables: gh → z, u/v/t stay the same
     rename_map = {
         "gh": "z",

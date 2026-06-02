@@ -47,9 +47,18 @@ extensions = [
     'sphinx.ext.intersphinx',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
+    'myst_parser',
 ]
 
 autosummary_generate = True
+
+# Prefix autosectionlabel labels with the document name so the generic section
+# titles in the Markdown forecast-schema / migration pages (e.g. "Validation",
+# "Reference") don't collide across documents under the -W build.
+autosectionlabel_prefix_document = True
+
+# MyST (Markdown) support for the forecast-schema-v2 / migration-v2 pages.
+myst_heading_anchors = 3
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

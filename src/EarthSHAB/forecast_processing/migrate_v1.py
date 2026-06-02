@@ -1,9 +1,9 @@
 """migrate_v1: convert pre-v2 EarthSHAB forecast files to the canonical v2 schema.
 
-Phase 4 of the v2.0 strangler-fig refactor. The v2 reader rejects every legacy
-layout it encounters (see ForecastFormatError in ERA5.py); this script is the
+Part of the v2.0 forecast refactor. The v2 reader rejects every legacy layout
+it encounters (see ForecastFormatError in Forecast.py); this script is the
 single supported path to upgrade an archived file. There is intentionally no
-silent auto-conversion inside the reader — see docs/migration-v2.md.
+silent auto-conversion inside the reader — see docs/source/migration-v2.md.
 
 Two legacy formats are detected and converted:
 
@@ -397,7 +397,7 @@ def main(argv: list[str] | None = None) -> int:
         prog="python -m EarthSHAB.forecast_processing.migrate_v1",
         description=(
             "Migrate legacy EarthSHAB v1 forecast files to the v2 canonical "
-            "netCDF schema (see docs/forecast-schema-v2.md). Backs the "
+            "netCDF schema (see docs/source/forecast-schema-v2.md). Backs the "
             "original up as <name>.v1.nc and writes the canonical file in "
             "place. Idempotent."
         ),

@@ -6,7 +6,7 @@ we assert:
   (1) on-grid query returns the analytical truth within ON_GRID_EPS,
   (2) off-grid query returns the analytical truth within OFF_GRID_EPS.
 
-Phase 5 collapsed the GFS and ERA5 readers into a single Forecast class, so
+v2 collapsed the GFS and ERA5 readers into a single Forecast class, so
 the cross-reader equality assertion that used to live here is now redundant
 and has been removed.
 
@@ -58,7 +58,7 @@ def _wind_interp(reader, coord):
     Translates a GFS-style coord dict (lat/lon/alt/timestamp) into the
     Forecast.wind_alt_Interpolate2 signature (alt_m, diff_time, lat_idx,
     lon_idx). Used to be in tests/tools/reader_adapter.py; inlined here
-    after Phase 6 collapsed the two readers.
+    after v2 collapsed the two readers.
     """
     diff_time = coord["timestamp"] - reader.model_start_datetime
     lat_idx = reader.getNearestLatIdx(coord["lat"])

@@ -8,7 +8,7 @@ Provides:
 * ``scenario`` parametrization fixture.
 * ``reader`` fixture — monkey-patches ``config_earth`` to point at the
   scenario's dummy file with synthetic start_time / start_coord, then
-  instantiates the (single, post-Phase-5) Forecast class.
+  instantiates the (single, unified) Forecast class.
 * ``real_reader`` fixture — leaves ``config_earth`` unpatched, instantiates
   the reader the config currently points at. Used by test_real_forecasts.py.
 """

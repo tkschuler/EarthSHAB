@@ -10,7 +10,7 @@ interpolation composite, which has its own file). For each, the assertion is:
     "the reader returns the index of the grid point closest to the query,
     and a query at exactly a grid value returns that grid value's index."
 
-Phase 6 collapsed the two readers into a single Forecast class, so the
+v2 collapsed the two readers into a single Forecast class, so the
 cross-reader equality assertion that used to live here is now redundant
 and has been removed. The GFS-specific lon-wrap test is also gone — the
 v2 canonical schema stores longitude in [-180, 180), so a query at lon

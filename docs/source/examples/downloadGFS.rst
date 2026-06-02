@@ -33,12 +33,11 @@ Availability constraints:
 .. warning::
 
    As of EarthSHAB v2.0, ``saveNETCDF.py`` writes the **v2 canonical schema**
-   directly (CF-1.7, ECMWF/ERA5-style names; see the `v2 canonical schema
-   <https://github.com/tkschuler/EarthSHAB/blob/main/docs/forecast-schema-v2.md>`_).
+   directly (CF-1.7, ECMWF/ERA5-style names; see :doc:`../forecast-schema-v2`).
    Forecasts downloaded with **pre-v2** EarthSHAB (the old
    `time/lev/lat/lon` + `hgtprs/tmpprs/ugrdprs/vgrdprs` layout) are no longer
    read directly — convert them once with the migration CLI (see the
-   `migration guide <https://github.com/tkschuler/EarthSHAB/blob/main/docs/migration-v2.md>`_):
+   :doc:`migration guide <../migration-v2>`):
 
    .. code-block:: bash
 

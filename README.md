@@ -8,8 +8,8 @@
 > ⚠️ **v2.0 is a breaking change.** GFS and ERA5 forecasts now share a single
 > canonical netCDF format read by one `Forecast` class. Archived v1 forecasts
 > are rejected on load and must be converted once with the `migrate_v1` CLI.
-> See the **[v2 migration guide](docs/migration-v2.md)** (and the
-> [canonical schema](docs/forecast-schema-v2.md)) before upgrading.
+> See the **[v2 migration guide](docs/source/migration-v2.md)** (and the
+> [canonical schema](docs/source/forecast-schema-v2.md)) before upgrading.
 
 Solar high altitude balloons (SHAB) are a simple and lightweight option for aerial exploration and meteorological data collection both terrestrially and on other planets. By using a
 lightweight material that absorbs visual light and emits low levels of thermal radiation, solar balloons behave similarly to hot air balloons, but are capable of ascending to much higher altitudes. Unlike hot air balloons, which use a heat source to raise the temperature of the internal air, solar balloons generate heat by absorbing solar radiation, providing a free source of lift and eliminating the need for a lighter than air gas or carrying fuel.

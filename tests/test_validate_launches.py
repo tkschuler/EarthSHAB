@@ -60,7 +60,7 @@ APRS_COLUMN_SETS = [
     {"UTC_Date_Time", "Lat", "Lon", "Altitude_m"},                   # LightAPRS-W / StratoTrack
 ]
 
-# v2 canonical schema (Phase 5+): the same variable + dim names regardless of
+# v2 canonical schema: the same variable + dim names regardless of
 # whether the file is GFS- or ERA5-sourced.
 FORECAST_REQUIRED_VARS = {"u", "v", "z", "latitude", "longitude", "pressure_level", "valid_time"}
 # Back-compat aliases kept so existing helper functions / inline references
