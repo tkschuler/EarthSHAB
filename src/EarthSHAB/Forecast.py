@@ -308,12 +308,43 @@ class Forecast:
         return (interp_dir_deg, interp_speed)
 
     def wind_alt_Interpolate2(self, alt_m, diff_time, lat_idx, lon_idx):
-        """Two-step interpolation: altitude across pressure levels at each of
-        the two enclosing forecast times, then linear in time.
+        """Perform a 2-step linear interpolation to determine the horizontal
+        wind velocity at a desired 3D coordinate and timestamp.
 
-        Returns [u, v, u_diag, v_diag] where (u_diag, v_diag) is always the
-        linear_full path, returned for diagnostic comparison regardless of
-        which wind_interpolation method is configured.
+        The figure below shows a visual representation of how wind data is
+        stored in netcdf forecasts based on lat, lon, and geopotential height.
+        The data forms a non-uniform grid, that also changes in time. Therefore
+        a 2-step linear interpolation is performed to determine the horizontal
+        wind velocity at a desired 3D coordinate and particular timestamp.
+
+        To start, the nearest 0.25-degree lat/lon grid point to the desired
+        coordinate is looked up along with the 2 closest timestamps t0 and t1.
+        This produces 6 arrays: u-wind, v-wind, and geopotential heights at the
+        lower and upper closest timestamps (t0 and t1).
+
+        The geopotential ``z`` is converted to geopotential height in meters
+        (dividing by ``g``) for each timestamp. For the first interpolation,
+        the u/v wind components at the desired altitude are determined (1a and
+        1b) at each of t0 and t1. Then, once the wind speeds at matching
+        altitudes for t0 and t1 are determined, a second linear interpolation
+        is performed with respect to time (t0 and t1).
+
+        .. image:: ../../img/netcdf-2step-interpolation.png
+
+        The altitude step uses the method selected by
+        ``config_earth.forecast['wind_interpolation']`` (``linear_neighbors``,
+        ``linear_full``, or ``spline_full``); see :doc:`wind_interpolation`.
+
+        Returns ``[u, v, u_diag, v_diag]`` where ``(u_diag, v_diag)`` is always
+        the ``linear_full`` path, returned for diagnostic comparison regardless
+        of which ``wind_interpolation`` method is configured.
+
+        :param alt_m: desired altitude in meters
+        :param diff_time: timedelta from the forecast start time
+        :param lat_idx: nearest latitude index
+        :param lon_idx: nearest longitude index
+        :returns: [u, v, u_diag, v_diag]
+        :rtype: list
         """
         hour_index = (diff_time.days * 24 + diff_time.seconds / 3600.0) / self.resolution_hr
 
