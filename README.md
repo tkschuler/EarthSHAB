@@ -5,7 +5,7 @@
 
 # EarthSHAB
 
-> ⚠️ **v2.0 is a breaking change.** GFS and ERA5 forecasts now share a single
+> ⚠️ **v2.0 forecast schema change.** GFS and ERA5 forecasts now share a single
 > canonical netCDF format read by one `Forecast` class. Archived v1 forecasts
 > are rejected on load and must be converted once with the `migrate_v1` CLI.
 > See the **[v2 migration guide](docs/source/migration-v2.md)** (and the

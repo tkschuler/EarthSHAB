@@ -1,10 +1,13 @@
 # Migrating archived forecasts to v2
 
 EarthSHAB v2.0 unifies the GFS and ERA5 readers around a single canonical
-netCDF layout (see [forecast-schema-v2.md](forecast-schema-v2.md)). Files in
-the older v1 formats are **rejected on load** with `ForecastFormatError`.
-Convert them once with the migrate_v1 CLI; the original is preserved as a
-`.v1.nc` sibling for rollback.
+netCDF layout (see [forecast-schema-v2.md](forecast-schema-v2.md)).
+
+:::{warning}
+Files in the older v1 formats are **rejected on load** with
+`ForecastFormatError`. Convert them once with the `migrate_v1` CLI; the
+original is preserved as a `.v1.nc` sibling for rollback.
+:::
 
 ## TL;DR
 
@@ -72,10 +75,12 @@ and the dimension order `(valid_time, pressure_level, latitude, longitude)`.
 
 ## Why no auto-conversion in the reader
 
+:::{note}
 Silent on-load conversion would mutate user data without an audit trail, hide
 the cost of the change, and make it impossible to reproduce a prior run. The
 reader fails loudly with the exact CLI to run; the converter writes a `.v1.nc`
 backup so the original is always recoverable.
+:::
 
 ## CLI reference
 
@@ -125,5 +130,7 @@ rm forecasts/foo.nc
 mv forecasts/foo.v1.nc forecasts/foo.nc
 ```
 
+:::{note}
 Subsequent loads will fail with `ForecastFormatError` again, which is the
 correct signal that the file is back in the unsupported v1 state.
+:::

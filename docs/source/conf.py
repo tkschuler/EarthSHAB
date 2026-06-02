@@ -59,6 +59,8 @@ autosectionlabel_prefix_document = True
 
 # MyST (Markdown) support for the forecast-schema-v2 / migration-v2 pages.
 myst_heading_anchors = 3
+# colon_fence enables ::: {note} / {warning} / ... admonitions in Markdown.
+myst_enable_extensions = ["colon_fence"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
