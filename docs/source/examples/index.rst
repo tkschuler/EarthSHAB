@@ -21,7 +21,10 @@ Quick Start
 3. **Edit the configuration file** (``config.py``)  
 4. **Run a simulation**
 
-``main.py`` *will run as is with the provided examples GFS and ERA5 forecasts*.  From the parent directory: run 
+``main.py`` *runs as is against the bundled SHAB14-V example flight* — a GFS
+forecast plus the real SHAB14-V APRS track, so the prediction is overlaid on the
+actual trajectory. (Point ``forecast["file"]`` at the bundled ERA5 file to run
+the same flight off ERA5 instead.)  From the parent directory: run
 
 .. code-block:: bash
 
@@ -51,11 +54,10 @@ Configuration File
 Many parameters can be adjusted for running EarthSHAB simulations and the parameters are grouped together into convienent categories:
 
 - **balloon_properties:** includes parameters for adjusting the balloon size and material propeties.  Currently only the 'sphere' shape is supported.  If using a standard 6 m charcoal-coated SHAB balloon, the payload and envelope masses are the only parameters that need to be updated. 
-- **netcdf_gfs:** includes parameters for reading and saving GFS netcdf forecasts from `NOAA's NOMADS server <https://nomads.ncep.noaa.gov/>`_. Currently only supporting forecasts with a resolution of 0.25 degrees for better trajectroy prediction accuracy. 
-- **netcdf_era5:** 
-- **simulation:** 
-- **forecast_type:** Either GFS or ERA5.  For either to work, a corresponding netcdf file must be download and in the forecasts directory. 
-- **GFS.GFSRate:** adjusts how often wind speeds are looked up (default is once per 60 seconds). The fastest look up rate is up to 1.0 s, which provides the highest fidelity predictions, but also takes significantly longer to run a simulation.  
+- **netcdf_gfs:** includes parameters for downloading and saving GFS netcdf forecasts from NOAA via ``saveNETCDF.py``. Currently only supporting forecasts with a resolution of 0.25 degrees for better trajectroy prediction accuracy.
+- **simulation:**
+- **forecast:** Selects the forecast file to simulate against. ``forecast["file"]`` points at a single v2-canonical netcdf in the forecasts directory; the source (GFS vs ERA5) is read automatically from the file's ``institution`` attribute, so there is no separate forecast-type switch. ``forecast["wind_interpolation"]`` chooses the wind interpolation method (see :doc:`../API/wind_interpolation`).
+- **forecast["forecast_update_interval"]:** adjusts how often wind speeds are looked up (default is once per 60 seconds). The fastest look up rate is up to 1.0 s, which provides the highest fidelity predictions, but also takes significantly longer to run a simulation.
 - **dt:** is default to 1.0 s integrating intervals.
 - **earth_properties:** include mostly constant proeprties for earth.  These values typically don't need to be changed, however the ground emissivity and albedo might be changed if predicting balloon launches over oceans or snow covered locations. 
 

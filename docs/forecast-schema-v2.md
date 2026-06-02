@@ -3,8 +3,11 @@
 EarthSHAB v2.0 standardizes on a single netCDF forecast format, matching
 what the **Copernicus Climate Data Store (CDS) API returns post-September
 2024** when downloading ERA5 pressure-level reanalysis. The reference file
-is `ADD A REFERENCE FILE LATER` — any new
-reader, downloader, or converter must produce files that match this spec.
+reference files are the bundled SHAB14-V v2 forecasts
+`src/EarthSHAB/forecasts/SHAB14V_ERA5_20220822_20220823.nc` (ERA5) and
+`src/EarthSHAB/forecasts/gfs_0p25_20220822_12.nc` (GFS, migrated to canonical) —
+any new reader, downloader, or converter must produce files that match this
+spec.
 
 > **Why this format?** It is what the upstream Copernicus API now returns by
 > default. Adopting it as the canonical schema means archived ERA5 downloads
@@ -183,13 +186,13 @@ For a query at `(t_query, alt_query_m, lat_query, lon_query)`, the canonical rea
 6. Interpolate `u`, `v` over altitude (per the selected `wind_interpolation` method)
 7. Interpolate over `valid_time` between the two enclosing time indices
 
-> Sanity check: real ERA5 `z[0, :, 0, 0]` decreases from ~475809 m²/s² (level=1 hPa, ~48km) to ~surface as level index increases from 0. Because `pressure_level` is DESCENDING hPa with index, the FIRST level index (= 1000 hPa) is the LOWEST altitude. So as level index grows, pressure DECREASES and altitude INCREASES. The altitude column IS ascending with index. The current ERA5.py does an unnecessary `[::-1]` reversal — that's a v1-format quirk to be removed in the Forecast class.
+> Sanity check: real ERA5 `z[0, :, 0, 0]` decreases from ~475809 m²/s² (level=1 hPa, ~48km) to ~surface as level index increases from 0. Because `pressure_level` is DESCENDING hPa with index, the FIRST level index (= 1000 hPa) is the LOWEST altitude. So as level index grows, pressure DECREASES and altitude INCREASES. The altitude column IS ascending with index, so the `Forecast` reader does no reversal. (The legacy `ERA5.py` applied an unnecessary `[::-1]` reversal — a v1-format quirk that was removed when the readers collapsed into `Forecast`.)
 
 ---
 
-## 7. Differences from v1 ("processed" ERA5 format that ERA5.py currently expects)
+## 7. Differences from v1 ("processed" ERA5 format the legacy ERA5.py expected)
 
-| Item                | v1 (current ERA5.py)                  | v2 (canonical)                            |
+| Item                | v1 (legacy ERA5.py)                   | v2 (canonical)                            |
 |---------------------|---------------------------------------|-------------------------------------------|
 | Time dim/var name   | `time`                                | `valid_time`                              |
 | Level dim/var name  | `level`                               | `pressure_level`                          |
@@ -200,7 +203,7 @@ For a query at `(t_query, alt_query_m, lat_query, lon_query)`, the canonical rea
 | `t` (temperature)   | optional                              | required                                  |
 | CF Conventions attr | absent or older                       | `CF-1.7`                                  |
 
-The Forecast class auto-detects v1 vs v2 and refuses v1 with a clear migration message (see [migration-v2.md](migration-v2.md) once written).
+The Forecast class auto-detects v1 vs v2 and refuses v1 with a clear migration message (see [migration-v2.md](migration-v2.md)).
 
 ---
 
@@ -238,19 +241,20 @@ A separate `migrate_v1` script handles detection of the two v1 formats (by varia
 
 ## 10. Reference
 
-The canonical example file is:
+The canonical example files are the bundled SHAB14-V v2 forecasts:
 
 ```
-FILL THIS IN LATER
+src/EarthSHAB/forecasts/SHAB14V_ERA5_20220822_20220823.nc   # ERA5
+src/EarthSHAB/forecasts/gfs_0p25_20220822_12.nc             # GFS (migrated)
 ```
 
-Inspect it directly with:
+Inspect either directly with:
 
 ```python
 import netCDF4
-ds = netCDF4.Dataset('FILL THIS IN LATER)
+ds = netCDF4.Dataset('src/EarthSHAB/forecasts/SHAB14V_ERA5_20220822_20220823.nc')
 print(ds)
 ```
 
-When in doubt about an edge case not covered above, the reference file's
+When in doubt about an edge case not covered above, the reference files'
 behavior is authoritative.

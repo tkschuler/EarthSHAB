@@ -7,8 +7,7 @@ EarthSHAB API
 .. toctree::
    :maxdepth: 1
 
-   GFS
-   era5
+   Forecast
    radiation
    solve_states
    sphere_balloon

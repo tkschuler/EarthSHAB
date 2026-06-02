@@ -2,24 +2,23 @@
 Wind Interpolation Methods
 ===========================
 
-EarthSHAB's GFS and ERA5 readers both expose three different methods for
-interpolating wind from the discrete pressure levels of a forecast to the
-balloon's continuous altitude during simulation. The active method is
-selected from a single config field:
+EarthSHAB's unified :class:`Forecast` reader (which serves both GFS and ERA5
+files) exposes three different methods for interpolating wind from the discrete
+pressure levels of a forecast to the balloon's continuous altitude during
+simulation. The active method is selected from a single config field:
 
 .. code-block:: python
 
     # src/EarthSHAB/config_earth.py
     forecast = dict(
-        forecast_type = "GFS",                  # or "ERA5"
+        file = "src/EarthSHAB/forecasts/gfs_0p25_20220822_12.nc",  # GFS or ERA5 .nc
         wind_interpolation = 'linear_full',     # see methods below
         ...
     )
 
 All three methods are implemented in
-:func:`EarthSHAB.GFS.GFS.wind_alt_Interpolate2` and
-:func:`EarthSHAB.ERA5.ERA5.wind_alt_Interpolate2` with identical semantics;
-the runtime dispatch is driven by ``config_earth.forecast['wind_interpolation']``.
+:func:`EarthSHAB.Forecast.Forecast.wind_alt_Interpolate2`; the runtime dispatch
+is driven by ``config_earth.forecast['wind_interpolation']``.
 
 Methods
 =======
@@ -71,7 +70,7 @@ rather than letting the spline extrapolate, since unconstrained cubic
 extrapolation overshoots wildly at the boundaries.
 
 The helper also dedupes the input altitude array before fitting,
-because :func:`EarthSHAB.GFS.GFS.fill_missing_data` clamps the top
+because :func:`EarthSHAB.Forecast.Forecast.fill_missing_data` clamps the top
 few NaN entries to the last valid altitude, producing duplicate h
 values that ``CubicSpline`` cannot handle. If fewer than four unique
 altitudes remain after dedup, the helper transparently falls back to
@@ -157,7 +156,6 @@ What to look for:
 See also
 ========
 
-- :doc:`GFS` — GFS module API
-- :doc:`era5` — ERA5 module API
+- :doc:`Forecast` — unified forecast reader API
 - :doc:`windmap` — windrose and hodograph plotting
 - :ref:`evaluation-index` — batch evaluation comparing wind methods

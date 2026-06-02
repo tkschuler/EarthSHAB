@@ -30,26 +30,40 @@ Availability constraints:
 * NOAA retains approximately **9–10 days of past forecasts**
 * Each forecast extends up to **384 hours (16 days)** into the future
 
-Output NetCDF file contains:
+.. warning::
+
+   As of EarthSHAB v2.0, ``saveNETCDF.py`` writes the **v2 canonical schema**
+   directly (CF-1.7, ECMWF/ERA5-style names; see the `v2 canonical schema
+   <https://github.com/tkschuler/EarthSHAB/blob/main/docs/forecast-schema-v2.md>`_).
+   Forecasts downloaded with **pre-v2** EarthSHAB (the old
+   `time/lev/lat/lon` + `hgtprs/tmpprs/ugrdprs/vgrdprs` layout) are no longer
+   read directly — convert them once with the migration CLI (see the
+   `migration guide <https://github.com/tkschuler/EarthSHAB/blob/main/docs/migration-v2.md>`_):
+
+   .. code-block:: bash
+
+      python -m EarthSHAB.forecast_processing.migrate_v1 src/EarthSHAB/forecasts/
+
+The output NetCDF file contains:
 
    * Dimensions:
-     * `time`
-     * `lev` (pressure levels)
-     * `lat`
-     * `lon`
+     * `valid_time`
+     * `pressure_level` (isobaric levels, hPa, descending)
+     * `latitude` (descending)
+     * `longitude` (``-180`` to ``180``)
 
    * Variables:
 
-     * `hgtprs` (geopotential height)
-     * `tmpprs` (temperature)
-     * `ugrdprs` (u wind)
-     * `vgrdprs` (v wind)
+     * `z` (geopotential, m²/s² — divide by g for height)
+     * `t` (temperature)
+     * `u` (u wind)
+     * `v` (v wind)
 
 ==========================
 Saving GFS Forecasts
 ==========================
 
-``saveNETCDF.py`` downloads a selected GFS forecast and converts it into a NetCDF file formatted specifically for EarthSHAB.  This is backwards compatible with the previously downloaded GFS forecasts from NOMADS.
+``saveNETCDF.py`` downloads a selected GFS forecast and converts it into a v2-canonical NetCDF file for EarthSHAB. Forecasts previously downloaded from NOMADS (pre-v2) must be migrated once with ``migrate_v1`` before they can be read (see the warning above).
 
 The forecast download is controlled via the config file.  Key parameters include:
 

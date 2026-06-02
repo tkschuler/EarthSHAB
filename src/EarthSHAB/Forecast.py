@@ -3,24 +3,26 @@
 Single class for both GFS- and ERA5-sourced files. Source-specific quirks
 were eliminated in Phases 1–4; this module replaces both ERA5.py and GFS.py.
 
-Standard v2 file format (locked in by Phase 5):
-  dims:       valid_time, pressure_level, latitude, longitude
-  data vars:  u, v, z, t  (z is geopotential m**2 s**-2; t may be absent)
-  coords:     latitude descending, longitude in [-180, 180) ascending,
-              pressure_level descending hPa,
-              valid_time 'seconds since 1970-01-01' / proleptic_gregorian
-  global:     Conventions = 'CF-1.7'
-              institution = 'NOAA/NCEP (GFS)' or 'ECMWF (ERA5)'
+Standard v2 file format (locked in by Phase 5)::
+
+    dims:       valid_time, pressure_level, latitude, longitude
+    data vars:  u, v, z, t  (z is geopotential m**2 s**-2; t may be absent)
+    coords:     latitude descending, longitude in [-180, 180) ascending,
+                pressure_level descending hPa,
+                valid_time 'seconds since 1970-01-01' / proleptic_gregorian
+    global:     Conventions = 'CF-1.7'
+                institution = 'NOAA/NCEP (GFS)' or 'ECMWF (ERA5)'
 
 Every file is a tight bounding-box subset — no full-world arrays with
 mask-based subsetting. The reader slices the entire stored array.
 
-Source provenance (self.source) is read from the `institution` global
+Source provenance (self.source) is read from the ``institution`` global
 attribute. When that attribute is missing or empty (the case for already-
-migrated files predating Phase 5), the reader falls back to filename pattern:
-  - basename containing 'gfs' (case-insensitive) → 'GFS'
-  - basename containing 'era5'                   → 'ERA5'
-  - otherwise                                    → 'unknown'
+migrated files predating Phase 5), the reader falls back to filename pattern::
+
+    - basename containing 'gfs' (case-insensitive) -> 'GFS'
+    - basename containing 'era5'                   -> 'ERA5'
+    - otherwise                                    -> 'unknown'
 
 Contributing authors: Craig Motell and Michael Rodriguez of NIWC Pacific
 Edited and integrated: Tristan Schuler

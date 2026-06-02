@@ -75,15 +75,19 @@ Configure ``config_earth.py``
        ...
    )
 
-**5. Select your forecast type and file:**
+**5. Select your forecast file:**
 
 .. code-block:: python
 
    forecast = dict(
-       forecast_type = "GFS",   # or "ERA5"
+       file = "src/EarthSHAB/forecasts/gfs_0p25_20220822_12.nc",  # GFS or ERA5 .nc
        forecast_start_time = "2022-08-22 12:00:00",
-       GFSrate = 60,
+       forecast_update_interval = 60,
    )
+
+The source (GFS vs ERA5) is read automatically from the file's ``institution``
+attribute — point ``file`` at the bundled ERA5 forecast
+(``SHAB14V_ERA5_20220822_20220823.nc``) to evaluate the same flight off ERA5.
 
 
 Run the Evaluation
