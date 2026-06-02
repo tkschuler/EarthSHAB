@@ -20,7 +20,8 @@ parent_dir = "src/EarthSHAB/"
 # SHAB14-V flight (GFS + APRS truth track) so the prediction can be compared to
 # the real trajectory; the same flight is registered in evaluation/launches.json
 # for the evaluation suite. To run a current-day prediction instead, set a recent
-# forecast_start_time and balloon_trajectory = None.
+# forecast_start_time (cycle hour 00/06/12/18 UTC), set balloon_trajectory = None,
+# and download the forecast first with `python -m EarthSHAB.saveNETCDF`.
 forecast_start_time =  "2022-08-22 12:00:00" # Forecast start time, should match a downloaded forecast in the forecasts directory
 start_time = datetime.fromisoformat("2022-08-22 14:36:00") # Simulation start time. The end time needs to be within the downloaded forecast
 balloon_trajectory = parent_dir + "balloon_data/SHAB14V-APRS.csv"  # Only Accepting Files in the Standard APRS.fi format for now

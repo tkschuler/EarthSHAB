@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 import os
 import re
+import sys
 import copy
 
 import EarthSHAB.solve_states as solve_states
@@ -27,6 +28,9 @@ def _load_aprs(path: str) -> tuple:
     Both are normalized so downstream code sees: time, lat, lng, altitude, comment, dt.
     Time is converted to local (MST = UTC-7) in both cases.
     """
+    if not os.path.isfile(path):
+        print(colored(f"Unable to locate balloon_trajectory file: {path}", "red"))
+        sys.exit(1)
     df = pd.read_csv(path)
     cols = set(df.columns)
 
