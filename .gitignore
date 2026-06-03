@@ -19,6 +19,8 @@ docs/_build/
 .codex/
 .continue/
 
+GFS_DATA/
+
 src/EarthSHAB/balloon_data/*
 !src/EarthSHAB/balloon_data/SHAB14V-APRS.csv
 
