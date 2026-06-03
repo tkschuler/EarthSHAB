@@ -63,6 +63,12 @@ python -m evaluation.evaluate
 
 For sweeping a collection of flights at once and comparing across code revisions, see ``evaluation/run_batch.py`` and the [Evaluation docs](https://tkschuler.github.io/EarthSHAB/evaluation/index.html).
 
+## Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow: fork the repo, branch off `main` with an issue number in the name, and open a PR. 
+
+If EarthSHAB is useful to you, please consider **starring the repo** ⭐ to help it reach others.
+
 ## Citing EarthSHAB
 
 If EarthSHAB played an important role in your research, then please cite the following publication
