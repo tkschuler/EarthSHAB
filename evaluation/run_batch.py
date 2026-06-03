@@ -382,7 +382,9 @@ def run_batch(note: str, launches_json: str = LAUNCHES_JSON):
         w.writerows(summary_rows)
     print(f"Summary → {summary_path}")
 
-    html_path = write_summary_html(summary_rows, batch_dir, batch_id, note, git)
+    html_path = write_summary_html(summary_rows, batch_dir, batch_id, note, git,
+                                   total_runtime_s=total_runtime,
+                                   per_launch_avg_runtime_s=avg_runtime)
     print(f"Report  → {html_path}")
 
     # ── Write batch_info.json ────────────────────────────────────────────────

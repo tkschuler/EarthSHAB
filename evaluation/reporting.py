@@ -12,7 +12,7 @@ Public API:
 
     SUMMARY_FIELDNAMES
     result_to_summary_row(...)
-    write_summary_html(summary_rows, batch_dir, batch_id, note, git)
+    write_summary_html(summary_rows, batch_dir, batch_id, note, git, total_runtime_s, per_launch_avg_runtime_s)
 """
 
 import csv
@@ -596,10 +596,19 @@ _SORT_JS = """\
 
 
 def write_summary_html(summary_rows: list, batch_dir: str,
-                       batch_id: str, note: str, git: dict) -> str:
+                       batch_id: str, note: str, git: dict,
+                       total_runtime_s: float = None,
+                       per_launch_avg_runtime_s: float = None) -> str:
     """Write summary.html with colored % diff table, averages row, and sortable columns."""
     overall_data = "".join(_build_data_row(r, i) for i, r in enumerate(summary_rows))
     overall_avg  = _build_avg_row("Average", summary_rows)
+
+    # Format runtime display
+    runtime_str = "—"
+    if total_runtime_s is not None:
+        runtime_str = f"{total_runtime_s:.1f} s total"
+        if per_launch_avg_runtime_s is not None:
+            runtime_str += f", {per_launch_avg_runtime_s:.1f} s/launch avg"
 
     def _group_key(row):
         camp = row.get("campaign") or ""
@@ -677,7 +686,8 @@ def write_summary_html(summary_rows: list, batch_dir: str,
     <b>Batch ID:</b> {_html.escape(batch_id)}<br>
     <b>Note:</b> {_html.escape(note)}<br>
     <b>Git:</b> {_html.escape(git.get("git_hash",""))} &mdash; {_html.escape(git.get("git_commit_message",""))}{dirty_note}<br>
-    <b>Branch:</b> {_html.escape(git.get("git_branch",""))}
+    <b>Branch:</b> {_html.escape(git.get("git_branch",""))}<br>
+    <b>Runtime:</b> {runtime_str}
   </div>
 
   <div class="legend">
