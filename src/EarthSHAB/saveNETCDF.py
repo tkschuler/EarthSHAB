@@ -32,7 +32,10 @@ import tempfile
 import requests
 import numpy as np
 import xarray as xr
-import cfgrib
+try:
+    import cfgrib
+except ImportError:  # cfgrib needs eccodes (conda); keep the module importable without it
+    cfgrib = None
 import netCDF4 as nc
 from pathlib import Path
 from termcolor import colored
@@ -152,6 +155,11 @@ def _grib_to_dataset(grib_path):
     containing ugrd, vgrd, t, and gh on isobaric levels.
     cfgrib may split a GRIB2 into multiple datasets; we merge them.
     """
+    if cfgrib is None:
+        raise RuntimeError(
+            "cfgrib is required to download GFS forecasts but is not installed. "
+            "Install it via conda: `conda install -c conda-forge cfgrib eccodes`."
+        )
     datasets = []
     try:
         datasets = cfgrib.open_datasets(

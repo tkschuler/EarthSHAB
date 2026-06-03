@@ -56,9 +56,6 @@ version 2.0.0
 * New `netcdf_gfs['step_hours']` sets download temporal resolution for both
   downloaders (3-hourly default, `1` = hourly; GFS hourly only out to f120)
 * `run_batch.py` gains `--launches <file>` to run an alternate launches JSON
-* Evaluation: `reproduce_gfs.py` re-downloads each launch's historical forecast
-  and verifies it reproduces the original netCDF (fields + re-run trajectory);
-  archive matches originals to GRIB packing precision (sub-meter landing shift)
 * Documentation
     * New canonical-schema and migration guides; unified `Forecast` API page
       (replacing the separate GFS/ERA5 pages); refreshed GFS/ERA5 download guides

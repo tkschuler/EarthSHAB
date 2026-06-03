@@ -29,3 +29,27 @@ src/EarthSHAB/forecasts/*
 evaluation/batches/*
 evaluation/comparisons/*
 evaluation/launches.json
+
+# Local-only GFS archive reproduction/verification tool, its experiment configs,
+# and its outputs (not part of the shipped package)
+evaluation/reproduce_gfs.py
+evaluation/launches.archive*.json
+evaluation/gfs_repro/
+
+# Generated trajectory / prediction / evaluation maps. Already-committed example
+# outputs (the bundled 2022-08-22 SHAB14V set) remain tracked; only new generated
+# files are ignored.
+src/EarthSHAB/trajectories/*.html
+
+# Single-flight evaluation outputs written to the evaluation/ root
+evaluation/*.html
+evaluation/*.csv
+evaluation/*.png
+
+# Local one-off ERA5/BASS helper scripts and run logs
+evaluation/*_bass.py
+logs/
+
+# Scratch files
+todo
+txt.txt
