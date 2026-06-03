@@ -25,6 +25,7 @@ Usage:
   (uses config_earth.py for lat/lon centre, range, date, and download_days)
 """
 
+import sys
 import time
 import datetime
 import tempfile
@@ -238,6 +239,7 @@ def download_gfs_grib_to_netcdf():
     lat_range = netcdf_gfs["lat_range"]
     lon_range = netcdf_gfs["lon_range"]
     download_days = netcdf_gfs["download_days"]
+    step_hours = netcdf_gfs.get("step_hours", 3)
     out_filename = netcdf_gfs["nc_file"]
     forecast_start_time = netcdf_gfs["nc_start"]
 
@@ -250,11 +252,11 @@ def download_gfs_grib_to_netcdf():
     cycle_hour = run_date.hour
 
     total_hours = download_days * 24
-    forecast_hours = list(range(0, total_hours + 1, 3))
+    forecast_hours = list(range(0, total_hours + 1, step_hours))
 
     print(f"\nEarthSHAB GFS downloader (GRIB-filter edition)")
     print(f"  Model run   : {date_str} {cycle_hour:02d}Z")
-    print(f"  Forecast hrs: {forecast_hours[0]}–{forecast_hours[-1]} (every 3 h)")
+    print(f"  Forecast hrs: {forecast_hours[0]}–{forecast_hours[-1]} (every {step_hours} h)")
     print(f"  Bounding box: lat {lat_center}±{lat_range/2}°, "
           f"lon {lon_center}±{lon_range/2}°")
     print(f"  Output      : {out_path}\n")
@@ -412,5 +414,55 @@ def download_gfs_grib_to_netcdf():
     return str(out_path)
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Live-vs-archive dispatch
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _is_past_retention(nc_start, retention_days=9):
+    """True if *nc_start* is older than NOAA's live (NOMADS) retention window."""
+    now_utc = datetime.datetime.utcnow()
+    oldest_available = (now_utc - datetime.timedelta(days=retention_days)).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    return nc_start.replace(minute=0, second=0, microsecond=0) < oldest_available
+
+
+def _prompt_proceed_archive(nc_start):
+    """Warn (yellow) that the cycle is past the live window and ask to use the archive.
+
+    Returns True to proceed with the AWS archive download. In a non-interactive
+    session (no TTY) it defaults to proceeding, since the archive is the only way
+    to obtain a past cycle — it prints a notice so the choice is visible in logs.
+    """
+    print(colored(
+        f"\n[WARNING] Requested cycle {nc_start} is older than NOAA's ~9-day live "
+        f"retention window, so it is not available from NOMADS.", "yellow"))
+    print(colored(
+        "          A historical copy is available from the AWS GFS archive "
+        "(noaa-gfs-bdp-pds).", "yellow"))
+    if not sys.stdin.isatty():
+        print(colored("          Non-interactive session — proceeding with the "
+                      "archived forecast.", "yellow"))
+        return True
+    answer = input(colored(
+        "          Download the archived forecast instead? [Y/n]: ", "yellow")).strip().lower()
+    return answer in ("", "y", "yes")
+
+
+def main():
+    """Download the configured GFS cycle, auto-switching to the AWS archive
+    (saveNETCDF_archive.py) when the cycle predates NOAA's live retention window."""
+    nc_start = netcdf_gfs["nc_start"]
+    if _is_past_retention(nc_start):
+        if not _prompt_proceed_archive(nc_start):
+            print(colored("Aborted. Choose a cycle within the last ~9 days for a "
+                          "live download, or confirm the archive next time.", "red"))
+            sys.exit(1)
+        # Auto-switch to the archive downloader.
+        from EarthSHAB.saveNETCDF_archive import download_gfs_archive_to_netcdf
+        return download_gfs_archive_to_netcdf()
+    return download_gfs_grib_to_netcdf()
+
+
 if __name__ == "__main__":
-    download_gfs_grib_to_netcdf()
+    main()

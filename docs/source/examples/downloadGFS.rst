@@ -66,11 +66,59 @@ Saving GFS Forecasts
 
 The forecast download is controlled via the config file.  Key parameters include:
 
-- ``forecast_start_time``: the start time of the gfs forecast downloaded from the server. 
+- ``forecast_start_time``: the start time of the gfs forecast downloaded from the server.
     * Must be one of: **00, 06, 12, 18 UTC**
-    * Must be within NOAA retention window (~9 days)
     * Must not be too recent (accounts for ~3–4 hour upload lag)
+    * Cycles **older** than NOAA's ~9-day live window are not on NOMADS, but
+      ``saveNETCDF.py`` will offer to fetch them from the AWS archive instead
+      (see :ref:`gfs-archive` below).
 - ``netcdf_gfs["lat_range"]``: How many 0.25 degree indicies to download cenetered aroudn the ``start_coord``
 - ``netcdf_gfs["lon_range"]``: How many 0.25 degree indicies to download cenetered aroudn the ``start_coord``
 - ``netcdf_gfs["download_days"]``: Determines how far into the forecast horizon to retrieve data. Maximum: ~16 days
+- ``netcdf_gfs["step_hours"]``: Temporal resolution of the forecast steps to download, in hours. ``3`` (default) downloads every 3rd forecast hour; ``1`` downloads hourly. Applies to both the live and archive downloaders.
+
+  .. note::
+
+     GFS only publishes **hourly** steps out to **f120 (5 days)**; beyond that
+     only 3-hourly steps exist. With ``step_hours = 1`` and ``download_days > 5``,
+     the requested hourly steps past 120 h simply do not exist and are skipped.
+
 - ``netcdf_gfs["start_coord"]``: Initial latitude / longitude of the simulation. Also used as the center of the spatial subset of forecast data.
+
+.. _gfs-archive:
+
+Archived (historical) GFS forecasts
+-----------------------------------
+
+NOAA's live GRIB-filter service only retains roughly the last **9 days** of GFS
+cycles, so historical flights cannot be re-downloaded from it. EarthSHAB also
+ships ``saveNETCDF_archive.py``, which pulls the *identical* ``pgrb2.0p25``
+product from the `AWS Open Data GFS archive
+<https://registry.opendata.aws/noaa-gfs-bdp-pds/>`_ (bucket
+``noaa-gfs-bdp-pds``, coverage from ~early 2021), using each file's ``.idx``
+sidecar to fetch only the needed GRIB messages via HTTP byte-range requests. It
+reads the **same** ``netcdf_gfs`` config and writes the **same v2 canonical
+schema**, so an archive file is a drop-in replacement for a live download.
+
+You do not normally call it directly. When ``saveNETCDF.py`` detects that the
+requested ``forecast_start_time`` predates the live retention window, it prints a
+yellow warning and asks whether to download the archived copy instead — and on
+confirmation auto-switches to ``saveNETCDF_archive.py``:
+
+.. code-block:: text
+
+   [WARNING] Requested cycle 2022-08-22 12:00:00 is older than NOAA's ~9-day live
+             retention window, so it is not available from NOMADS.
+             A historical copy is available from the AWS GFS archive (noaa-gfs-bdp-pds).
+             Download the archived forecast instead? [Y/n]:
+
+In a non-interactive session (no TTY, e.g. a batch job) it prints the notice and
+proceeds with the archive automatically. To run the archive downloader directly:
+
+.. code-block:: bash
+
+   python -m EarthSHAB.saveNETCDF_archive
+
+Cycles **before ~2021-03** predate the AWS ``pgrb2.0p25`` archive and are
+rejected; those require the `NCAR RDA ds084.1
+<https://rda.ucar.edu/datasets/ds084.1/>`_ historical archive (free login).

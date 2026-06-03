@@ -229,15 +229,15 @@ def _validate_launch(launch: dict) -> list[str]:
 
 # ── Main batch runner ─────────────────────────────────────────────────────────
 
-def run_batch(note: str):
-    if not os.path.exists(LAUNCHES_JSON):
-        print(f"ERROR: {LAUNCHES_JSON} not found.")
+def run_batch(note: str, launches_json: str = LAUNCHES_JSON):
+    if not os.path.exists(launches_json):
+        print(f"ERROR: {launches_json} not found.")
         print(f"  Copy the example to get started:")
         print(f"    cp evaluation/launches.example.json evaluation/launches.json")
         print(f"  Then add your own launch entries and re-run.")
         sys.exit(1)
 
-    with open(LAUNCHES_JSON) as f:
+    with open(launches_json) as f:
         launches = json.load(f)["launches"]
 
     git       = _git_info()
@@ -386,7 +386,7 @@ def run_batch(note: str):
     print(f"Report  → {html_path}")
 
     # ── Write batch_info.json ────────────────────────────────────────────────
-    with open(LAUNCHES_JSON) as f:
+    with open(launches_json) as f:
         launches_snapshot = json.load(f)
 
     batch_info = {
@@ -435,8 +435,12 @@ def main():
         "--note", required=True,
         help="Description of what changed in this batch (e.g. 'tuned vent rate')"
     )
+    parser.add_argument(
+        "--launches", default=LAUNCHES_JSON,
+        help=f"Path to the launches JSON to run (default: {LAUNCHES_JSON})."
+    )
     args = parser.parse_args()
-    success = run_batch(args.note)
+    success = run_batch(args.note, launches_json=args.launches)
     sys.exit(0 if success else 1)
 
 

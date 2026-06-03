@@ -67,6 +67,11 @@ netcdf_gfs = dict(
     lat_range = 40,    # (deg) bounding-box height to download
     lon_range= 60,     # (deg) bounding-box width to download
     download_days = 1, # (1-10) forecast horizon in days
+
+    step_hours = 1,    # (h) temporal resolution of forecast steps to download.
+                       #     1 = hourly. NOTE: GFS only provides hourly steps out
+                       #     to f120 (5 days); beyond that only 3-hourly steps
+                       #     exist, so requested hourly steps past 120 h are skipped.
 )
 
 simulation = dict(

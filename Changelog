@@ -46,6 +46,19 @@ version 2.0.0
       masks at the level-0 sample slice)
     * GFS time decode used hardcoded `"days since 0001-01-01"` units, producing
       cftime objects and a 2-day calendar offset vs stdlib datetime
+* Historical GFS downloads from the AWS archive (`saveNETCDF_archive.py`)
+    * Pulls past cycles from `noaa-gfs-bdp-pds` (pgrb2.0p25, ~2021-03 onward) via
+      each file's `.idx` sidecar + HTTP byte-range requests; writes the same v2
+      canonical schema as the live downloader (drop-in replacement)
+    * `saveNETCDF.py` auto-switches to it (yellow warning + prompt) when the
+      requested cycle predates NOAA's ~9-day live window; non-interactive
+      sessions proceed automatically
+* New `netcdf_gfs['step_hours']` sets download temporal resolution for both
+  downloaders (3-hourly default, `1` = hourly; GFS hourly only out to f120)
+* `run_batch.py` gains `--launches <file>` to run an alternate launches JSON
+* Evaluation: `reproduce_gfs.py` re-downloads each launch's historical forecast
+  and verifies it reproduces the original netCDF (fields + re-run trajectory);
+  archive matches originals to GRIB packing precision (sub-meter landing shift)
 * Documentation
     * New canonical-schema and migration guides; unified `Forecast` API page
       (replacing the separate GFS/ERA5 pages); refreshed GFS/ERA5 download guides

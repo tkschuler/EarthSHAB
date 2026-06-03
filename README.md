@@ -43,7 +43,7 @@ See [Installation](https://tkschuler.github.io/EarthSHAB/installation.html) for 
 
 ``config_earth.py`` includes adjustable parameters and default parameters for running any of the files discussed below. These parameters include balloon size, envelope material properties, deployment location, date and time, etc.
 
-``saveNETCDF.py`` downloads subsets of NOAA weather forecasts for offline simulation
+``saveNETCDF.py`` downloads subsets of NOAA weather forecasts for offline simulation. The temporal resolution of the download is set by ``netcdf_gfs["step_hours"]`` (3-hourly by default, ``1`` for hourly). For cycles older than NOAA's ~9-day live window it auto-switches (with a prompt) to ``saveNETCDF_archive.py``, which pulls the same forecast from the AWS GFS archive (`noaa-gfs-bdp-pds`).
 
 ``main.py*``, ``predict.py``, and ``trapezoid.py`` show examples of how to produce relevant and html-based trajectory maps using the Google maps API.
 

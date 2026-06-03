@@ -8,7 +8,8 @@ produce files that match this spec.
 :::{note}
 Adopting the CDS post-September-2024 layout as canonical means current ERA5
 downloads load with no conversion, and GFS is the only source that needs a
-converter (`saveNETCDF.py`).
+converter (`saveNETCDF.py` for live forecasts, `saveNETCDF_archive.py` for
+historical cycles from the AWS GFS archive — both emit identical v2 output).
 :::
 
 Reference files (the bundled SHAB14-V flight):
@@ -44,7 +45,7 @@ resolved from `institution`:
   (basename contains `"gfs"` → `"GFS"`; contains `"era5"` → `"ERA5"`;
   otherwise `"unknown"`)
 
-`saveNETCDF.py` and `migrate_v1.py` both write the appropriate `institution`
+`saveNETCDF.py`, `saveNETCDF_archive.py`, and `migrate_v1.py` all write the appropriate `institution`
 value. Files migrated before this convention was introduced carry an empty
 `institution` and rely on the filename fallback.
 
@@ -58,7 +59,8 @@ are represented as `_FillValue` / NaN and resolved by the reader's
 mask-based outer-bounding-box detection.
 
 This is enforced upstream: `saveNETCDF.py` downloads via NOAA's GRIB-filter
-`subregion`, `migrate_v1.py` strips masked padding from v1 GFS archives, and
+`subregion`, `saveNETCDF_archive.py` crops each archive step to the configured
+bounding box, `migrate_v1.py` strips masked padding from v1 GFS archives, and
 raw Copernicus CDS ERA5 downloads are already subsets.
 
 ---
@@ -229,7 +231,7 @@ The Forecast class auto-detects v1 vs v2 and refuses v1 with a clear migration m
 | Level (`lev`) order        | descending hPa                                             | same (`pressure_level` descending hPa) |
 | `Conventions` attr         | absent                                                     | `CF-1.7`                               |
 
-`saveNETCDF.py` does all the conversion at download time; archived files are migrated by the `migrate_v1` CLI.
+`saveNETCDF.py` (live) and `saveNETCDF_archive.py` (historical, AWS archive) both do all the conversion at download time; pre-v2 archived files are migrated by the `migrate_v1` CLI.
 
 :::{seealso}
 [migration-v2.md](migration-v2.md) — detecting v1 files, the converter, and rollback.
