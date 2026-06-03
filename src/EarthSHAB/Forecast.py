@@ -1,7 +1,7 @@
-"""Forecast reader for the v2 canonical schema.
+"""Forecast reader for the v2 canonical netcdf forecast schema.
 
-Single class for both GFS- and ERA5-sourced files. Source-specific quirks
-were eliminated in the v2 refactor; this module replaces both ERA5.py and GFS.py.
+Single class for both GFS- and ERA5-sourced netcdf files. 
+This module replaces both ERA5.py and GFS.py.
 
 Standard v2 file format::
 
@@ -13,10 +13,11 @@ Standard v2 file format::
     global:     Conventions = 'CF-1.7'
                 institution = 'NOAA/NCEP (GFS)' or 'ECMWF (ERA5)'
 
-Every file is a tight bounding-box subset — no full-world arrays with
-mask-based subsetting. The reader slices the entire stored array.
+Every netcdf file is a bounded forecast subset (no full-world arrays with
+mask-based subsetting), although full world forecasts can still be downloaded
+by applying full world lat/lon bounds.The reader slices the entire stored array.
 
-Source provenance (self.source) is read from the ``institution`` global
+Forecast type is read from the ``institution`` global
 attribute. When that attribute is missing or empty (the case for older
 already-migrated files), the reader falls back to filename pattern::
 
@@ -24,8 +25,6 @@ already-migrated files), the reader falls back to filename pattern::
     - basename containing 'era5'                   -> 'ERA5'
     - otherwise                                    -> 'unknown'
 
-Contributing authors: Craig Motell and Michael Rodriguez of NIWC Pacific
-Edited and integrated: Tristan Schuler
 """
 import math
 import sys

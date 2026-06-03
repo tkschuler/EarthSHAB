@@ -2,7 +2,7 @@
 Wind Interpolation Methods
 ===========================
 
-EarthSHAB's unified :class:`Forecast` reader (which serves both GFS and ERA5
+EarthSHAB's unified :class:`Forecast` reader (which serves both GFS and ERA5 netcdf
 files) exposes three different methods for interpolating wind from the discrete
 pressure levels of a forecast to the balloon's continuous altitude during
 simulation. The active method is selected from a single config field:

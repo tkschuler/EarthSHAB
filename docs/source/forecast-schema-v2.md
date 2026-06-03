@@ -1,4 +1,4 @@
-# Canonical Forecast Schema (v2)
+# Canonical NetCDF Forecast Schema v2
 
 EarthSHAB v2.0 standardizes on a single netCDF forecast format: what the
 **Copernicus Climate Data Store (CDS) API returns post-September 2024** for
@@ -10,11 +10,15 @@ Adopting the CDS post-September-2024 layout as canonical means current ERA5
 downloads load with no conversion, and GFS is the only source that needs a
 converter (`saveNETCDF.py` for live forecasts, `saveNETCDF_archive.py` for
 historical cycles from the AWS GFS archive — both emit identical v2 output).
+
+For converting between older/alternate forecast layouts (e.g. pre-September-2024
+ERA5 or other variable/dimension naming), see the
+[ERA5-Utils toolkit](https://github.com/tkschuler/ERA5-Utils).
 :::
 
 Reference files (the bundled SHAB14-V flight):
 `src/EarthSHAB/forecasts/SHAB14V_ERA5_20220822_20220823.nc` (ERA5) and
-`src/EarthSHAB/forecasts/gfs_0p25_20220822_12.nc` (GFS, migrated to canonical).
+`src/EarthSHAB/forecasts/gfs_0p25_20220822_12.nc` (GFS, migrated from v1 to v2 canonical format).
 
 ---
 
@@ -34,7 +38,7 @@ lacking `Conventions == "CF-1.7"` AND containing the old GFS variables
 migration message (see [migration-v2.md](migration-v2.md)).
 :::
 
-### Source provenance
+### Automatic Netcdf Forecast Sourcing 
 
 `Forecast.source` (the field used for plot labels and evaluation grouping) is
 resolved from `institution`:
@@ -51,7 +55,7 @@ value. Files migrated before this convention was introduced carry an empty
 
 ### Storage convention
 
-**Every v2 file is a tight bounding-box subset.** No full-world arrays with
+**Every v2 file is a bounded subset.** No full-world arrays with
 mask-based subsetting; the shape of `u/v/z/t` IS the data extent. Missing
 samples inside the subset (e.g., at high pressure levels above the model top)
 are represented as `_FillValue` / NaN and resolved by the reader's
@@ -92,11 +96,6 @@ Dimension ORDER on data vars: `(valid_time, pressure_level, latitude, longitude)
 | `long_name`     | `"time"`                               |
 | dtype           | `int64`                                |
 | stored order    | strictly ascending                     |
-
-:::{note}
-**No `has_year_zero` quirk.** Using `proleptic_gregorian` with epoch seconds
-round-trips cleanly to stdlib `datetime`; no 2-day calendar offset.
-:::
 
 ### 3.2 `pressure_level` (1D, dim `pressure_level`)
 
@@ -139,7 +138,7 @@ Real CDS files publish 37 standard pressure levels: `[1000, 975, 950, 925, 900, 
 | convention      | **`-180` to `180`** (NOT `0` to `360`)              |
 
 :::{note}
-GFS downloads natively use 0-360; `saveNETCDF.py` must convert to -180..180 before writing.
+GFS downloads natively use 0-360; `saveNETCDF.py` must convert to -180-180 before writing.
 :::
 
 ---
@@ -153,8 +152,6 @@ reader treats them as informational only.
 |----------|-----------------|----------------------------------------------------------|
 | `number` | scalar (int64)  | Ensemble member ID; always `0` for our single-realization use case |
 | `expver` | `(valid_time,)` string | ECMWF experiment version (`"0001"` for operational ERA5) |
-
-The reader MUST NOT depend on these being present. The GFS converter is NOT required to emit them.
 
 ---
 
@@ -178,8 +175,6 @@ Four required data variables. All have:
 the `/g` conversion when interpolating against an altitude query.
 :::
 
-GRIB attribute pass-throughs (`GRIB_paramId`, `GRIB_centre`, …) are TOLERATED but not required. The GFS converter need not emit them.
-
 ---
 
 ## 6. Index axis summary
@@ -187,17 +182,10 @@ GRIB attribute pass-throughs (`GRIB_paramId`, `GRIB_centre`, …) are TOLERATED 
 For a query at `(t_query, alt_query_m, lat_query, lon_query)` the reader:
 
 1. finds nearest indices: `valid_time` (ascending), `latitude` (descending),
-   `longitude` (ascending; query in -180..180);
+   `longitude` (ascending; query in -180-180);
 2. builds the altitude column `z[t_idx, :, lat_idx, lon_idx] / g`;
 3. interpolates `u`, `v` over altitude (per `wind_interpolation`), then over
    `valid_time` between the two enclosing time steps.
-
-:::{note}
-Because `pressure_level` is descending hPa, level index 0 is the *lowest*
-altitude — the column is already ascending in altitude, so no reversal is
-needed. (The legacy `ERA5.py` applied an unnecessary `[::-1]`; that quirk was
-removed when the readers collapsed into `Forecast`.)
-:::
 
 ---
 
@@ -214,8 +202,6 @@ removed when the readers collapsed into `Forecast`.)
 | `t` (temperature)   | optional                              | required                                  |
 | CF Conventions attr | absent or older                       | `CF-1.7`                                  |
 
-The Forecast class auto-detects v1 vs v2 and refuses v1 with a clear migration message (see [migration-v2.md](migration-v2.md)).
-
 ---
 
 ## 8. Differences from v1 GFS format (saveNETCDF.py output)
@@ -231,7 +217,7 @@ The Forecast class auto-detects v1 vs v2 and refuses v1 with a clear migration m
 | Level (`lev`) order        | descending hPa                                             | same (`pressure_level` descending hPa) |
 | `Conventions` attr         | absent                                                     | `CF-1.7`                               |
 
-`saveNETCDF.py` (live) and `saveNETCDF_archive.py` (historical, AWS archive) both do all the conversion at download time; pre-v2 archived files are migrated by the `migrate_v1` CLI.
+`saveNETCDF.py` (current) and `saveNETCDF_archive.py` (historical, AWS archive) both do all the conversion at download time; pre-v2 archived files are migrated by the `migrate_v1` CLI.
 
 :::{seealso}
 [migration-v2.md](migration-v2.md) — detecting v1 files, the converter, and rollback.
@@ -239,22 +225,7 @@ The Forecast class auto-detects v1 vs v2 and refuses v1 with a clear migration m
 
 ---
 
-## 9. Validation
-
-The canonical Forecast class validates on `__init__` and raises `ForecastFormatError` with a specific message if any of these fail:
-
-1. Required dimensions (`valid_time`, `pressure_level`, `latitude`, `longitude`) all present with `len >= 1`.
-2. Required data variables (`u`, `v`, `z`, `t`) all present with `dtype == float32` and correct dim ordering.
-3. `pressure_level` strictly descending; `valid_time` strictly ascending; `latitude` strictly descending; `longitude` strictly ascending.
-4. `valid_time.units` parseable as a CF time unit; `valid_time.calendar` set.
-5. `Conventions == "CF-1.7"` (warn if missing or different value but still attempt to load — interop with future CF revisions).
-6. `longitude` values all within `[-180, 180]`.
-
-A separate `migrate_v1` script handles detection of the two v1 formats (by variable-name signature) and produces a canonical file in-place with the original backed up to `<name>.v1.nc`.
-
----
-
-## 10. Reference
+## 9. Reference
 
 The canonical example files are the bundled SHAB14-V v2 forecasts:
 
@@ -270,6 +241,3 @@ import netCDF4
 ds = netCDF4.Dataset('src/EarthSHAB/forecasts/SHAB14V_ERA5_20220822_20220823.nc')
 print(ds)
 ```
-
-When in doubt about an edge case not covered above, the reference files'
-behavior is authoritative.

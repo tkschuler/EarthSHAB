@@ -1,7 +1,7 @@
 """
-This is file generates a 3d windrose plot for a particular coordinate and timestamp.
-The polar plot displays information on wind speed and direction  at
-various altitudes in a visual format
+This plotting file generates 3d windrose plots (Hodographs) for a particular
+ coordinate and timestamp. The polar plot displays information on wind speed
+and direction at various altitudes in a visual format
 
 """
 

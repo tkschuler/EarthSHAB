@@ -9,7 +9,7 @@ Files in the older v1 formats are **rejected on load** with
 original is preserved as a `.v1.nc` sibling for rollback.
 :::
 
-## TL;DR
+## Quick Migration of Forcast Directory
 
 ```bash
 python -m EarthSHAB.forecast_processing.migrate_v1 src/EarthSHAB/forecasts/
@@ -73,14 +73,6 @@ time encoding transparently, and both layouts need the same axis fixes.
 All canonical files are written with `Conventions = "CF-1.7"`, float32 data,
 and the dimension order `(valid_time, pressure_level, latitude, longitude)`.
 
-## Why no auto-conversion in the reader
-
-:::{note}
-Silent on-load conversion would mutate user data without an audit trail, hide
-the cost of the change, and make it impossible to reproduce a prior run. The
-reader fails loudly with the exact CLI to run; the converter writes a `.v1.nc`
-backup so the original is always recoverable.
-:::
 
 ## CLI reference
 
