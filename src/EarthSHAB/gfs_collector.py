@@ -36,13 +36,27 @@ import functools
 
 from pathlib import Path
 import xarray as xr
+from . import config_earth
 
 # Configuration
 BASE_URL = "https://noaa-gfs-bdp-pds.s3.amazonaws.com/gfs.{date}/{hour}/atmos/gfs.t{hour}z.pgrb2.1p00.f{forecast}"
 SAVE_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "GFS_DATA")  # Project root / GFS_DATA
 GRIBS_DIR = os.path.join(SAVE_DIR, "GRIBS")
 OUTPUT_DIR = os.path.join(SAVE_DIR, "NETCDF")
-FORECAST_HOURS = list(range(0, 8*24, 3))  # Up to 8 days ahead, 3-hour resolution
+
+# Build forecast hours from config_earth step_hours.
+# GFS provides hourly steps up to 120h (5 days); beyond that only 3-hourly.
+# If config requests hourly, honor it for the first 120h, then switch to 3-hourly.
+_step = config_earth.netcdf_gfs["step_hours"]
+_download_days = config_earth.netcdf_gfs["download_days"]
+_max_hours = _download_days * 24
+if _step == 1:
+    # Hourly up to 120h, then 3-hourly beyond
+    FORECAST_HOURS = list(range(0, 121)) + list(range(123, _max_hours, 3))
+else:
+    # Use the configured step for the full range
+    FORECAST_HOURS = list(range(0, _max_hours, _step))
+
 MAX_RETRIES = 3
 TIMEOUT = 10
 CHECK_INTERVAL = 5 * 60  # Check for new cycles every 5 minutes
