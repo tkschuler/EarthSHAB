@@ -3,9 +3,11 @@ saveNETCDF.py  –  EarthSHAB GFS forecast downloader (GRIB-filter edition)
 ==========================================================================
 NOAA retired the OpenDAP/DODS interface that EarthSHAB originally used.
 This replacement fetches the same data through NOAA's GRIB-filter service
-(https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25.pl), saves each
-forecast hour as a temporary GRIB2 file, and merges everything into a
-single NetCDF-4 file whose structure matches what GFS.py already expects.
+(https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25.pl and the 0p50 / 1p00
+variants), saves each forecast hour as a temporary GRIB2 file, and merges
+everything into a single NetCDF-4 file whose structure matches what GFS.py
+already expects. The grid resolution is selected via netcdf_gfs['res']
+(0.25, 0.5, or 1.0 degrees).
 
 Variables downloaded (all on isobaric pressure levels):
   UGRD  – U-component of wind  (m/s)
@@ -53,8 +55,21 @@ PRESSURE_LEVELS_MB = [
      100,  70,  50,  40,  30,  20,  15,  10,
 ]
 
-# ── GRIB filter base URL ───────────────────────────────────────────────────────
-FILTER_BASE = "https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25.pl"
+# ── GRIB filter endpoints per GFS resolution ───────────────────────────────────
+# Each supported grid maps to (filter-script name, pgrb2 file token). The 0.5°
+# grid uses the "pgrb2full" file, which (unlike the reduced "pgrb2.0p50") carries
+# the complete set of isobaric levels EarthSHAB needs.
+FILTER_HOST = "https://nomads.ncep.noaa.gov/cgi-bin/"
+GFS_RESOLUTIONS = {
+    0.25: ("filter_gfs_0p25.pl", "pgrb2.0p25"),
+    0.5:  ("filter_gfs_0p50.pl", "pgrb2full.0p50"),
+    1.0:  ("filter_gfs_1p00.pl", "pgrb2.1p00"),
+}
+
+# Finest temporal step (h) each grid actually publishes. Only the 0.25° grid
+# carries hourly steps (out to f120); the 0.5° and 1.0° grids are 3-hourly only.
+# step_hours must be an integer multiple of the grid's minimum.
+GFS_MIN_STEP_HOURS = {0.25: 1, 0.5: 3, 1.0: 3}
 
 # Seconds to wait between fetches (NOAA asks for ≥10 s between requests)
 FETCH_DELAY = 2
@@ -70,17 +85,20 @@ def _level_params(levels_mb):
 
 
 def _build_url(date_str, cycle_hour, forecast_hour, lat_range, lon_range,
-               center_lat, center_lon):
+               center_lat, center_lon, res=0.25):
     """
     Construct a GRIB-filter URL for one GFS forecast step.
 
     date_str      : 'YYYYMMDD'
     cycle_hour    : 0, 6, 12, or 18  (model initialisation hour)
     forecast_hour : 0, 3, 6, … 240+  (hours into forecast)
-    lat/lon_range : index counts (each = res degrees) from config
+    lat/lon_range : bounding-box height/width in degrees from config
     center_lat/lon: centre of the bounding box; lon in [-180, 180]
+    res           : GFS grid resolution in degrees (0.25, 0.5, or 1.0)
     NOTE: GRIB filter requires longitudes in [-180, 180], NOT [0, 360].
     """
+    filter_script, file_token = GFS_RESOLUTIONS[res]
+
     fhh = f"{int(forecast_hour):03d}"
     cyc = f"{int(cycle_hour):02d}"
 
@@ -93,14 +111,14 @@ def _build_url(date_str, cycle_hour, forecast_hour, lat_range, lon_range,
     level_str = _level_params(PRESSURE_LEVELS_MB)
 
     params = (
-        f"file=gfs.t{cyc}z.pgrb2.0p25.f{fhh}"
+        f"file=gfs.t{cyc}z.{file_token}.f{fhh}"
         f"&{level_str}"
         f"&var_UGRD=on&var_VGRD=on&var_TMP=on&var_HGT=on"
         f"&subregion="
         f"&toplat={top}&leftlon={left}&rightlon={right}&bottomlat={bottom}"
         f"&dir=%2Fgfs.{date_str}%2F{cyc}%2Fatmos"
     )
-    return f"{FILTER_BASE}?{params}"
+    return f"{FILTER_HOST}{filter_script}?{params}"
 
 
 def _adjust_run_date(start_time):
@@ -248,8 +266,25 @@ def download_gfs_grib_to_netcdf():
     lon_range = netcdf_gfs["lon_range"]
     download_days = netcdf_gfs["download_days"]
     step_hours = netcdf_gfs.get("step_hours", 3)
+    res = netcdf_gfs.get("res", 0.25)
     out_filename = netcdf_gfs["nc_file"]
     forecast_start_time = netcdf_gfs["nc_start"]
+
+    if res not in GFS_RESOLUTIONS:
+        raise ValueError(
+            f"netcdf_gfs['res']={res} is not a supported GFS grid. "
+            f"Choose one of {sorted(GFS_RESOLUTIONS)} (degrees)."
+        )
+
+    # The coarser grids are 3-hourly only; reject step_hours the grid can't supply.
+    min_step = GFS_MIN_STEP_HOURS[res]
+    if step_hours < min_step or step_hours % min_step != 0:
+        raise ValueError(
+            f"netcdf_gfs['step_hours']={step_hours} is not available on the {res}° grid. "
+            f"That grid publishes steps in multiples of {min_step} h"
+            + (" (hourly steps exist only on the 0.25° grid, out to f120)."
+               if res != 0.25 else ".")
+        )
 
     out_path = Path(out_filename)
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -264,6 +299,7 @@ def download_gfs_grib_to_netcdf():
 
     print(f"\nEarthSHAB GFS downloader (GRIB-filter edition)")
     print(f"  Model run   : {date_str} {cycle_hour:02d}Z")
+    print(f"  Resolution  : {res}° grid ({GFS_RESOLUTIONS[res][0]})")
     print(f"  Forecast hrs: {forecast_hours[0]}–{forecast_hours[-1]} (every {step_hours} h)")
     print(f"  Bounding box: lat {lat_center}±{lat_range/2}°, "
           f"lon {lon_center}±{lon_range/2}°")
@@ -274,7 +310,7 @@ def download_gfs_grib_to_netcdf():
 
     with tempfile.TemporaryDirectory(prefix="earthshab_grib_") as tmpdir:
         for fhr in forecast_hours:
-            url = _build_url(date_str, cycle_hour, fhr, lat_range, lon_range, lat_center, lon_center)
+            url = _build_url(date_str, cycle_hour, fhr, lat_range, lon_range, lat_center, lon_center, res)
             grb_name = f"gfs_{date_str}_{cycle_hour:02d}z_f{fhr:03d}.grb2"
             grb_path = Path(tmpdir) / grb_name
 

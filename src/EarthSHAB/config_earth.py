@@ -22,16 +22,18 @@ parent_dir = "src/EarthSHAB/"
 # for the evaluation suite. To run a current-day prediction instead, set a recent
 # forecast_start_time (cycle hour 00/06/12/18 UTC), set balloon_trajectory = None,
 # and download the forecast first with `python -m EarthSHAB.saveNETCDF`.
-forecast_start_time =  "2022-08-22 12:00:00" # Forecast start time, should match a downloaded forecast in the forecasts directory
-start_time = datetime.fromisoformat("2022-08-22 14:36:00") # Simulation start time. The end time needs to be within the downloaded forecast
-balloon_trajectory = parent_dir + "balloon_data/SHAB14V-APRS.csv"  # Only Accepting Files in the Standard APRS.fi format for now
+forecast_start_time =  "2026-06-05 06:00:00" # Forecast start time, should match a downloaded forecast in the forecasts directory
+start_time = datetime.fromisoformat("2026-06-05 15:00:00") # Simulation start time. The end time needs to be within the downloaded forecast
+balloon_trajectory = None  # Only Accepting Files in the Standard APRS.fi format for now
 
 # Single forecast file path. The reader (EarthSHAB.Forecast.Forecast) opens
 # this file regardless of whether it came from GFS or ERA5 — source is read
 # from the file's `institution` global attribute. To run an ERA5-based
 # simulation, point `file` at an ERA5 .nc instead.
+_gfs_res = 1   # (deg) GFS grid resolution: 0.25, 0.5, or 1.0
+_gfs_res_token = ("%.2f" % _gfs_res).replace(".", "p")   # 0.25->0p25, 0.5->0p50, 1.0->1p00
 _default_gfs_file = (
-    parent_dir + "forecasts/gfs_0p25_"
+    parent_dir + "forecasts/gfs_" + _gfs_res_token + "_"
     + forecast_start_time[0:4] + forecast_start_time[5:7] + forecast_start_time[8:10]
     + "_" + forecast_start_time[11:13] + ".nc"
 )
@@ -62,16 +64,19 @@ netcdf_gfs = dict(
     nc_start = datetime.fromisoformat(forecast_start_time),  # forecast cycle to fetch
     hourstamp = forecast_start_time[11:13],
 
-    res = 0.25,        # (deg) DO NOT CHANGE — GFS native resolution
+    res = _gfs_res,    # (deg) GFS grid resolution: 0.25, 0.5, or 1.0. Must match
+                       #     the value used to build nc_file above (_gfs_res).
 
     lat_range = 40,    # (deg) bounding-box height to download
     lon_range= 60,     # (deg) bounding-box width to download
     download_days = 1, # (1-10) forecast horizon in days
 
-    step_hours = 1,    # (h) temporal resolution of forecast steps to download.
-                       #     1 = hourly. NOTE: GFS only provides hourly steps out
-                       #     to f120 (5 days); beyond that only 3-hourly steps
-                       #     exist, so requested hourly steps past 120 h are skipped.
+    step_hours = 3,    # (h) temporal resolution of forecast steps to download.
+                       #     1 = hourly. NOTE: only the 0.25° grid provides hourly
+                       #     steps (out to f120 / 5 days; 3-hourly beyond). The
+                       #     0.5° and 1.0° grids are 3-hourly only, so set
+                       #     step_hours = 3 (or a multiple) for those — finer
+                       #     steps that don't exist on the server are skipped.
 )
 
 simulation = dict(
