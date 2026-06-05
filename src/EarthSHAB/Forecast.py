@@ -186,12 +186,40 @@ class Forecast:
         self.LON_LOW  = float(np.min(self.lon))
         self.LON_HIGH = float(np.max(self.lon))
 
+        # Actual horizontal grid spacing, derived from the file itself. This is
+        # the resolution the simulation truly runs at, independent of any config.
+        self.resolution_deg = (
+            abs(float(self.lat[1] - self.lat[0])) if len(self.lat) >= 2 else None
+        )
+
         print(colored("Forecast Information (Parsed from netcdf file):", "blue", attrs=['bold']))
         print(f"  source: {self.source}")
         print(f"  LAT RANGE: min: {self.LAT_LOW}  max: {self.LAT_HIGH}  size: {len(self.lat)}")
         print(f"  LON RANGE: min: {self.LON_LOW}  max: {self.LON_HIGH}  size: {len(self.lon)}")
+        if self.resolution_deg is not None:
+            print(f"  resolution: {self.resolution_deg:g}° grid")
         print(f"  cadence:   {self.resolution_hr:.2f} hr")
         print()
+
+        # Guard against a silent config/file resolution mismatch. `res` selects
+        # the GFS forecast *filename* (config_earth.forecast['file']), so a stale
+        # `res` can quietly load a different grid than intended — the sim still
+        # runs, but on the wrong data, producing a different trajectory. Require
+        # the file's actual spacing to match the declared netcdf_gfs['res'] so
+        # the two cannot drift apart. (ERA5 resolution is not governed by this
+        # config key, so the check is scoped to GFS-sourced files.)
+        if self.source == "GFS" and self.resolution_deg is not None:
+            declared_res = config_earth.netcdf_gfs.get("res")
+            if declared_res is not None and abs(self.resolution_deg - float(declared_res)) > 1e-3:
+                raise ValueError(
+                    f"Forecast resolution mismatch: config_earth.netcdf_gfs['res']="
+                    f"{declared_res}° but the loaded file is a {self.resolution_deg:g}° grid.\n"
+                    f"  file: {forecast_path}\n"
+                    f"`res` selects the GFS forecast filename, so this usually means it "
+                    f"points at the wrong file. Set res = {self.resolution_deg:g} to use "
+                    f"this file, or point config_earth.forecast['file'] at the "
+                    f"{declared_res}° forecast."
+                )
 
         # Check requested simulation window fits inside the forecast.
         desired_simulation_end_time = self.start_time + timedelta(hours=self.sim_time)

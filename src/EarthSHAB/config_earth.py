@@ -22,7 +22,7 @@ parent_dir = "src/EarthSHAB/"
 # for the evaluation suite. To run a current-day prediction instead, set a recent
 # forecast_start_time (cycle hour 00/06/12/18 UTC), set balloon_trajectory = None,
 # and download the forecast first with `python -m EarthSHAB.saveNETCDF`.
-forecast_start_time =  "2026-06-05 06:00:00" # Forecast start time, should match a downloaded forecast in the forecasts directory
+forecast_start_time =  "2026-06-05 12:00:00" # Forecast start time, should match a downloaded forecast in the forecasts directory
 start_time = datetime.fromisoformat("2026-06-05 15:00:00") # Simulation start time. The end time needs to be within the downloaded forecast
 balloon_trajectory = None  # Only Accepting Files in the Standard APRS.fi format for now
 
@@ -32,14 +32,18 @@ balloon_trajectory = None  # Only Accepting Files in the Standard APRS.fi format
 # simulation, point `file` at an ERA5 .nc instead.
 _gfs_res = 1   # (deg) GFS grid resolution: 0.25, 0.5, or 1.0
 _gfs_res_token = ("%.2f" % _gfs_res).replace(".", "p")   # 0.25->0p25, 0.5->0p50, 1.0->1p00
+_gfs_step_hours = 3   # (h) temporal step between forecast hours (see netcdf_gfs below)
+_gfs_step_token = f"{int(_gfs_step_hours)}h"             # 1->1h, 3->3h
+# Filename encodes both the spatial resolution and the temporal step, e.g.
+# gfs_0p25_3h_20260605_06.nc, so files of different grids/cadences don't collide.
 _default_gfs_file = (
-    parent_dir + "forecasts/gfs_" + _gfs_res_token + "_"
+    parent_dir + "forecasts/gfs_" + _gfs_res_token + "_" + _gfs_step_token + "_"
     + forecast_start_time[0:4] + forecast_start_time[5:7] + forecast_start_time[8:10]
     + "_" + forecast_start_time[11:13] + ".nc"
 )
 
 forecast = dict(
-    file = _default_gfs_file,
+    file = "/home/schuler/EarthSHAB/GFS_DATA/NETCDF/gfs_20260605_12z_1p00_3h.nc",
     forecast_start_time = forecast_start_time, # used to build the default file path above
     forecast_update_interval = 60,               # (s) After how many iterated dt steps are new wind speeds are looked up
 
@@ -71,7 +75,8 @@ netcdf_gfs = dict(
     lon_range= 60,     # (deg) bounding-box width to download
     download_days = 1, # (1-10) forecast horizon in days
 
-    step_hours = 3,    # (h) temporal resolution of forecast steps to download.
+    step_hours = _gfs_step_hours,  # (h) temporal resolution of forecast steps to
+                       #     download; also encoded in nc_file above (_gfs_step_hours).
                        #     1 = hourly. NOTE: only the 0.25° grid provides hourly
                        #     steps (out to f120 / 5 days; 3-hourly beyond). The
                        #     0.5° and 1.0° grids are 3-hourly only, so set

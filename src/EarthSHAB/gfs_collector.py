@@ -38,10 +38,13 @@ import warnings
 
 from pathlib import Path
 import xarray as xr
+import netCDF4 as nc
 try:
     import cfgrib
 except ImportError:
     cfgrib = None
+
+import EarthSHAB.config_earth as config_earth
 
 # Suppress xarray FutureWarnings about compat defaults and other warnings
 xr.set_options(use_new_combine_kwarg_defaults=True)
@@ -49,14 +52,14 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 
 # Configuration
 
-# GFS horizontal resolution. Valid AWS products: "1p00" (1°), "0p50" (0.5°),
-# "0p25" (0.25°). The global collector defaults to 1° (~2.6 GB / cycle) to keep
-# whole-globe files manageable. "0p25" matches saveNETCDF.py fidelity but is
-# ~16× larger and far slower to download — only practical for short horizons.
-# Note: trajectories computed from a 1° file will differ from 0.25° runs because
-# the reader (Forecast.py) samples the single nearest grid cell with no spatial
-# interpolation, so a coarser grid means a more distant sample point.
-RESOLUTION = "0p25"
+# GFS horizontal resolution and temporal step are sourced from config_earth's
+# netcdf_gfs dict so the collector honours the same grid (res) and cadence
+# (step_hours) as saveNETCDF.py and the rest of EarthSHAB. Valid AWS products:
+# "1p00" (1°), "0p50" (0.5°), "0p25" (0.25°). 0.25° is ~16× larger and far slower
+# to download than 1°. Note: trajectories from a 1° file differ from 0.25° runs
+# because the reader (Forecast.py) samples the single nearest grid cell with no
+# spatial interpolation, so a coarser grid means a more distant sample point.
+RESOLUTION = ("%.2f" % config_earth.netcdf_gfs["res"]).replace(".", "p")  # 0.25->0p25, 0.5->0p50, 1.0->1p00
 
 BASE_URL = (
     "https://noaa-gfs-bdp-pds.s3.amazonaws.com/gfs.{date}/{hour}/atmos/"
@@ -66,9 +69,11 @@ SAVE_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "GFS_DATA")  # Pr
 GRIBS_DIR = os.path.join(SAVE_DIR, "GRIBS")
 OUTPUT_DIR = os.path.join(SAVE_DIR, "NETCDF")
 
-# Download entire 8-day GFS forecast available on AWS.
-# AWS GFS: 3-hourly throughout [0, 3, 6, 9, ... 384h].
-FORECAST_HOURS = list(range(0, 384, 3))
+# Forecast horizon (full 8-day GFS available on AWS) at the config-driven step.
+# AWS GFS is 3-hourly throughout [0..384h]; 0.5°/1.0° grids have no hourly steps,
+# and 0.25° hourly only exists to f120 — missing steps are skipped on download.
+STEP_HOURS = int(config_earth.netcdf_gfs["step_hours"])  # (h) temporal step, from config
+FORECAST_HOURS = list(range(0, 384, STEP_HOURS))
 
 MAX_RETRIES = 3
 TIMEOUT = 10
@@ -107,8 +112,10 @@ def grib_filename(date: str, hour: str, forecast: int) -> str:
     return f"{grib_prefix(date, hour)}_f{forecast:03d}.grib2"
 
 # --- v2 NetCDF output helpers ---
+# Filename encodes the grid resolution and temporal step, e.g.
+# gfs_20260605_06z_0p25_3h.nc, so different grids/cadences don't collide.
 def output_nc_path(date: str, hour: str) -> str:
-    return os.path.join(OUTPUT_DIR, f"gfs_{date}_{hour}z.nc")
+    return os.path.join(OUTPUT_DIR, f"gfs_{date}_{hour}z_{RESOLUTION}_{STEP_HOURS}h.nc")
 
 def has_output(date: str, hour: str) -> bool:
     p = output_nc_path(date, hour)
@@ -390,6 +397,70 @@ def _grib_to_dataset(grib_path: str):
     return merged
 
 
+# v2 data-variable metadata: name → (standard_name, long_name, units).
+_VAR_META = {
+    "u": ("eastward_wind", "U component of wind", "m s**-1"),
+    "v": ("northward_wind", "V component of wind", "m s**-1"),
+    "z": ("geopotential", "Geopotential", "m**2 s**-2"),
+    "t": ("air_temperature", "Temperature", "K"),
+}
+
+
+def _epoch_seconds(dt64) -> int:
+    """Convert a numpy datetime64 to integer seconds since the Unix epoch."""
+    return int(np.datetime64(dt64, "s").astype("int64"))
+
+
+def _normalize_step(ds):
+    """Apply the v2 coordinate/variable conventions to one forecast-hour dataset.
+
+    Renames the level dim, converts longitude to [-180, 180) (restoring ascending
+    order), sorts latitude/pressure descending, maps GRIB names to (u, v, z, t),
+    and converts geopotential height to geopotential. Returns the dataset with
+    dims (valid_time, pressure_level, latitude, longitude).
+    """
+    g = 9.80665
+
+    if "isobaricInhPa" in ds:
+        ds = ds.rename({"isobaricInhPa": "pressure_level"})
+
+    # Map GRIB variable names to the v2 set.
+    var_map = {}
+    for var in list(ds.data_vars):
+        if var in ("u", "v", "z", "t"):
+            continue
+        low = var.lower()
+        if "ugrd" in low or low == "10u":
+            var_map[var] = "u"
+        elif "vgrd" in low or low == "10v":
+            var_map[var] = "v"
+        elif "hgt" in low or "gh" in low or low == "z":
+            var_map[var] = "z"
+        elif "tmp" in low or low == "t":
+            var_map[var] = "t"
+    if var_map:
+        ds = ds.rename(var_map)
+
+    # Convert longitude [0, 360) → [-180, 180) and restore ascending order.
+    if "longitude" in ds.coords:
+        lon_vals = ds.coords["longitude"].values
+        lon_vals = np.where(lon_vals >= 180, lon_vals - 360, lon_vals)
+        ds = ds.assign_coords(longitude=lon_vals).sortby("longitude")
+    if "latitude" in ds.coords:
+        ds = ds.sortby("latitude", ascending=False)
+    if "pressure_level" in ds.coords:
+        ds = ds.sortby("pressure_level", ascending=False)
+
+    # Geopotential height (m) → geopotential (m² s⁻²); keep everything float32.
+    if "z" in ds:
+        ds["z"] = (ds["z"] * g).astype("float32")
+    for name in ("u", "v", "t"):
+        if name in ds:
+            ds[name] = ds[name].astype("float32")
+
+    return ds
+
+
 def combine_gfs_gribs_to_netcdf(date: str, hour: str) -> str:
     """
     Combine all downloaded GRIBs into a v2-schema NetCDF file.
@@ -407,167 +478,108 @@ def combine_gfs_gribs_to_netcdf(date: str, hour: str) -> str:
     if not files:
         raise FileNotFoundError(f"No GRIB files found for cycle {date} {hour}Z")
 
-    # Open and merge all GRIB files (fast with filter_by_keys)
-    hourly_datasets = []
-    for grib_path in tqdm(files, desc="Opening GRIBs", position=0, leave=True):
-        ds = _grib_to_dataset(str(grib_path))
-        if ds is not None:
-            hourly_datasets.append(ds)
-
-    if not hourly_datasets:
-        raise RuntimeError("No datasets successfully opened from GRIB files.")
-
-    # Concatenate all forecast hours
-    ds = xr.concat(hourly_datasets, dim="valid_time")
-    ds = ds.sortby("valid_time")
-
-    # Clear all encoding metadata to avoid conflicts when setting attributes later
-    for var in list(ds.coords) + list(ds.data_vars):
-        if var in ds.variables:
-            ds[var].encoding.clear()
-
-    # Rename dimensions to v2 schema
-    rename_map = {"isobaricInhPa": "pressure_level"}
-    ds = ds.rename({k: v for k, v in rename_map.items() if k in ds})
-
-    # Convert longitude from [0, 360) to [-180, 180)
-    if "longitude" in ds.coords:
-        lon_vals = ds.coords["longitude"].values
-        lon_vals = np.where(lon_vals >= 180, lon_vals - 360, lon_vals)
-        ds = ds.assign_coords(longitude=lon_vals)
-        # Re-sort ascending: the conversion leaves longitude non-monotonic
-        # ([0..179, -180..-1]). The v2 schema (and Forecast.py's documented
-        # contract) require ascending longitude. Mirrors saveNETCDF.py.
-        ds = ds.sortby("longitude")
-
-    # Sort latitude descending (north to south) for v2 schema
-    if "latitude" in ds.coords:
-        ds = ds.sortby("latitude", ascending=False)
-
-    # Ensure pressure_level is descending (high hPa → low hPa)
-    if "pressure_level" in ds.coords:
-        ds = ds.sortby("pressure_level", ascending=False)
-
-    # Standardize variable names to v2: u, v, z, t
-    var_map = {}
-    for var in ds.data_vars:
-        if var in ("u", "v", "z", "t"):
-            continue  # Already correct
-        # Map common GFS/GRIB names
-        if "ugrd" in var.lower() or var.lower() == "10u":
-            var_map[var] = "u"
-        elif "vgrd" in var.lower() or var.lower() == "10v":
-            var_map[var] = "v"
-        elif any(x in var.lower() for x in ("hgt", "gh", "z")):
-            var_map[var] = "z"
-        elif "tmp" in var.lower() or "t" == var.lower():
-            var_map[var] = "t"
-    if var_map:
-        ds = ds.rename(var_map)
-
-    # Convert geopotential height (meters) to geopotential (m²/s²) for v2 schema
-    g = 9.80665
-    if "z" in ds:
-        ds["z"] = ds["z"] * g
-
-    # Set v2 schema attributes (clear encoding for each var right before setting attrs)
-    for var in ["valid_time", "pressure_level", "latitude", "longitude"]:
-        if var in ds.coords:
-            ds[var].encoding.clear()
-
-    if "valid_time" in ds.coords:
-        # valid_time is a datetime64 coordinate. CF time units/calendar must go in
-        # encoding (xarray writes them during serialization); putting them in attrs
-        # collides with that and raises "Key 'units' already exists in attrs".
-        # The actual units/calendar encoding is applied in the encoding dict at
-        # write time (below), since encoding is cleared again before writing.
-        ds["valid_time"].attrs = {
-            "standard_name": "time",
-            "long_name": "time",
-        }
-    if "pressure_level" in ds.coords:
-        ds["pressure_level"].attrs = {
-            "units": "hPa",
-            "positive": "down",
-            "stored_direction": "decreasing",
-            "standard_name": "air_pressure",
-            "long_name": "pressure",
-        }
-    if "latitude" in ds.coords:
-        ds["latitude"].attrs = {
-            "units": "degrees_north",
-            "standard_name": "latitude",
-            "long_name": "latitude",
-            "stored_direction": "decreasing",
-        }
-    if "longitude" in ds.coords:
-        ds["longitude"].attrs = {
-            "units": "degrees_east",
-            "standard_name": "longitude",
-            "long_name": "longitude",
-        }
-
-    # Set variable attributes (clear encoding first)
-    for var in ["u", "v", "z", "t"]:
-        if var in ds:
-            ds[var].encoding.clear()
-
-    if "u" in ds:
-        ds["u"].attrs = {
-            "standard_name": "eastward_wind",
-            "long_name": "U component of wind",
-            "units": "m s**-1",
-        }
-    if "v" in ds:
-        ds["v"].attrs = {
-            "standard_name": "northward_wind",
-            "long_name": "V component of wind",
-            "units": "m s**-1",
-        }
-    if "z" in ds:
-        ds["z"].attrs = {
-            "standard_name": "geopotential",
-            "long_name": "Geopotential",
-            "units": "m**2 s**-2",
-        }
-    if "t" in ds:
-        ds["t"].attrs = {
-            "standard_name": "air_temperature",
-            "long_name": "Temperature",
-            "units": "K",
-        }
-
-    # Add global attributes (v2 schema requirement)
-    now = datetime.datetime.now(datetime.timezone.utc).isoformat()
-    ds.attrs.update({
-        "Conventions": "CF-1.7",
-        "institution": "NOAA/NCEP (GFS)",
-        "history": f"{now} gfs_collector.py",
-    })
-
-    # Clear all encoding to avoid conflicts with attributes
-    for var in list(ds.coords) + list(ds.data_vars):
-        if var in ds.variables:
-            ds[var].encoding.clear()
-
-    # Set compression encoding only (no other encoding that could conflict)
-    encoding = {var: {"zlib": True, "complevel": 4, "shuffle": True} for var in ds.data_vars}
-
-    # CF time encoding for the datetime coordinate. Lives in encoding (not attrs)
-    # so xarray serializes valid_time as numeric seconds-since-epoch without colliding.
-    if "valid_time" in ds.coords:
-        encoding["valid_time"] = {
-            "units": "seconds since 1970-01-01",
-            "calendar": "proleptic_gregorian",
-            "dtype": "int64",
-        }
-
-    # Write v2 NetCDF
+    # ── Stream each forecast hour straight to disk ──────────────────────────
+    # Earlier versions opened every forecast hour, xr.concat'd them into one
+    # array, and wrote at the end. For a global 0.25° cycle that array is ~66 GB
+    # (and decoding/concat copies push the peak past that), which OOM-kills the
+    # process. Instead we create the NetCDF from the first GRIB and append one
+    # valid_time slice per file, so peak memory is a single step (~0.5 GB at
+    # 0.25°) regardless of how many forecast hours or what resolution.
     out_path = output_nc_path(date, hour)
-    ds.to_netcdf(out_path, engine="netcdf4", encoding=encoding)
-    ds.close()
+    tmp_path = out_path + ".tmp"
+    now = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
-    print(colored(f"[v2 NetCDF] Wrote v2-schema dataset → {out_path}", "green"))
+    ncf = None
+    data_vars = {}
+    vt = None
+    ref_shape = None
+    written = 0
+    try:
+        for grib_path in tqdm(files, desc="Opening GRIBs", position=0, leave=True):
+            ds = _grib_to_dataset(str(grib_path))
+            if ds is None:
+                continue
+            ds = _normalize_step(ds)
+
+            lev = ds["pressure_level"].values
+            lat = ds["latitude"].values
+            lon = ds["longitude"].values
+
+            if ncf is None:
+                # Build the file skeleton from the first step's grid.
+                ncf = nc.Dataset(tmp_path, "w", format="NETCDF4")
+                ncf.createDimension("valid_time", None)   # unlimited: append per step
+                ncf.createDimension("pressure_level", lev.size)
+                ncf.createDimension("latitude", lat.size)
+                ncf.createDimension("longitude", lon.size)
+
+                vt = ncf.createVariable("valid_time", "i8", ("valid_time",))
+                vt.units = "seconds since 1970-01-01"
+                vt.calendar = "proleptic_gregorian"
+                vt.standard_name = "time"
+                vt.long_name = "time"
+
+                pl = ncf.createVariable("pressure_level", "f8", ("pressure_level",))
+                pl.units = "hPa"
+                pl.positive = "down"
+                pl.stored_direction = "decreasing"
+                pl.standard_name = "air_pressure"
+                pl.long_name = "pressure"
+                pl[:] = lev
+
+                la = ncf.createVariable("latitude", "f8", ("latitude",))
+                la.units = "degrees_north"
+                la.standard_name = "latitude"
+                la.long_name = "latitude"
+                la.stored_direction = "decreasing"
+                la[:] = lat
+
+                lo = ncf.createVariable("longitude", "f8", ("longitude",))
+                lo.units = "degrees_east"
+                lo.standard_name = "longitude"
+                lo.long_name = "longitude"
+                lo[:] = lon
+
+                chunks = (1, lev.size, lat.size, lon.size)
+                for name, (sn, ln, units) in _VAR_META.items():
+                    v = ncf.createVariable(
+                        name, "f4",
+                        ("valid_time", "pressure_level", "latitude", "longitude"),
+                        zlib=True, complevel=4, shuffle=True, chunksizes=chunks,
+                    )
+                    v.standard_name = sn
+                    v.long_name = ln
+                    v.units = units
+                    data_vars[name] = v
+
+                ncf.Conventions = "CF-1.7"
+                ncf.institution = "NOAA/NCEP (GFS)"
+                ncf.history = f"{now} gfs_collector.py"
+
+                ref_shape = (lev.size, lat.size, lon.size)
+            elif (lev.size, lat.size, lon.size) != ref_shape:
+                # Grid changed mid-cycle (should never happen) — skip the oddball.
+                print(colored(f"  [!] {grib_path.name}: grid {(lev.size, lat.size, lon.size)} "
+                              f"!= {ref_shape}; skipping", "yellow"))
+                ds.close()
+                continue
+
+            # Append this step's slice. .values[0] drops the size-1 valid_time axis.
+            vt[written] = _epoch_seconds(ds["valid_time"].values[0])
+            for name, v in data_vars.items():
+                if name in ds:
+                    v[written] = ds[name].values[0]
+            written += 1
+            ds.close()
+
+        if ncf is None or written == 0:
+            raise RuntimeError("No datasets successfully opened from GRIB files.")
+    finally:
+        if ncf is not None:
+            ncf.close()
+
+    os.replace(tmp_path, out_path)
+    print(colored(f"[v2 NetCDF] Wrote v2-schema dataset ({written} steps) → {out_path}", "green"))
     return out_path
 
 
