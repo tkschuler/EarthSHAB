@@ -454,20 +454,16 @@ class Forecast:
         lat_idx = self.getNearestLatIdx(coord["lat"])
         lon_idx = self.getNearestLonIdx(coord["lon"])
         z = self.getNearestAltbyIndex(int_hr_idx, lat_idx, lon_idx, coord["alt"])
-        x_wind_vel, y_wind_vel, x_wind_vel_old, y_wind_vel_old = \
-            self.wind_alt_Interpolate2(coord['alt'], diff_time, lat_idx, lon_idx, coord['lat'], coord['lon'])
-        if x_wind_vel is None:
-            return [None] * 10
-        #try:
-        #    x_wind_vel, y_wind_vel, x_wind_vel_old, y_wind_vel_old = \
-        #        self.wind_alt_Interpolate2(coord['alt'], diff_time, lat_idx, lon_idx)
-        #    if x_wind_vel is None:
-        #        return [None] * 10
-        #except Exception:
-        #    print(colored(
-        #        #"Mismatch with simulation and forecast timstamps. Check simulation "
-        #        "start time and/or download a new forecast.", "red"))
-        #    sys.exit(1)
+        try:
+            x_wind_vel, y_wind_vel, x_wind_vel_old, y_wind_vel_old = \
+                self.wind_alt_Interpolate2(coord['alt'], diff_time, lat_idx, lon_idx, coord['lat'], coord['lon'])
+            if x_wind_vel is None:
+                return [None] * 10
+        except Exception:
+            print(colored(
+                "Mismatch with simulation and forecast timstamps. Check simulation "
+                "start time and/or download a new forecast.", "red"))
+            sys.exit(1)
 
         bearing = math.degrees(math.atan2(y_wind_vel, x_wind_vel))
         bearing = 90 - bearing  # 90-degree rotation: wind components → compass bearing

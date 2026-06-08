@@ -24,7 +24,7 @@ parent_dir = "src/EarthSHAB/"
 # and download the forecast first with `python -m EarthSHAB.saveNETCDF`.
 forecast_start_time =  "2026-06-08 00:00:00" # Forecast start time, should match a downloaded forecast in the forecasts directory
 start_time = datetime.fromisoformat("2026-06-08 06:00:00") # Simulation start time. The end time needs to be within the downloaded forecast
-balloon_trajectory = None # parent_dir + "balloon_data/SHAB14V-APRS.csv"  # Only Accepting Files in the Standard APRS.fi format for now
+balloon_trajectory = parent_dir + "balloon_data/SHAB14V-APRS.csv"  # Only Accepting Files in the Standard APRS.fi format for now
 
 # Single forecast file path. The reader (EarthSHAB.Forecast.Forecast) opens
 # this file regardless of whether it came from GFS or ERA5 — source is read
