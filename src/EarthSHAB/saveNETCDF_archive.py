@@ -3,10 +3,11 @@ saveNETCDF_archive.py  –  EarthSHAB GFS forecast downloader (AWS archive editi
 =================================================================================
 NOAA's NOMADS GRIB-filter service (used by ``saveNETCDF.py``) only retains the
 last ~9 days of GFS cycles, so historical forecasts can't be fetched live. This
-module is the historical counterpart: it pulls the *identical* ``pgrb2.0p25``
-product from the AWS Open Data mirror (``noaa-gfs-bdp-pds``), which goes back to
-~early 2021, using the per-file ``.idx`` sidecar to grab only the GRIB2 messages
-we need via HTTP byte-range requests.
+module is the historical counterpart: it pulls the *identical* ``pgrb2`` product
+(grid set by ``netcdf_gfs['res']`` — 0.25/0.5/1.0°) from the AWS Open Data mirror
+(``noaa-gfs-bdp-pds``), which goes back to ~early 2021, using the per-file
+``.idx`` sidecar to grab only the GRIB2 messages we need via HTTP byte-range
+requests.
 
 It is config-compatible with ``saveNETCDF.py`` — it reads the same
 ``config_earth.netcdf_gfs`` / ``simulation`` settings, downloads the same
@@ -58,7 +59,25 @@ WANT_VARS = ("UGRD", "VGRD", "HGT", "TMP")
 
 G = 9.80665  # geopotential height (gpm) -> geopotential (m^2/s^2)
 
-# Earliest cycle for which pgrb2.0p25 exists in the AWS bucket (approx).
+# Supported GFS grids and their pgrb2 filename token. The AWS pgrb2.<token>
+# product carries the same isobaric levels EarthSHAB needs for every grid.
+SUPPORTED_RES = (0.25, 0.5, 1.0)
+
+
+def _res_token(res):
+    """GFS pgrb2 filename token for a grid resolution (0.25->'0p25', etc.)."""
+    if res not in SUPPORTED_RES:
+        raise ValueError(
+            f"netcdf_gfs['res']={res} is not a supported GFS grid. "
+            f"Choose one of {SUPPORTED_RES} (degrees)."
+        )
+    return ("%.2f" % res).replace(".", "p")
+
+
+# Resolution selected in config; mirrors saveNETCDF.py / gfs_collector.py.
+RES_TOKEN = _res_token(netcdf_gfs.get("res", 0.25))
+
+# Earliest cycle for which the pgrb2 products exist in the AWS bucket (approx).
 ARCHIVE_START = datetime.datetime(2021, 3, 1)
 
 # Match saveNETCDF.py exactly so an archive file is a drop-in for a live one.
@@ -77,11 +96,11 @@ FETCH_DELAY = 0.0
 
 # ── URL construction ────────────────────────────────────────────────────────────
 
-def cycle_file_url(date_str, cycle_hour, forecast_hour, base=AWS_BASE):
+def cycle_file_url(date_str, cycle_hour, forecast_hour, res_token=RES_TOKEN, base=AWS_BASE):
     """S3 object URL for one GFS forecast step (date_str='YYYYMMDD')."""
     cyc = f"{int(cycle_hour):02d}"
     fhh = f"{int(forecast_hour):03d}"
-    return f"{base}/gfs.{date_str}/{cyc}/atmos/gfs.t{cyc}z.pgrb2.0p25.f{fhh}"
+    return f"{base}/gfs.{date_str}/{cyc}/atmos/gfs.t{cyc}z.pgrb2.{res_token}.f{fhh}"
 
 
 # ── .idx parsing and byte-range selection ───────────────────────────────────────
@@ -259,7 +278,8 @@ def _crop(ds, bbox):
 
 
 def fetch_cycle(date_str, cycle_hour, forecast_hours, bbox=None,
-                levels_mb=None, base=AWS_BASE, delay=FETCH_DELAY, verbose=True):
+                levels_mb=None, res_token=RES_TOKEN, base=AWS_BASE,
+                delay=FETCH_DELAY, verbose=True):
     """Fetch a forecast cycle from the archive; return a canonical-v2 Dataset.
 
     Each step is converted and cropped immediately so memory stays bounded
@@ -271,7 +291,7 @@ def fetch_cycle(date_str, cycle_hour, forecast_hours, bbox=None,
     steps = []
     total_bytes = 0
     for fhr in forecast_hours:
-        url = cycle_file_url(date_str, cycle_hour, fhr, base)
+        url = cycle_file_url(date_str, cycle_hour, fhr, res_token, base)
         if verbose:
             print(f"  Downloading f{int(fhr):03d} … ", end="", flush=True)
         try:
@@ -314,7 +334,7 @@ def _validate_archive_nc_start(nc_start):
     """Validate the requested cycle for an archive download.
 
     Must be exactly on a GFS cycle hour (00/06/12/18 UTC), not in the future,
-    and not before the AWS pgrb2.0p25 archive start.
+    and not before the AWS pgrb2 archive start.
     """
     run_date = nc_start.replace(minute=0, second=0, microsecond=0)
     if run_date.hour not in (0, 6, 12, 18):
@@ -333,6 +353,24 @@ def _validate_archive_nc_start(nc_start):
     return run_date
 
 
+# ── Output filename ────────────────────────────────────────────────────────────
+
+def _archive_output_path(nc_file):
+    """Insert an ``_archive`` marker before the extension of *nc_file*.
+
+    saveNETCDF.py builds the canonical name ``gfs_<res>_<step>_<date>_<hour>.nc``
+    (degree + temporal step). An archive download writes that same name plus an
+    ``_archive`` marker, e.g. ``gfs_0p25_3h_20220822_12_archive.nc``, so archive
+    files carry the degree/step like a live file yet never collide with a live
+    download of the same cycle. Idempotent: a name already ending in ``_archive``
+    is returned unchanged.
+    """
+    root, ext = os.path.splitext(str(nc_file))
+    if root.endswith("_archive"):
+        return str(nc_file)
+    return f"{root}_archive{ext}"
+
+
 # ── Main download routine ─────────────────────────────────────────────────────────
 
 def download_gfs_archive_to_netcdf():
@@ -347,7 +385,8 @@ def download_gfs_archive_to_netcdf():
     lon_range = netcdf_gfs["lon_range"]
     download_days = netcdf_gfs["download_days"]
     step_hours = netcdf_gfs.get("step_hours", 3)
-    out_filename = netcdf_gfs["nc_file"]
+    res_token = _res_token(netcdf_gfs.get("res", 0.25))
+    out_filename = _archive_output_path(netcdf_gfs["nc_file"])
     forecast_start_time = netcdf_gfs["nc_start"]
 
     run_date = _validate_archive_nc_start(forecast_start_time)
@@ -369,7 +408,7 @@ def download_gfs_archive_to_netcdf():
         os.makedirs(out_dir, exist_ok=True)
 
     print(colored("\nEarthSHAB GFS downloader (AWS archive edition)", "blue", attrs=["bold"]))
-    print(f"  Source      : {AWS_BASE} (noaa-gfs-bdp-pds, pgrb2.0p25)")
+    print(f"  Source      : {AWS_BASE} (noaa-gfs-bdp-pds, pgrb2.{res_token})")
     print(f"  Model run   : {date_str} {cycle_hour:02d}Z")
     print(f"  Forecast hrs: {forecast_hours[0]}–{forecast_hours[-1]} (every {step_hours} h)")
     print(f"  Bounding box: lat[{bbox['lat_min']},{bbox['lat_max']}] "
@@ -377,7 +416,7 @@ def download_gfs_archive_to_netcdf():
     print(f"  Output      : {out_filename}\n")
 
     ds = fetch_cycle(date_str, cycle_hour, forecast_hours, bbox=bbox,
-                     levels_mb=PRESSURE_LEVELS_MB)
+                     levels_mb=PRESSURE_LEVELS_MB, res_token=res_token)
 
     encoding = {var: {"zlib": True, "complevel": 4} for var in ds.data_vars}
     encoding["valid_time"] = {"_FillValue": None}

@@ -87,6 +87,18 @@ def test_cycle_file_url():
     assert arch.cycle_file_url("20220822", 6, 27).endswith("gfs.t06z.pgrb2.0p25.f027")
 
 
+# ── Output filename ───────────────────────────────────────────────────────────
+
+def test_archive_output_path_inserts_marker():
+    assert arch._archive_output_path("f/gfs_0p25_3h_20220822_12.nc") == \
+        "f/gfs_0p25_3h_20220822_12_archive.nc"
+
+
+def test_archive_output_path_idempotent():
+    p = "f/gfs_0p25_3h_20220822_12_archive.nc"
+    assert arch._archive_output_path(p) == p
+
+
 # ── Cycle validation ────────────────────────────────────────────────────────────
 
 def test_validate_accepts_valid_cycle():
