@@ -25,9 +25,6 @@ parent_dir = "src/EarthSHAB/"
 forecast_start_time =  "2026-06-08 00:00:00" # Forecast start time, should match a downloaded forecast in the forecasts directory
 start_time = datetime.fromisoformat("2026-06-08 06:00:00") # Simulation start time. The end time needs to be within the downloaded forecast
 balloon_trajectory = None # parent_dir + "balloon_daSHAB14Vta/SHAB14V-APRS.csv"  # Only Accepting Files in the Standard APRS.fi format for now
-forecast_start_time =  "2022-08-22 12:00:00" # Forecast start time, should match a downloaded forecast in the forecasts directory
-start_time = datetime.fromisoformat("2022-08-22 14:36:00") # Simulation start time. The end time needs to be within the downloaded forecast
-balloon_trajectory = parent_dir + "balloon_data/SHAB14V-APRS.csv"  # Only Accepting Files in the Standard APRS.fi format for now
 
 # Single forecast file path. The reader (EarthSHAB.Forecast.Forecast) opens
 # this file regardless of whether it came from GFS or ERA5 — source is read
