@@ -305,8 +305,49 @@ class Forecast:
         interp_speed = np.interp(hour_index, fp, [speed0, speed1])
         interp_dir_deg = np.interp(hour_index, fp, [angle1, angle2]) % 360
         return (interp_dir_deg, interp_speed)
+    
+    def spatio_temporal(self, alt_m, hour_index, lat, lon):
+        """
+        Spatio-Temporal 4D Wind Interpretator, blased on that of CUSF's current model
+        
+        Trilinear blend over the surrounding time/lat/lon cube, then linear in
+        altitude on the blended geopotential-height profile. All in u/v space.
+        """
+        it = int(hour_index)
+        ft  = hour_index - it
 
-    def wind_alt_Interpolate2(self, alt_m, diff_time, lat_idx, lon_idx):
+        ilat = int(np.clip(np.searchsorted(-self.lat,-lat) -1, 0, len(self.lat) -2))
+        ilon = int(np.clip(np.searchsorted(self.lon, lon) -1, 0, len(self.lon) -2))
+
+        la0, la1 = self.lat[ilat], self.lat[ilat + 1]
+        lo0, lo1 = self.lon[ilon], self.lon[ilon + 1]
+
+        fla = (lat - la0) / (la1 - la0)
+        flo = (lon - lo0) / (lo1 - lo0)
+
+        # 8 corner columns, each filled exactly like the other paths do
+        def col(arr, t, a, b):
+            return self.fill_missing_data(arr[t, :, a, b])
+
+        corners = [(it, ilat, ilon),     (it, ilat, ilon + 1),
+                (it, ilat + 1, ilon), (it, ilat + 1, ilon + 1),
+                (it + 1, ilat, ilon),     (it + 1, ilat, ilon + 1),
+                (it + 1, ilat + 1, ilon), (it + 1, ilat + 1, ilon + 1)]
+        w = np.array([(1-ft)*(1-fla)*(1-flo), (1-ft)*(1-fla)*flo,
+                    (1-ft)*fla*(1-flo),     (1-ft)*fla*flo,
+                    ft*(1-fla)*(1-flo),     ft*(1-fla)*flo,
+                    ft*fla*(1-flo),         ft*fla*flo])
+
+        H = sum(wi * col(self.hgtprs,  t, a, b) for wi, (t, a, b) in zip(w, corners))
+        U = sum(wi * col(self.ugdrps0, t, a, b) for wi, (t, a, b) in zip(w, corners))
+        V = sum(wi * col(self.vgdrps0, t, a, b) for wi, (t, a, b) in zip(w, corners))
+
+        keep = np.concatenate(([True], np.diff(H) > 0))   # drop clamped-duplicate tops
+        H, U, V = H[keep], U[keep], V[keep]
+        return float(np.interp(alt_m, H, U)), float(np.interp(alt_m, H, V))
+
+
+    def wind_alt_Interpolate2(self, alt_m, diff_time, lat_idx, lon_idx, lat, lon):
         """Perform a 2-step linear interpolation to determine the horizontal
         wind velocity at a desired 3D coordinate and timestamp.
 
@@ -380,10 +421,15 @@ class Forecast:
             u1_sp, v1_sp = _spline_uv(alt_m, h1, u_1, v_1)
             u = np.interp(hour_index, fp, [u0_sp, u1_sp])
             v = np.interp(hour_index, fp, [v0_sp, v1_sp])
+        elif method == 'spatio_temporal':
+            u, v = self.spatio_temporal(alt_m, hour_index, lat, lon)
+            """
+            TODO: add in kriging predictor after (computationally heavy)    
+            """
         else:
             raise ValueError(
                 f"Unknown wind_interpolation: {method!r}. "
-                "Expected 'linear_neighbors', 'linear_full', or 'spline_full'."
+                "Expected 'linear_neighbors', 'linear_full', 'spline_full', or 'spatio_temporal'"
             )
 
         return [u, v, u_lf, v_lf]
@@ -408,17 +454,20 @@ class Forecast:
         lat_idx = self.getNearestLatIdx(coord["lat"])
         lon_idx = self.getNearestLonIdx(coord["lon"])
         z = self.getNearestAltbyIndex(int_hr_idx, lat_idx, lon_idx, coord["alt"])
-
-        try:
-            x_wind_vel, y_wind_vel, x_wind_vel_old, y_wind_vel_old = \
-                self.wind_alt_Interpolate2(coord['alt'], diff_time, lat_idx, lon_idx)
-            if x_wind_vel is None:
-                return [None] * 10
-        except Exception:
-            print(colored(
-                "Mismatch with simulation and forecast timstamps. Check simulation "
-                "start time and/or download a new forecast.", "red"))
-            sys.exit(1)
+        x_wind_vel, y_wind_vel, x_wind_vel_old, y_wind_vel_old = \
+            self.wind_alt_Interpolate2(coord['alt'], diff_time, lat_idx, lon_idx, coord['lat'], coord['lon'])
+        if x_wind_vel is None:
+            return [None] * 10
+        #try:
+        #    x_wind_vel, y_wind_vel, x_wind_vel_old, y_wind_vel_old = \
+        #        self.wind_alt_Interpolate2(coord['alt'], diff_time, lat_idx, lon_idx)
+        #    if x_wind_vel is None:
+        #        return [None] * 10
+        #except Exception:
+        #    print(colored(
+        #        #"Mismatch with simulation and forecast timstamps. Check simulation "
+        #        "start time and/or download a new forecast.", "red"))
+        #    sys.exit(1)
 
         bearing = math.degrees(math.atan2(y_wind_vel, x_wind_vel))
         bearing = 90 - bearing  # 90-degree rotation: wind components → compass bearing

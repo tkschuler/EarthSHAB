@@ -11,7 +11,7 @@ balloon_properties = dict(
     cp = 2000.,                       # (J/(kg K)) Specific heat of envelope material
     absEnv = .93,                     # Absorbiviy of envelope material
     emissEnv = .92,                   # Emisivity of enevelope material
-    Upsilon = 4.5,                    # Ascent Resistance coefficient
+    Upsilon = 4.5                     # Ascent Resistance coefficient
 )
 
 parent_dir = "src/EarthSHAB/"
@@ -22,6 +22,9 @@ parent_dir = "src/EarthSHAB/"
 # for the evaluation suite. To run a current-day prediction instead, set a recent
 # forecast_start_time (cycle hour 00/06/12/18 UTC), set balloon_trajectory = None,
 # and download the forecast first with `python -m EarthSHAB.saveNETCDF`.
+forecast_start_time =  "2026-06-08 00:00:00" # Forecast start time, should match a downloaded forecast in the forecasts directory
+start_time = datetime.fromisoformat("2026-06-08 06:00:00") # Simulation start time. The end time needs to be within the downloaded forecast
+balloon_trajectory = None # parent_dir + "balloon_daSHAB14Vta/SHAB14V-APRS.csv"  # Only Accepting Files in the Standard APRS.fi format for now
 forecast_start_time =  "2022-08-22 12:00:00" # Forecast start time, should match a downloaded forecast in the forecasts directory
 start_time = datetime.fromisoformat("2022-08-22 14:36:00") # Simulation start time. The end time needs to be within the downloaded forecast
 balloon_trajectory = parent_dir + "balloon_data/SHAB14V-APRS.csv"  # Only Accepting Files in the Standard APRS.fi format for now
@@ -52,7 +55,8 @@ forecast = dict(
     #                        np.interp fallback when alt is outside the
     #                        profile bounds (avoids spline overshoot above
     #                        the highest pressure level).
-    wind_interpolation = 'linear_full',
+    #   'spatio_temporal'  - CUSF predictor using 4D integrator to find u/v.
+    wind_interpolation = 'spatio_temporal'
 )
 
 # GFS downloader configuration. Consumed only by saveNETCDF.py — the Forecast
@@ -65,7 +69,7 @@ netcdf_gfs = dict(
     res = 0.25,        # (deg) DO NOT CHANGE — GFS native resolution
 
     lat_range = 40,    # (deg) bounding-box height to download
-    lon_range= 60,     # (deg) bounding-box width to download
+    lon_range= 60,     # (deg) bounding-box width to -download
     download_days = 1, # (1-10) forecast horizon in days
 
     step_hours = 1,    # (h) temporal resolution of forecast steps to download.
@@ -76,22 +80,22 @@ netcdf_gfs = dict(
 
 simulation = dict(
     start_time = start_time,    # (UTC) Simulation Start Time, updated above
-    sim_time = 15,              # (int) (hours) Number of hours to simulate
+    sim_time = 4,              # (int) (hours) Number of hours to simulate
 
     vent = 0.0,                 # (kg/s) Vent Mass Flow Rate  (Do not have an accurate model of the vent yet, this is innacurate)
     alt_sp = 15000.0,           # (m) Altitude Setpoint
     v_sp = 0.,                  # (m/s) Altitude Setpoint, Not Implemented right now
     start_coord =	{
-                      "lat": 34.60,             # (deg) Latitude
-                      "lon": -106.80,           # (deg) Longitude
-                      "alt": 1000.,             # (m) Elevation
+                      "lat": 37.77,             # (deg) Latitude
+                      "lon": -122.42,           # (deg) Longitude
+                      "alt": 500.,             # (m) Elevation
                       "timestamp": start_time,  # current timestamp
                     },
-    min_alt = 1000.,            # starting altitude. Generally the same as initial coordinate
-    float = 23000,              # for simulating in trapezoid.py
+    min_alt = 500.,            # starting altitude. Generally the same as initial coordinate
+    float = 15300,              # for simulating in trapezoid.py
     dt = 1.0,                   # (s) Integration timestep for simulation (If error's occur, use a lower step size)
-
-    balloon_trajectory = balloon_trajectory # Default is None. Only accepting trajectories in aprs.fi csv format.
+    
+    balloon_trajectory = None # Default is None. Only accepting trajectories in aprs.fi csv format.
 )
 
 earth_properties = dict(
@@ -100,5 +104,5 @@ earth_properties = dict(
     Rsp_air = 287.058,          # (J/Kg*K) Gas Constant
     P0 = 101325.0,              # (Pa) Pressure @ Surface Level
     emissGround = .95,          # assumption
-    albedo = 0.17,              # assumption
+    albedo = 0.17              # assumption
 )
