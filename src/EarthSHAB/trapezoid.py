@@ -45,7 +45,7 @@ lon = [coord["lon"]]
 forecast = Forecast(coord)
 forecast_type = forecast.source
 
-burst = False
+burst = True
 gmap1 = gmplot.GoogleMapPlotter(coord["lat"],coord["lon"],8)
 
 ttt=[t]
