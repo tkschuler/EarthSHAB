@@ -75,6 +75,34 @@ OUTPUT_DIR = os.path.join(SAVE_DIR, "NETCDF")
 STEP_HOURS = int(config_earth.netcdf_gfs["step_hours"])  # (h) temporal step, from config
 FORECAST_HOURS = list(range(0, 384, STEP_HOURS))
 
+
+def is_step_available(forecast: int) -> bool:
+    """Whether NOAA's AWS bucket ever publishes this forecast hour for the grid.
+
+    All grids carry 3-hourly steps over [0, 384]. The 0.25° grid additionally
+    carries hourly steps over [0, 120]. Any other step 404s forever, so it must
+    be excluded from the completeness check — otherwise the NetCDF would never be
+    considered "complete" and would never build.
+    """
+    if forecast < 0 or forecast > 384:
+        return False
+    if forecast % 3 == 0:
+        return True
+    if RESOLUTION == "0p25" and forecast <= 120:
+        return True
+    return False
+
+
+def expected_forecasts():
+    """Forecast hours in FORECAST_HOURS that actually exist on the server.
+
+    These are the GRIBs that must ALL be on disk before we build the NetCDF and
+    replace the previous forecast. A step that is merely not-yet-uploaded (the
+    cycle publishes f000→f384 progressively) is still "expected" and keeps the
+    cycle incomplete until it lands.
+    """
+    return [f for f in FORECAST_HOURS if is_step_available(f)]
+
 MAX_RETRIES = 3
 TIMEOUT = 10
 CHECK_INTERVAL = 5 * 60  # Check for new cycles every 5 minutes
@@ -280,57 +308,64 @@ def cleanup_old_gribs(current_date, current_hour):
 def main():
     """Continuously check for new GFS cycles and download → convert to v2 NetCDF.
 
-    Resilient to crashes/stops: if all files are present but conversion incomplete,
-    will retry conversion on next run.
-    """
-    last_downloaded_cycle = None
+    Resilient to crashes/stops: each loop re-attempts any missing GRIBs (already
+    downloaded files are skipped cheaply) and only builds the NetCDF once every
+    server-available forecast hour for the cycle is on disk.
 
+    Critically, the previous forecast (old GRIBs + old NetCDF) is only deleted
+    AFTER a complete cycle has been successfully converted. A partially-uploaded
+    or partially-downloaded cycle never triggers a build or a cleanup, so we
+    never replace a good forecast with a truncated one.
+    """
     while True:
         now = datetime.datetime.now(datetime.timezone.utc)
         date, hour = get_latest_cycle(now)
 
-        # Download new cycle if detected
-        if last_downloaded_cycle != (date, hour):
-            print(f"New GFS cycle detected: {date} {hour}Z. Downloading...")
-
-            # Download all forecast hours for this cycle
-            for forecast in FORECAST_HOURS:
-                download_gfs_file(date, hour, forecast)
-
-            last_downloaded_cycle = (date, hour)
-
-        # Always check if output exists; if not and we have files, try to convert
-        # (handles resuming after crashes/stops)
-        conversion_successful = False
-
+        # If we already built this cycle's output, nothing to do but housekeeping.
         if has_output(date, hour):
             print(colored(f"[v2 NetCDF] Output {date} {hour}Z already exists — skipping rebuild.", "cyan"))
-            conversion_successful = True  # Mark as successful since output exists
-        else:
-            # Check what files we have for this cycle
-            missing_files = get_missing_files(date, hour, FORECAST_HOURS)
-            downloaded_count = len(FORECAST_HOURS) - len(missing_files)
-
-            if downloaded_count > 0:
-                print(f"Converting {downloaded_count}/{len(FORECAST_HOURS)} forecast files...")
-                if missing_files and missing_files[:5]:
-                    print(colored(f"  (missing {len(missing_files)} files beyond AWS availability)", "yellow"))
-
-                try:
-                    combine_gfs_gribs_to_netcdf(date, hour)
-                    print(colored("[v2 NetCDF] Output file ready.", "green"))
-                    conversion_successful = True
-
-                except Exception as e:
-                    print(colored(f"[v2 NetCDF] Failed to build output file: {e}", "red"))
-                    print(colored("  Will retry on next cycle check...", "yellow"))
-            else:
-                print(colored(f"[v2 NetCDF] No files for {date} {hour}Z yet; will retry...", "yellow"))
-
-        # Only clean up old data if conversion succeeded
-        if conversion_successful:
             cleanup_old_gribs(date, hour)
             cleanup_old_output(date, hour)
+            print(f"Checking again in 5 minutes...")
+            time.sleep(CHECK_INTERVAL)
+            continue
+
+        # Attempt to download every requested forecast hour. Existing files are
+        # returned immediately; off-grid steps 404 and are skipped; not-yet-
+        # uploaded steps will simply be retried on the next loop.
+        print(f"Cycle {date} {hour}Z: downloading any missing GRIBs...")
+        for forecast in FORECAST_HOURS:
+            download_gfs_file(date, hour, forecast)
+
+        # Completeness is measured against the steps the server actually carries,
+        # not all of FORECAST_HOURS (many hourly steps 404 by design).
+        expected = expected_forecasts()
+        missing = get_missing_files(date, hour, expected)
+        have = len(expected) - len(missing)
+
+        if missing:
+            # Cycle not fully available yet (still uploading) or some downloads
+            # failed. Do NOT build and do NOT delete the previous forecast —
+            # wait and retry. This is the guard against converting after only a
+            # handful of files have arrived.
+            print(colored(
+                f"[v2 NetCDF] Cycle {date} {hour}Z incomplete: {have}/{len(expected)} "
+                f"expected GRIBs present, {len(missing)} still missing. "
+                f"Holding off on build (keeping previous forecast).", "yellow"))
+            print(f"Checking again in 5 minutes...")
+            time.sleep(CHECK_INTERVAL)
+            continue
+
+        # All expected GRIBs are present → safe to build and replace the old one.
+        print(f"All {len(expected)} expected GRIBs present. Building v2 NetCDF...")
+        try:
+            combine_gfs_gribs_to_netcdf(date, hour)
+            print(colored("[v2 NetCDF] Output file ready.", "green"))
+            cleanup_old_gribs(date, hour)
+            cleanup_old_output(date, hour)
+        except Exception as e:
+            print(colored(f"[v2 NetCDF] Failed to build output file: {e}", "red"))
+            print(colored("  Will retry on next cycle check...", "yellow"))
 
         print(f"Checking again in 5 minutes...")
         time.sleep(CHECK_INTERVAL)
