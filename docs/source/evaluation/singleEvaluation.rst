@@ -80,7 +80,7 @@ Configure ``config_earth.py``
 .. code-block:: python
 
    forecast = dict(
-       file = "src/EarthSHAB/forecasts/gfs_0p25_20220822_12.nc",  # GFS or ERA5 .nc
+       file = "src/EarthSHAB/forecasts/gfs_0p25_3h_20220822_12.nc",  # GFS or ERA5 .nc
        forecast_start_time = "2022-08-22 12:00:00",
        forecast_update_interval = 60,
    )

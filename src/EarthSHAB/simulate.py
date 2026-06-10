@@ -109,6 +109,39 @@ def _load_aprs(path: str) -> tuple:
 
     raise ValueError(f"Unrecognized APRS file format. Columns found: {sorted(cols)}")
 
+
+def _assert_trajectory_within_forecast(df, model_start_datetime, model_end_datetime, gmt_offset_hours=7):
+    """Fatal-exit if the balloon trajectory's recorded time span falls outside the forecast.
+
+    ``df['time']`` holds the trajectory's real timestamps in local time — the
+    APRS loader shifts UTC down by ``gmt_offset_hours``. Shift them back to UTC
+    and require the full ``[first, last]`` span to lie within the forecast's
+    ``[model_start_datetime, model_end_datetime]`` coverage.
+
+    This catches the common misconfiguration of pairing a trajectory with a
+    forecast from a different day/year (e.g. a 2022 flight against a 2026
+    forecast). The reforecast re-anchors the track to ``simulation['start_time']``
+    and steps by each APRS ``dt``, so a date mismatch does not crash — it just
+    silently applies the wrong winds to the truth altitude profile — which is
+    exactly why it has to be checked explicitly here.
+    """
+    offset = pd.Timedelta(hours=gmt_offset_hours)
+    traj_start = (df["time"].min() + offset).to_pydatetime()
+    traj_end = (df["time"].max() + offset).to_pydatetime()
+
+    if traj_start < model_start_datetime or traj_end > model_end_datetime:
+        print(colored(
+            "FATAL: balloon_trajectory recorded time span "
+            f"[{traj_start} -> {traj_end}] UTC falls outside the forecast time "
+            f"range [{model_start_datetime} -> {model_end_datetime}].\n"
+            "The trajectory was recorded outside the downloaded forecast's "
+            "coverage (e.g. a flight from a different day/year). Point "
+            "balloon_trajectory at a flight the forecast covers, or download a "
+            "forecast spanning the flight's dates.",
+            "red"))
+        sys.exit(1)
+
+
 class BalloonSimulation:
     def __init__(self):
         self.scriptstartTime = tm.time()
@@ -161,6 +194,20 @@ class BalloonSimulation:
 
         self.forecast = Forecast(self.coord)
         self.forecast_type = self.forecast.source
+
+        # Load the balloon trajectory up front (when configured) and verify it
+        # was recorded within the forecast's time coverage. Doing this in the
+        # constructor makes a misconfigured trajectory/forecast pair fail fast —
+        # before any simulation runs — for every entry point (main, predict, ...),
+        # not just at the reforecast step.
+        if self.balloon_trajectory is not None:
+            self.df, self.aprs_format = _load_aprs(self.balloon_trajectory)
+            _assert_trajectory_within_forecast(
+                self.df,
+                self.forecast.model_start_datetime,
+                self.forecast.model_end_datetime,
+                gmt_offset_hours=self.GMT,
+            )
 
         self.lat_aprs_gps = [self.coord["lat"]]
         self.lon_aprs_gps = [self.coord["lon"]]
@@ -256,8 +303,7 @@ class BalloonSimulation:
                                 " Nearest Alt: " + str(nearest_alt)), "cyan"))
         else:
             if self.balloon_trajectory is not None:
-                self.df, self.aprs_format = _load_aprs(self.balloon_trajectory)
-
+                # df was loaded and validated against the forecast in __init__.
                 self.gmap1.plot(self.df["lat"], self.df["lng"], "white", edge_width=2.5)
                 self.gmap1.text(
                     self.coord["lat"] - 0.1,

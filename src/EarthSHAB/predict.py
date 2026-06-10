@@ -3,6 +3,8 @@
 Float altitudes are adjusted by changing the payload mass in .25 kg increments.
 """
 
+import os
+
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,6 +14,7 @@ from termcolor import colored
 import EarthSHAB.config_earth as config_earth
 from EarthSHAB.simulate import BalloonSimulation
 from EarthSHAB.Plotting.plot_altitude import plot_altitude_family
+from EarthSHAB.Plotting.plot_trajectory_map import build_trajectory_filename
 from EarthSHAB.Plotting.plot_windmap import plot_windmap
 
 
@@ -44,6 +47,7 @@ def predict():
     t = sim_state["t"]
     start = sim_state["start"]
     forecast = sim_state["forecast"]
+    forecast_type = sim_state["forecast_type"]
 
     plot_altitude_family(time_locals, elevations, masses, colors)
 
@@ -54,8 +58,15 @@ def predict():
         (forecast.LAT_LOW, forecast.LON_HIGH)
     ])
     gmap1.polygon(*region, color='cornflowerblue', edge_width=1, alpha=.2)
+
+    # Match the trajectory HTML naming used by main.py / plot_map.
+    output_dir = "src/EarthSHAB/trajectories/"
+    os.makedirs(output_dir, exist_ok=True)
     gmap1.draw(
-        "src/EarthSHAB/trajectories/" + str(t.year) + "_" + str(t.month) + "_" + str(start.day) + "_trajectories.html"
+        os.path.join(
+            output_dir,
+            build_trajectory_filename(forecast, forecast_type, t, start, prefix="MULTI_PREDICTION")
+        )
     )
 
     plot_windmap()

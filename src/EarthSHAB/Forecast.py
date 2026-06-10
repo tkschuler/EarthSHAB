@@ -201,25 +201,57 @@ class Forecast:
         print(f"  cadence:   {self.resolution_hr:.2f} hr")
         print()
 
-        # Guard against a silent config/file resolution mismatch. `res` selects
-        # the GFS forecast *filename* (config_earth.forecast['file']), so a stale
-        # `res` can quietly load a different grid than intended — the sim still
-        # runs, but on the wrong data, producing a different trajectory. Require
-        # the file's actual spacing to match the declared netcdf_gfs['res'] so
-        # the two cannot drift apart. (ERA5 resolution is not governed by this
-        # config key, so the check is scoped to GFS-sourced files.)
-        if self.source == "GFS" and self.resolution_deg is not None:
-            declared_res = config_earth.netcdf_gfs.get("res")
-            if declared_res is not None and abs(self.resolution_deg - float(declared_res)) > 1e-3:
+        # Guard against a silent config/file mismatch in grid spacing or cadence.
+        # config_earth.forecast['file'] is normally built from netcdf_gfs['res']
+        # and ['step_hours'] (via _gfs_res / _gfs_step_hours), so a stale knob can
+        # quietly load a file with a different grid or cadence than declared — the
+        # sim still runs, but not on the data the config describes. Compare the
+        # file's actual spacing/cadence against the declared config values and
+        # flag any drift.
+        declared_res  = config_earth.netcdf_gfs.get("res")
+        declared_step = config_earth.netcdf_gfs.get("step_hours")
+
+        mismatches = []
+        if (declared_res is not None and self.resolution_deg is not None
+                and abs(self.resolution_deg - float(declared_res)) > 1e-3):
+            mismatches.append(
+                f"grid spacing: config netcdf_gfs['res'] = {declared_res}° but the "
+                f"file is a {self.resolution_deg:g}° grid"
+            )
+        if (declared_step is not None
+                and abs(self.resolution_hr - float(declared_step)) > 1e-3):
+            mismatches.append(
+                f"cadence: config netcdf_gfs['step_hours'] = {declared_step} h but "
+                f"the file is {self.resolution_hr:g} h"
+            )
+
+        if mismatches:
+            detail = "\n  - ".join(mismatches)
+            if self.source == "GFS":
+                # GFS filenames are built from these knobs, so a mismatch means
+                # config_earth.forecast['file'] points at the wrong forecast —
+                # fail hard rather than silently run on the wrong data.
                 raise ValueError(
-                    f"Forecast resolution mismatch: config_earth.netcdf_gfs['res']="
-                    f"{declared_res}° but the loaded file is a {self.resolution_deg:g}° grid.\n"
+                    f"Forecast config/file mismatch:\n  - {detail}\n"
                     f"  file: {forecast_path}\n"
-                    f"`res` selects the GFS forecast filename, so this usually means it "
-                    f"points at the wrong file. Set res = {self.resolution_deg:g} to use "
-                    f"this file, or point config_earth.forecast['file'] at the "
-                    f"{declared_res}° forecast."
+                    f"These config keys build the GFS forecast filename, so this "
+                    f"usually means config_earth.forecast['file'] points at the "
+                    f"wrong file. Update netcdf_gfs['res']/['step_hours'] to match "
+                    f"the file, or point forecast['file'] at the matching forecast."
                 )
+            elif self.source == "ERA5":
+                # ERA5 files are supplied manually, not produced from the GFS
+                # download knobs, so a mismatch is informational rather than
+                # fatal — but still surfaced so a stale config doesn't silently
+                # misdescribe the run. The sim uses the file's actual values.
+                print(colored(
+                    f"[WARNING] The loaded ERA5 forecast does not match the "
+                    f"resolution/cadence declared in config_earth.netcdf_gfs:\n"
+                    f"  - {detail}\n"
+                    f"  file: {forecast_path}\n"
+                    f"  The simulation will use the file's actual resolution and "
+                    f"cadence shown above. Update netcdf_gfs if this is unexpected.",
+                    "yellow"))
 
         # Check requested simulation window fits inside the forecast.
         desired_simulation_end_time = self.start_time + timedelta(hours=self.sim_time)

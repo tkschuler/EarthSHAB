@@ -101,7 +101,7 @@ forecast files.
      - Balloon diameter in meters (sphere) or characteristic length (trapezoid)
    * - ``gfs_file`` and/or ``era5_file``
      - string
-     - Forecast filename (e.g. ``"gfs_0p25_20220822_12.nc"``).  At least one is required; set the other to ``null`` if not available.
+     - Forecast filename (e.g. ``"gfs_0p25_3h_20220822_12.nc"``).  At least one is required; set the other to ``null`` if not available.
 
 **Optional fields** (fall back to current ``config_earth.py`` defaults if omitted):
 
@@ -180,7 +180,7 @@ each row.
      "landing_time": null,
      "sim_time_hr": 14,
      "aprs_file": "SHAB14V-APRS.csv",
-     "gfs_file": "gfs_0p25_20220822_12.nc",
+     "gfs_file": "gfs_0p25_3h_20220822_12.nc",
      "era5_file": "SHAB14V_ERA5_20220822_20220823.nc",
      "launch_lat": 34.60,
      "launch_lon": -106.80,
@@ -339,6 +339,12 @@ Batch Summary Table
    :width: 100%
    :alt: Batch summary HTML report
 
+
+**Header**
+
+The report header echoes the batch metadata — batch ID, note, git hash /
+commit message (with a dirty flag when applicable), branch — and the batch
+**runtime**: total wall-clock seconds plus the per-launch average.
 
 **Tables**
 

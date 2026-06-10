@@ -45,6 +45,24 @@ def _drop_nan_coords(lats, lons):
     return zip(*pairs)
 
 
+def build_trajectory_filename(forecast, forecast_type, t, start, prefix):
+    """Standard trajectory HTML filename, shared by plot_map and predict.py.
+
+    Encodes the forecast's spatial grid and temporal cadence, e.g.
+    ``PREDICTION_GFS_0p25deg_3hr_2026_6_9.html``. Spatial resolution comes from
+    the grid spacing, temporal step from the file cadence
+    (``Forecast.resolution_hr``).
+    """
+    res_token = ""
+    if len(forecast.lat) >= 2:
+        res_deg = abs(float(forecast.lat[1]) - float(forecast.lat[0]))
+        res_token = f"_{res_deg:g}deg".replace(".", "p")
+    step_hr = getattr(forecast, "resolution_hr", None)
+    step_token = f"_{step_hr:g}hr".replace(".", "p") if step_hr is not None else ""
+
+    return f"{prefix}_{forecast_type}{res_token}{step_token}_{t.year}_{t.month}_{start.day}.html"
+
+
 def plot_map(
     gmap1,
     coord,
@@ -108,20 +126,10 @@ def plot_map(
 
     prefix = (html_prefix or "") + (trajectory_name if balloon_trajectory is not None else "PREDICTION")
 
-    # Encode the forecast's spatial grid and temporal cadence in the filename,
-    # e.g. "GFS_0p25deg_3hr". Spatial resolution comes from the grid spacing,
-    # temporal step from the file cadence (Forecast.resolution_hr).
-    res_token = ""
-    if len(forecast.lat) >= 2:
-        res_deg = abs(float(forecast.lat[1]) - float(forecast.lat[0]))
-        res_token = f"_{res_deg:g}deg".replace(".", "p")
-    step_hr = getattr(forecast, "resolution_hr", None)
-    step_token = f"_{step_hr:g}hr".replace(".", "p") if step_hr is not None else ""
-
     os.makedirs(output_dir, exist_ok=True)
     gmap1.draw(
         os.path.join(
             output_dir,
-            f"{prefix}_{forecast_type}{res_token}{step_token}_{t.year}_{t.month}_{start.day}.html"
+            build_trajectory_filename(forecast, forecast_type, t, start, prefix)
         )
     )

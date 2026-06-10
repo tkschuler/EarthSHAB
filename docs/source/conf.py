@@ -23,7 +23,7 @@ copyright = '2021-2026'
 author = 'Tristan Schuler'
 
 # The full version, including alpha/beta/rc tags
-release = '2.0.0'
+release = '2.1.0'
 
 # The suffix of source filenames.
 #source_suffix = '.rst'

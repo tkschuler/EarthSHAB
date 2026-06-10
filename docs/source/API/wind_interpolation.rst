@@ -11,7 +11,7 @@ simulation. The active method is selected from a single config field:
 
     # src/EarthSHAB/config_earth.py
     forecast = dict(
-        file = "src/EarthSHAB/forecasts/gfs_0p25_20220822_12.nc",  # GFS or ERA5 .nc
+        file = "src/EarthSHAB/forecasts/gfs_0p25_3h_20220822_12.nc",  # GFS or ERA5 .nc
         wind_interpolation = 'linear_full',     # see methods below
         ...
     )

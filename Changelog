@@ -1,3 +1,22 @@
+version 2.1.0
+===============================
+* New GRIB-based GFS scheduled downloader (`gfs_collector.py`)
+    * Pulls raw GRIB2 files from NOAA's AWS S3 bucket and combines them into a
+      single v2 canonical NetCDF (CF-1.7; dims `valid_time/pressure_level/
+      latitude/longitude`; vars `u/v/z/t`) — same schema as `saveNETCDF.py`
+* Multi-resolution GFS support
+    * GFS grid resolution is now selectable: 0.25°, 0.5°, or 1.0°
+      (`config_earth` `_gfs_res` / `netcdf_gfs['res']`)
+    * Forecast filenames encode both the grid and the temporal step, e.g.
+      `gfs_0p25_3h_20260605_06.nc`
+    * Note: only the 0.25° grid provides hourly steps (out to f120); the 0.5°
+      and 1.0° grids are 3-hourly only
+    * The `Forecast` reader now checks the loaded file's actual grid spacing AND
+      cadence against the declared `netcdf_gfs['res']`/`['step_hours']`: GFS
+      files raise on a mismatch (wrong filename), manually-supplied ERA5 files
+      print a non-fatal warning (previously ERA5 mismatches were silent, and
+      cadence was never checked)
+
 version 2.0.0
 ===============================
 * BREAKING: Unified forecast format — GFS and ERA5 consolidated into one reader
