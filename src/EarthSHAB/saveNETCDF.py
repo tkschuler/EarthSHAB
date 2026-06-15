@@ -44,7 +44,7 @@ from termcolor import colored
 import pandas as pd
 
 # ── EarthSHAB config ──────────────────────────────────────────────────────────
-from EarthSHAB.config_earth import netcdf_gfs, simulation
+from EarthSHAB.config import netcdf_gfs, simulation
 
 xr.set_options(use_new_combine_kwarg_defaults=True) # cfgrib may raise FutureWarnings about combine_attrs; this silences them for now...
 

@@ -7,7 +7,7 @@ import math
 import numpy as np
 
 import EarthSHAB.radiation as radiation
-import EarthSHAB.config_earth as config_earth
+import EarthSHAB.config as config_earth
 
 
 class Sphere_Balloon:

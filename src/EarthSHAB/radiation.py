@@ -7,7 +7,7 @@ import math
 import fluids
 import numpy as np
 
-import EarthSHAB.config_earth as config_earth
+import EarthSHAB.config as config_earth
 
 # Horizon correction values (arcminutes converted to degrees).
 # Source: https://github.com/KosherJava/zmanim/blob/master/src/main/java/com/kosherjava/zmanim/util/AstronomicalCalculator.java#L176

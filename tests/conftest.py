@@ -20,7 +20,7 @@ from pathlib import Path
 
 import pytest
 
-import EarthSHAB.config_earth as config_earth
+import EarthSHAB.config as config_earth
 from EarthSHAB.Forecast import Forecast
 
 from tests.tools.make_dummy_forecasts import (

@@ -308,7 +308,7 @@ class TestAllThreeInterpMethods:
         self, scenario, all_dummies, monkeypatch,
     ):
         from EarthSHAB.Forecast import Forecast
-        import EarthSHAB.config_earth as config_earth
+        import EarthSHAB.config as config_earth
 
         path = all_dummies[scenario]
         coord = _on_grid_query()

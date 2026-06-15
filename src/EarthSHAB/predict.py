@@ -11,7 +11,7 @@ import numpy as np
 import gmplot
 from termcolor import colored
 
-import EarthSHAB.config_earth as config_earth
+import EarthSHAB.config as config_earth
 from EarthSHAB.simulate import BalloonSimulation
 from EarthSHAB.Plotting.plot_altitude import plot_altitude_family
 from EarthSHAB.Plotting.plot_trajectory_map import build_trajectory_filename

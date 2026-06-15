@@ -49,7 +49,7 @@ try:
 except ImportError:  # pragma: no cover - cfgrib required at runtime
     cfgrib = None
 
-from EarthSHAB.config_earth import netcdf_gfs, simulation
+from EarthSHAB.config import netcdf_gfs, simulation
 
 # ── Constants ──────────────────────────────────────────────────────────────────
 

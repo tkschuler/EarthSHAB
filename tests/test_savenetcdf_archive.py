@@ -17,7 +17,7 @@ import types
 import pytest
 import xarray as xr
 
-import EarthSHAB.config_earth as config_earth
+import EarthSHAB.config as config_earth
 import EarthSHAB.saveNETCDF as live
 import EarthSHAB.saveNETCDF_archive as arch
 

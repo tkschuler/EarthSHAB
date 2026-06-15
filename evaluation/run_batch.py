@@ -32,7 +32,7 @@ from datetime import datetime, timezone
 import matplotlib.pyplot as plt
 import pandas as pd
 
-import EarthSHAB.config_earth as config_earth
+import EarthSHAB.config as config_earth
 from evaluation.evaluate import BalloonEvaluator
 from evaluation.reporting import SUMMARY_FIELDNAMES, result_to_summary_row, write_summary_html
 

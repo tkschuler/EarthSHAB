@@ -25,7 +25,7 @@ import fluids
 from geographiclib.geodesic import Geodesic
 import matplotlib.pyplot as plt
 
-import EarthSHAB.config_earth as config_earth
+import EarthSHAB.config as config_earth
 from EarthSHAB.simulate import BalloonSimulation
 from EarthSHAB.radiation import solar_zenith_adjusted
 from evaluation.plot_evaluation import plot_comparison

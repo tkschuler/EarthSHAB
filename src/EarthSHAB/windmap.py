@@ -11,7 +11,7 @@ from termcolor import colored
 from scipy.interpolate import CubicSpline
 import sys
 
-import EarthSHAB.config_earth as config_earth
+import EarthSHAB.config as config_earth
 from EarthSHAB.Forecast import Forecast, _spline_uv
 
 class Windmap:

@@ -14,7 +14,7 @@ import os
 
 from EarthSHAB.Forecast import Forecast
 import EarthSHAB.radiation as radiation
-import EarthSHAB.config_earth as config_earth
+import EarthSHAB.config as config_earth
 
 
 if not os.path.exists('src/EarthSHAB/trajectories'):

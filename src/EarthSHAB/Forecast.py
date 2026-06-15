@@ -39,7 +39,7 @@ from scipy import interpolate
 from scipy.interpolate import CubicSpline
 from termcolor import colored
 
-import EarthSHAB.config_earth as config_earth
+import EarthSHAB.config as config_earth
 
 
 class ForecastFormatError(ValueError):

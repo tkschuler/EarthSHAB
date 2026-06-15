@@ -13,7 +13,7 @@ import copy
 import EarthSHAB.solve_states as solve_states
 from EarthSHAB.Forecast import Forecast
 import EarthSHAB.radiation as radiation
-import EarthSHAB.config_earth as config_earth
+import EarthSHAB.config as config_earth
 
 
 def _load_aprs(path: str) -> tuple:

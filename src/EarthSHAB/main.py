@@ -8,7 +8,7 @@ from EarthSHAB.Plotting.plot_trajectory_map import plot_map
 from EarthSHAB.Plotting.plot_windmap import plot_windmap
 
 import matplotlib.pyplot as plt
-import EarthSHAB.config_earth as config_earth
+import EarthSHAB.config as config_earth
 
 
 def main():

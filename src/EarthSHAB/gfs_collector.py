@@ -44,7 +44,7 @@ try:
 except ImportError:
     cfgrib = None
 
-import EarthSHAB.config_earth as config_earth
+import EarthSHAB.config as config_earth
 
 # Suppress xarray FutureWarnings about compat defaults and other warnings
 xr.set_options(use_new_combine_kwarg_defaults=True)
