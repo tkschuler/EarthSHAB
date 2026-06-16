@@ -12,7 +12,8 @@ from scipy.interpolate import CubicSpline
 import sys
 
 import EarthSHAB.config as config_earth
-from EarthSHAB.Forecast import Forecast, _spline_uv
+from EarthSHAB.Forecast import Forecast
+from EarthSHAB.utils.wind_interp import spline_uv as _spline_uv
 
 class Windmap:
     def __init__(self):

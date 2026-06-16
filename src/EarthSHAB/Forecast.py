@@ -1,6 +1,6 @@
 """Forecast reader for the v2 canonical netcdf forecast schema.
 
-Single class for both GFS- and ERA5-sourced netcdf files. 
+Single class for both GFS- and ERA5-sourced netcdf files.
 This module replaces both ERA5.py and GFS.py.
 
 Standard v2 file format::
@@ -15,16 +15,25 @@ Standard v2 file format::
 
 Every netcdf file is a bounded forecast subset (no full-world arrays with
 mask-based subsetting), although full world forecasts can still be downloaded
-by applying full world lat/lon bounds.The reader slices the entire stored array.
+by applying full world lat/lon bounds. The reader slices the entire stored array.
 
-Forecast type is read from the ``institution`` global
-attribute. When that attribute is missing or empty (the case for older
-already-migrated files), the reader falls back to filename pattern::
+Hot-swappable wind-lookup design
+--------------------------------
+Three orthogonal axes select the wind field, each a constructor kwarg with a
+``config.forecast[...]`` fallback:
 
-    - basename containing 'gfs' (case-insensitive) -> 'GFS'
-    - basename containing 'era5'                   -> 'ERA5'
-    - otherwise                                    -> 'unknown'
+  * ``backend``            -- 'xarray' (slow/original) | 'numpy' | 'numba' (default)
+  * ``wind_interpolation`` -- 'bilinear' | 'linear_neighbors' | 'linear_full' | 'spline_full'
+  * ``advection``          -- 'geodesic' (WGS84) | 'tangent_plane' (fixed-anchor spherical)
 
+The skeleton (this class) owns the public API -- ``getNewCoord`` (scalar) and
+``getNewCoords`` (batch) -- plus advection. The **tier** swaps only the wind
+lookup, implemented by the backend classes in ``utils.forecast_backends``; the
+vertical altitude/time math is shared (``utils.wind_interp``). ``getNewCoord``
+is a thin length-1 wrapper over ``getNewCoords`` so the two share one code path.
+
+The shape mirrors EarthSHAB's ``Forecast.py`` (same ``Forecast(start_coord)``
+construction and ``getNewCoord`` return) so this is upstreamable.
 """
 import math
 import sys
@@ -35,11 +44,11 @@ import numpy as np
 import netCDF4
 from geographiclib.geodesic import Geodesic
 from pytz import timezone
-from scipy import interpolate
-from scipy.interpolate import CubicSpline
 from termcolor import colored
 
-import EarthSHAB.config as config_earth
+import EarthSHAB.config as config
+import EarthSHAB.utils.transform as transform
+import EarthSHAB.utils.forecast_backends as forecast_backends
 
 
 class ForecastFormatError(ValueError):
@@ -52,7 +61,7 @@ class ForecastFormatError(ValueError):
 
 
 # Signatures used to recognise legacy formats and emit a targeted migration
-# message. Mirrors detection in EarthSHAB.forecast_processing.migrate_v1.
+# message.
 _V1_GFS_VARS = {"ugrdprs", "vgrdprs", "hgtprs"}
 _V1_ERA5_DIMS = {"time", "level", "latitude", "longitude"}
 _V2_REQUIRED_DIMS = {"valid_time", "pressure_level", "latitude", "longitude"}
@@ -73,12 +82,11 @@ def _raise_if_v1(file: netCDF4.Dataset, path: str) -> None:
         legacy = "unrecognized layout (neither v2 canonical nor a known v1 format)"
 
     raise ForecastFormatError(
-        f"{path}: detected {legacy}; EarthSHAB v2.0+ requires the canonical "
-        "schema documented in docs/source/forecast-schema-v2.md. Convert this file "
-        "in place with:\n"
-        f"    python -m EarthSHAB.forecast_processing.migrate_v1 {path}\n"
-        "The original will be backed up alongside it as <name>.v1.nc. "
-        "See docs/source/migration-v2.md for details."
+        f"{path}: detected {legacy}; HAB-COM requires the canonical v2 schema "
+        "documented in forecast-schema-v2.md. Re-download the forecast with "
+        "collectors/gfs_collector.py (which writes v2 directly), or convert the "
+        "file to the v2 layout (dims: valid_time, pressure_level, latitude, "
+        "longitude; vars: u, v, z, t with z as geopotential m**2 s**-2)."
     )
 
 
@@ -103,43 +111,49 @@ def _detect_source(file: netCDF4.Dataset, path: str) -> str:
     return "unknown"
 
 
-def _spline_uv(alt_m, h_ascending, u_ascending, v_ascending):
-    """CubicSpline on u and v independently across the altitude profile.
-
-    extrapolate=False; when alt_m is outside [h_min, h_max] falls back to
-    np.interp (which clamps to endpoints), avoiding spline overshoot above
-    the highest pressure level where the balloon often actually flies.
-
-    h_ascending, u_ascending, v_ascending must be in ascending order of h.
-    Duplicate h values (which can occur after fill_missing_data clamps
-    NaN-extrapolation at the top of the profile to the last valid altitude)
-    are filtered out — CubicSpline requires strictly increasing x.
-    """
-    h_arr = np.asarray(h_ascending)
-    u_arr = np.asarray(u_ascending)
-    v_arr = np.asarray(v_ascending)
-    keep = np.concatenate(([True], np.diff(h_arr) > 0))
-    h_s, u_s, v_s = h_arr[keep], u_arr[keep], v_arr[keep]
-
-    h_lo, h_hi = h_s[0], h_s[-1]
-    if alt_m < h_lo or alt_m > h_hi or len(h_s) < 4:
-        return (
-            float(np.interp(alt_m, h_s, u_s)),
-            float(np.interp(alt_m, h_s, v_s)),
-        )
-    cs_u = CubicSpline(h_s, u_s, extrapolate=False)
-    cs_v = CubicSpline(h_s, v_s, extrapolate=False)
-    return float(cs_u(alt_m)), float(cs_v(alt_m))
+def _epoch_seconds(times):
+    """Convert num2date datetimes (cftime or stdlib) to int64 unix seconds."""
+    epoch = datetime(1970, 1, 1)
+    out = np.empty(len(times), dtype=np.int64)
+    for i, t in enumerate(times):
+        out[i] = int((datetime(t.year, t.month, t.day, t.hour, t.minute,
+                               int(t.second)) - epoch).total_seconds())
+    return out
 
 
 class Forecast:
     """Reader for v2 canonical forecast files (GFS- or ERA5-sourced)."""
 
-    def __init__(self, start_coord):
-        self.dt = config_earth.simulation['dt']
-        self.sim_time = config_earth.simulation['sim_time']
+    def __init__(self, start_coord=None, *, forecast_file=None, start_time=None,
+                 dt=None, sim_time=None, wind_interpolation=None, advection=None,
+                 backend=None):
+        # Each parameter falls back to config.py when not explicitly provided.
+        # The Monte Carlo runners pass overrides so they can drive Forecast.py
+        # without mutating global config.
+        self.dt = dt if dt is not None else config.simulation['dt']
+        self.sim_time = sim_time if sim_time is not None else config.simulation['sim_time']
 
-        forecast_path = config_earth.forecast['file']
+        # --- the three orthogonal wind-field selectors ---
+        self.wind_interpolation = (
+            wind_interpolation if wind_interpolation is not None
+            else config.forecast.get('wind_interpolation', 'linear_neighbors')
+        )
+        # Advection model used by getNewCoord(s):
+        #   'geodesic'      -> WGS84 ellipsoid step (geographiclib), re-anchored
+        #                      at the balloon each step.
+        #   'tangent_plane' -> spherical tangent-plane step about a FIXED anchor
+        #                      (the launch coordinate).
+        self.advection = (
+            advection if advection is not None
+            else config.forecast.get('advection', 'geodesic')
+        )
+        # Wind-lookup tier: 'xarray' (slow/original) | 'numpy' | 'numba'.
+        self.backend_name = (
+            backend if backend is not None
+            else config.forecast.get('backend', 'numba')
+        )
+
+        forecast_path = forecast_file if forecast_file is not None else config.forecast['file']
         try:
             self.file = netCDF4.Dataset(forecast_path)
         except OSError:
@@ -150,9 +164,15 @@ class Forecast:
         self.source = _detect_source(self.file, forecast_path)
 
         self.geod = Geodesic.WGS84
-        self.start_coord = config_earth.simulation["start_coord"]
-        self.start_time = config_earth.simulation['start_time']
+        self.start_coord = start_coord if start_coord is not None else config.simulation["start_coord"]
+        self.start_time = start_time if start_time is not None else config.simulation['start_time']
         self.min_alt_m = self.start_coord['alt']
+
+        # Fixed tangent-plane anchor (the launch coordinate). Only used when
+        # advection == 'tangent_plane'.
+        self.central_lat = float(self.start_coord['lat'])
+        self.central_lon = transform.wrap_lon(float(self.start_coord['lon']))
+        self._cos_central = math.cos(math.radians(self.central_lat))
 
         time_arr = self.file.variables['valid_time']
         time_units = time_arr.units if hasattr(time_arr, 'units') else "seconds since 1970-01-01"
@@ -160,6 +180,7 @@ class Forecast:
         self.time_convert = netCDF4.num2date(time_arr[:], units=time_units, calendar=time_calendar)
         self.model_start_datetime = self.time_convert[0]
         self.model_end_datetime = self.time_convert[-1]
+        self._time_unix_s = _epoch_seconds(self.time_convert)
 
         # Cadence (hours per time step) derived from the file itself rather
         # than a config key — ERA5 is typically 1 hr, GFS typically 3 hr.
@@ -194,6 +215,7 @@ class Forecast:
 
         print(colored("Forecast Information (Parsed from netcdf file):", "blue", attrs=['bold']))
         print(f"  source: {self.source}")
+        print(f"  backend: {self.backend_name}  wind: {self.wind_interpolation}  advection: {self.advection}")
         print(f"  LAT RANGE: min: {self.LAT_LOW}  max: {self.LAT_HIGH}  size: {len(self.lat)}")
         print(f"  LON RANGE: min: {self.LON_LOW}  max: {self.LON_HIGH}  size: {len(self.lon)}")
         if self.resolution_deg is not None:
@@ -202,14 +224,13 @@ class Forecast:
         print()
 
         # Guard against a silent config/file mismatch in grid spacing or cadence.
-        # config_earth.forecast['file'] is normally built from netcdf_gfs['res']
-        # and ['step_hours'] (via _gfs_res / _gfs_step_hours), so a stale knob can
-        # quietly load a file with a different grid or cadence than declared — the
-        # sim still runs, but not on the data the config describes. Compare the
-        # file's actual spacing/cadence against the declared config values and
-        # flag any drift.
-        declared_res  = config_earth.netcdf_gfs.get("res")
-        declared_step = config_earth.netcdf_gfs.get("step_hours")
+        # config.forecast['file'] is normally built from netcdf_gfs['res'] and
+        # ['step_hours'], so a stale knob can quietly load a file with a different
+        # grid or cadence than declared — the sim still runs, but not on the data
+        # the config describes. Compare the file's actual spacing/cadence against
+        # the declared config values and flag any drift.
+        declared_res  = config.netcdf_gfs.get("res")
+        declared_step = config.netcdf_gfs.get("step_hours")
 
         mismatches = []
         if (declared_res is not None and self.resolution_deg is not None
@@ -229,24 +250,24 @@ class Forecast:
             detail = "\n  - ".join(mismatches)
             if self.source == "GFS":
                 # GFS filenames are built from these knobs, so a mismatch means
-                # config_earth.forecast['file'] points at the wrong forecast —
-                # fail hard rather than silently run on the wrong data.
+                # config.forecast['file'] points at the wrong forecast — fail hard
+                # rather than silently run on the wrong data.
                 raise ValueError(
                     f"Forecast config/file mismatch:\n  - {detail}\n"
                     f"  file: {forecast_path}\n"
                     f"These config keys build the GFS forecast filename, so this "
-                    f"usually means config_earth.forecast['file'] points at the "
-                    f"wrong file. Update netcdf_gfs['res']/['step_hours'] to match "
-                    f"the file, or point forecast['file'] at the matching forecast."
+                    f"usually means config.forecast['file'] points at the wrong "
+                    f"file. Update netcdf_gfs['res']/['step_hours'] to match the "
+                    f"file, or point forecast['file'] at the matching forecast."
                 )
             elif self.source == "ERA5":
                 # ERA5 files are supplied manually, not produced from the GFS
-                # download knobs, so a mismatch is informational rather than
-                # fatal — but still surfaced so a stale config doesn't silently
+                # download knobs, so a mismatch is informational rather than fatal
+                # — but still surfaced so a stale config doesn't silently
                 # misdescribe the run. The sim uses the file's actual values.
                 print(colored(
                     f"[WARNING] The loaded ERA5 forecast does not match the "
-                    f"resolution/cadence declared in config_earth.netcdf_gfs:\n"
+                    f"resolution/cadence declared in config.netcdf_gfs:\n"
                     f"  - {detail}\n"
                     f"  file: {forecast_path}\n"
                     f"  The simulation will use the file's actual resolution and "
@@ -269,8 +290,17 @@ class Forecast:
                 "and/or download a new forecast.", "red"))
             sys.exit()
 
+        # Build the selected wind-lookup backend. All backends take the same
+        # kwargs and ignore what they don't need (see utils.forecast_backends).
+        self.backend = forecast_backends.make_backend(
+            self.backend_name,
+            path=forecast_path,
+            lat=self.lat, lon=self.lon, hgt_m=self.hgtprs,
+            u=self.ugdrps0, v=self.vgdrps0, time_unix_s=self._time_unix_s,
+        )
+
     # ------------------------------------------------------------------
-    # Nearest-index helpers
+    # Nearest-index helpers (used for the diagnostic return fields)
     # ------------------------------------------------------------------
 
     def closestIdx(self, arr, k):
@@ -290,16 +320,6 @@ class Forecast:
     getNearestLat = getNearestLatIdx
     getNearestLon = getNearestLonIdx
 
-    def get2NearestAltIdxs(self, h, alt_m):
-        """Two enclosing altitude indices for bearing/speed interpolation.
-
-        Index wrap from 0 to -1 is handled in interpolateBearing().
-        """
-        h_nearest = self.closestIdx(h, alt_m)
-        if alt_m > h[h_nearest]:
-            return h_nearest, h_nearest + 1
-        return h_nearest - 1, h_nearest
-
     def getNearestAltbyIndex(self, int_hr_idx, lat_i, lon_i, alt_m):
         """Nearest altitude index at a specific (time, lat, lon) cell."""
         return self.closestIdx(self.hgtprs[int_hr_idx, :, lat_i, lon_i], alt_m)
@@ -310,10 +330,6 @@ class Forecast:
         lon_i = self.getNearestLonIdx(lon)
         return self.getNearestAltbyIndex(int(hour_index), lat_i, lon_i, alt)
 
-    # ------------------------------------------------------------------
-    # Interpolation
-    # ------------------------------------------------------------------
-
     def fill_missing_data(self, data):
         """Linearly interpolate over missing entries in a 1-D profile column."""
         data = data.filled(np.nan) if np.ma.isMaskedArray(data) else np.asarray(data, dtype=float)
@@ -322,138 +338,126 @@ class Forecast:
             data[nans] = np.interp(x(nans), x(~nans), data[~nans])
         return data
 
-    def windVectorToBearing(self, u, v):
-        bearing = np.arctan2(v, u)
-        speed = np.power((np.power(u, 2) + np.power(v, 2)), .5)
-        return [bearing, speed]
+    # ------------------------------------------------------------------
+    # Time / advection helpers
+    # ------------------------------------------------------------------
 
-    def interpolateBearing(self, h, u, v, alt_m):
-        """Linear interpolation between adjacent pressure levels on
-        bearing+speed, with 0/360° axis-crossover correction.
+    def _hour_index(self, timestamp):
+        """Fractional forecast-hour index for a timestamp."""
+        diff = timestamp - self.model_start_datetime
+        return (diff.days * 24 + diff.seconds / 3600.0) / self.resolution_hr
+
+    def _advect(self, lats, lons, u, v, dt):
+        """Advance (lats, lons) under wind (u, v) for dt seconds → (lat_new, lon_new).
+
+        Both branches are vectorized over members; geodesic loops member-wise
+        because geographiclib isn't array-aware.
         """
-        h_idx0, h_idx1 = self.get2NearestAltIdxs(h, alt_m)
-        if h_idx0 == -1:
-            h_idx0 = 0
-        if h_idx1 == 0:
-            h_idx1 = -1
+        if self.advection == 'tangent_plane':
+            # Spherical tangent-plane step about the fixed launch anchor (exact
+            # same arithmetic as utils.transform.{latlon_to_meters,
+            # meters_to_latlon}_spherical, minus their NaN guards).
+            cosc = self._cos_central
+            cx = (lons - self.central_lon) * 111000.0 * cosc
+            cy = (lats - self.central_lat) * 111000.0
+            x_new = cx + u * dt
+            y_new = cy + v * dt
+            lat_new = np.clip(self.central_lat + y_new / 111320.0, -89.999999, 89.999999)
+            lon_new = ((self.central_lon + x_new / (111320.0 * cosc) + 180.0) % 360.0) - 180.0
+            return lat_new, lon_new
 
-        bearing0, speed0 = self.windVectorToBearing(u[h_idx0], v[h_idx0])
-        bearing1, speed1 = self.windVectorToBearing(u[h_idx1], v[h_idx1])
+        # Geodesic: WGS84 ellipsoid step, re-anchored at the balloon each step.
+        M = len(lats)
+        lat_new = np.empty(M, dtype=np.float64)
+        lon_new = np.empty(M, dtype=np.float64)
+        for m in range(M):
+            bearing = 90.0 - math.degrees(math.atan2(v[m], u[m]))
+            d = math.hypot(u[m], v[m]) * dt
+            g = self.geod.Direct(float(lats[m]), float(lons[m]), bearing, d)
+            lat_new[m] = g['lat2']
+            lon_new[m] = g['lon2']
+        return lat_new, lon_new
 
-        angle1 = np.degrees(bearing0) % 360
-        angle2 = np.degrees(bearing1) % 360
-        if abs(angle2 - angle1) > 180:
-            if angle2 > angle1:
-                angle1 += 360
-            else:
-                angle2 += 360
+    # ------------------------------------------------------------------
+    # Top-level coordinate propagation (batch + scalar)
+    # ------------------------------------------------------------------
 
-        interp_speed = np.interp(alt_m, [h[h_idx0], h[h_idx1]], [speed0, speed1])
-        interp_dir_deg = np.interp(alt_m, [h[h_idx0], h[h_idx1]], [angle1, angle2]) % 360
-        return (interp_dir_deg, interp_speed)
+    def getNewCoords(self, lats, lons, alts, timestamp, dt, *, diagnostic=True):
+        """Advance a *batch* of coords by `dt` seconds under the local wind field.
 
-    def interpolateBearingTime(self, bearing0, speed0, bearing1, speed1, hour_index):
-        """Interpolate bearing+speed in time between two adjacent forecast hours."""
-        angle1 = bearing0 % 360
-        angle2 = bearing1 % 360
-        if abs(angle2 - angle1) > 180:
-            if angle2 > angle1:
-                angle1 += 360
-            else:
-                angle2 += 360
-        fp = [int(hour_index), int(hour_index) + 1]
-        interp_speed = np.interp(hour_index, fp, [speed0, speed1])
-        interp_dir_deg = np.interp(hour_index, fp, [angle1, angle2]) % 360
-        return (interp_dir_deg, interp_speed)
-
-    def wind_alt_Interpolate2(self, alt_m, diff_time, lat_idx, lon_idx):
-        """Perform a 2-step linear interpolation to determine the horizontal
-        wind velocity at a desired 3D coordinate and timestamp.
-
-        The figure below shows a visual representation of how wind data is
-        stored in netcdf forecasts based on lat, lon, and geopotential height.
-        The data forms a non-uniform grid, that also changes in time. Therefore
-        a 2-step linear interpolation is performed to determine the horizontal
-        wind velocity at a desired 3D coordinate and particular timestamp.
-
-        To start, the nearest 0.25-degree lat/lon grid point to the desired
-        coordinate is looked up along with the 2 closest timestamps t0 and t1.
-        This produces 6 arrays: u-wind, v-wind, and geopotential heights at the
-        lower and upper closest timestamps (t0 and t1).
-
-        The geopotential ``z`` is converted to geopotential height in meters
-        (dividing by ``g``) for each timestamp. For the first interpolation,
-        the u/v wind components at the desired altitude are determined (1a and
-        1b) at each of t0 and t1. Then, once the wind speeds at matching
-        altitudes for t0 and t1 are determined, a second linear interpolation
-        is performed with respect to time (t0 and t1).
-
-        .. image:: ../../img/netcdf-2step-interpolation.png
-
-        The altitude step uses the method selected by
-        ``config_earth.forecast['wind_interpolation']`` (``linear_neighbors``,
-        ``linear_full``, or ``spline_full``); see :doc:`wind_interpolation`.
-
-        Returns ``[u, v, u_diag, v_diag]`` where ``(u_diag, v_diag)`` is always
-        the ``linear_full`` path, returned for diagnostic comparison regardless
-        of which ``wind_interpolation`` method is configured.
-
-        :param alt_m: desired altitude in meters
-        :param diff_time: timedelta from the forecast start time
-        :param lat_idx: nearest latitude index
-        :param lon_idx: nearest longitude index
-        :returns: [u, v, u_diag, v_diag]
-        :rtype: list
+        :param lats/lons/alts: 1-D arrays (length M) of current positions
+        :param timestamp: shared datetime for all members
+        :param dt: integration interval in seconds
+        :param diagnostic: also compute the linear_full diagnostic winds and the
+            nearest-cell diagnostic fields (needed for the full scalar return /
+            EarthSHAB contract). Set False in hot batch loops to skip the extra
+            wind sample + per-member nearest-index lookups.
+        :returns: list of 10 length-M arrays mirroring getNewCoord's 10-tuple::
+            [lat_new, lon_new, x_wind, y_wind, x_wind_diag, y_wind_diag,
+             bearing, nearest_lat, nearest_lon, nearest_alt]
         """
-        hour_index = (diff_time.days * 24 + diff_time.seconds / 3600.0) / self.resolution_hr
+        lats = np.asarray(lats, dtype=np.float64)
+        lons = np.asarray(lons, dtype=np.float64)
+        alts = np.asarray(alts, dtype=np.float64)
+        M = lats.size
 
-        v_0 = self.fill_missing_data(self.vgdrps0[int(hour_index), :, lat_idx, lon_idx])
-        u_0 = self.fill_missing_data(self.ugdrps0[int(hour_index), :, lat_idx, lon_idx])
-        h0  = self.fill_missing_data(self.hgtprs[int(hour_index), :, lat_idx, lon_idx])
+        hour_index = self._hour_index(timestamp)
 
-        v_1 = self.fill_missing_data(self.vgdrps0[int(hour_index) + 1, :, lat_idx, lon_idx])
-        u_1 = self.fill_missing_data(self.ugdrps0[int(hour_index) + 1, :, lat_idx, lon_idx])
-        h1  = self.fill_missing_data(self.hgtprs[int(hour_index) + 1, :, lat_idx, lon_idx])
+        # (1) wind lookup — the swappable tier.
+        u, v = self.backend.sample_winds(self.wind_interpolation, lats, lons, alts, hour_index)
 
-        # Diagnostic baseline: linear_full path on u,v across the full
-        # altitude profile, then linear in time.
-        u0_lf = np.interp(alt_m, h0, u_0)
-        v0_lf = np.interp(alt_m, h0, v_0)
-        u1_lf = np.interp(alt_m, h1, u_1)
-        v1_lf = np.interp(alt_m, h1, v_1)
-        fp = [int(hour_index), int(hour_index) + 1]
-        u_lf = np.interp(hour_index, fp, [u0_lf, u1_lf])
-        v_lf = np.interp(hour_index, fp, [v0_lf, v1_lf])
-
-        method = config_earth.forecast.get('wind_interpolation', 'linear_neighbors')
-        if method == 'linear_neighbors':
-            bearing_t0, speed_t0 = self.interpolateBearing(h0, u_0, v_0, alt_m)
-            bearing_t1, speed_t1 = self.interpolateBearing(h1, u_1, v_1, alt_m)
-            bearing_interpolated, speed_interpolated = self.interpolateBearingTime(
-                bearing_t0, speed_t0, bearing_t1, speed_t1, hour_index)
-            u = speed_interpolated * np.cos(np.radians(bearing_interpolated))
-            v = speed_interpolated * np.sin(np.radians(bearing_interpolated))
-        elif method == 'linear_full':
-            u, v = u_lf, v_lf
-        elif method == 'spline_full':
-            u0_sp, v0_sp = _spline_uv(alt_m, h0, u_0, v_0)
-            u1_sp, v1_sp = _spline_uv(alt_m, h1, u_1, v_1)
-            u = np.interp(hour_index, fp, [u0_sp, u1_sp])
-            v = np.interp(hour_index, fp, [v0_sp, v1_sp])
+        # diagnostic baseline: always the linear_full path (matches the
+        # original wind_alt_Interpolate2 [u, v, u_lf, v_lf] contract).
+        if diagnostic:
+            if self.wind_interpolation == 'linear_full':
+                u_lf, v_lf = u, v
+            else:
+                u_lf, v_lf = self.backend.sample_winds('linear_full', lats, lons, alts, hour_index)
         else:
-            raise ValueError(
-                f"Unknown wind_interpolation: {method!r}. "
-                "Expected 'linear_neighbors', 'linear_full', or 'spline_full'."
-            )
+            u_lf = np.full(M, np.nan)
+            v_lf = np.full(M, np.nan)
 
-        return [u, v, u_lf, v_lf]
+        bearing = 90.0 - np.degrees(np.arctan2(v, u))  # wind components → compass bearing
 
-    # ------------------------------------------------------------------
-    # Top-level coordinate propagation
-    # ------------------------------------------------------------------
+        # (2) advection.
+        lat_new, lon_new = self._advect(lats, lons, u, v, dt)
+
+        # Out-of-bounds warning (once, on the advected position).
+        oob = ((lat_new < self.LAT_LOW) | (lat_new > self.LAT_HIGH)
+               | (lon_new < self.LON_LOW) | (lon_new > self.LON_HIGH))
+        if oob.any():
+            print(colored("WARNING: Trajectory is out of bounds of downloaded netcdf forecast", "yellow"))
+
+        # Launch pin: members at/below the launch altitude stay put.
+        pinned = alts <= self.min_alt_m
+        lat_out = np.where(pinned, lats, lat_new)
+        lon_out = np.where(pinned, lons, lon_new)
+
+        # (3) nearest-cell diagnostic fields.
+        if diagnostic:
+            int_hr = int(hour_index)
+            nlat = np.empty(M, dtype=np.float64)
+            nlon = np.empty(M, dtype=np.float64)
+            nalt = np.empty(M, dtype=np.float64)
+            for m in range(M):
+                li = self.getNearestLatIdx(lats[m])
+                oi = self.getNearestLonIdx(lons[m])
+                zi = self.getNearestAltbyIndex(int_hr, li, oi, alts[m])
+                nlat[m] = self.lat[li]
+                nlon[m] = self.lon[oi]
+                nalt[m] = self.hgtprs[0, zi, li, oi]
+        else:
+            nlat = np.full(M, np.nan)
+            nlon = np.full(M, np.nan)
+            nalt = np.full(M, np.nan)
+
+        return [lat_out, lon_out, u, v, u_lf, v_lf, bearing, nlat, nlon, nalt]
 
     def getNewCoord(self, coord, dt):
-        """Advance a balloon coord by `dt` seconds under the local wind field.
+        """Advance a single balloon coord by `dt` seconds (EarthSHAB-shaped).
+
+        Thin length-1 wrapper over getNewCoords so scalar and batch share one
+        code path (and are bit-identical at M=1).
 
         :param coord: dict with keys lat, lon, alt, timestamp
         :param dt:    integration interval in seconds
@@ -461,54 +465,63 @@ class Forecast:
                        x_wind_vel_diag, y_wind_vel_diag, bearing,
                        nearest_lat, nearest_lon, nearest_alt]
         """
-        diff_time = coord["timestamp"] - self.model_start_datetime
-        hour_index = (diff_time.days * 24 + diff_time.seconds / 3600.0) / self.resolution_hr
-        int_hr_idx = int(hour_index)
-
-        lat_idx = self.getNearestLatIdx(coord["lat"])
-        lon_idx = self.getNearestLonIdx(coord["lon"])
-        z = self.getNearestAltbyIndex(int_hr_idx, lat_idx, lon_idx, coord["alt"])
-
         try:
-            x_wind_vel, y_wind_vel, x_wind_vel_old, y_wind_vel_old = \
-                self.wind_alt_Interpolate2(coord['alt'], diff_time, lat_idx, lon_idx)
-            if x_wind_vel is None:
-                return [None] * 10
+            res = self.getNewCoords(
+                np.array([coord['lat']], dtype=np.float64),
+                np.array([coord['lon']], dtype=np.float64),
+                np.array([coord['alt']], dtype=np.float64),
+                coord['timestamp'], dt)
         except Exception:
             print(colored(
                 "Mismatch with simulation and forecast timstamps. Check simulation "
                 "start time and/or download a new forecast.", "red"))
             sys.exit(1)
+        return [field[0] for field in res]
 
-        bearing = math.degrees(math.atan2(y_wind_vel, x_wind_vel))
-        bearing = 90 - bearing  # 90-degree rotation: wind components → compass bearing
-        d = math.pow((math.pow(y_wind_vel, 2) + math.pow(x_wind_vel, 2)), .5) * dt
-        g = self.geod.Direct(coord["lat"], coord["lon"], bearing, d)
+    # ------------------------------------------------------------------
+    # Back-compat scalar interpolation entry (parity with EarthSHAB's API)
+    # ------------------------------------------------------------------
 
-        if (g['lat2'] < self.LAT_LOW or g['lat2'] > self.LAT_HIGH
-                or g['lon2'] < self.LON_LOW or g['lon2'] > self.LON_HIGH):
-            print(colored("WARNING: Trajectory is out of bounds of downloaded netcdf forecast", "yellow"))
+    def wind_alt_Interpolate2(self, alt_m, diff_time, lat_idx, lon_idx, lat=None, lon=None):
+        """Scalar wind interpolation -> [u, v, u_diag, v_diag].
 
-        if coord["alt"] <= self.min_alt_m:
-            # Pin to the launch coordinate while the balloon hasn't lifted off.
-            return [coord['lat'], coord['lon'], x_wind_vel, y_wind_vel,
-                    x_wind_vel_old, y_wind_vel_old, bearing,
-                    self.lat[lat_idx], self.lon[lon_idx],
-                    self.hgtprs[0, z, lat_idx, lon_idx]]
-        return [g['lat2'], g['lon2'], x_wind_vel, y_wind_vel,
-                x_wind_vel_old, y_wind_vel_old, bearing,
-                self.lat[lat_idx], self.lon[lon_idx],
-                self.hgtprs[0, z, lat_idx, lon_idx]]
+        Kept for API parity with EarthSHAB's Forecast.py. Routes through the
+        selected backend; `(u_diag, v_diag)` is always the linear_full path.
+        For 'bilinear' the actual `lat`/`lon` are required (nearest-cell methods
+        fall back to the grid coordinates of the supplied indices).
+        """
+        hour_index = (diff_time.days * 24 + diff_time.seconds / 3600.0) / self.resolution_hr
+        if lat is None:
+            lat = float(self.lat[lat_idx])
+        if lon is None:
+            lon = float(self.lon[lon_idx])
+        lats = np.array([lat], dtype=np.float64)
+        lons = np.array([lon], dtype=np.float64)
+        alts = np.array([alt_m], dtype=np.float64)
+        u, v = self.backend.sample_winds(self.wind_interpolation, lats, lons, alts, hour_index)
+        if self.wind_interpolation == 'linear_full':
+            u_lf, v_lf = u, v
+        else:
+            u_lf, v_lf = self.backend.sample_winds('linear_full', lats, lons, alts, hour_index)
+        return [float(u[0]), float(v[0]), float(u_lf[0]), float(v_lf[0])]
+
+    # ------------------------------------------------------------------
+    # Lifecycle
+    # ------------------------------------------------------------------
 
     def close(self):
-        """Close the underlying netCDF dataset.
+        """Close the underlying netCDF dataset (and any backend dataset).
 
         CPython's __del__ on netCDF4.Dataset is unreliable enough that
-        long-running batch evaluators (evaluation/run_batch.py) accumulate
-        HDF5 chunk-cache state across launches and segfault around the
-        6th–7th iteration. Callers should `close()` explicitly when done.
-        Idempotent.
+        long-running batch evaluators accumulate HDF5 chunk-cache state across
+        launches and segfault. Callers should `close()` explicitly. Idempotent.
         """
+        b = getattr(self, "backend", None)
+        if b is not None:
+            try:
+                b.close()
+            except Exception:
+                pass
         f = getattr(self, "file", None)
         if f is not None:
             try:

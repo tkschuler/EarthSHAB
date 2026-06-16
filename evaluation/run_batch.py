@@ -181,6 +181,8 @@ def _build_overrides(launch: dict, forecast_type: str, orig: dict) -> dict:
             "forecast_start_time": forecast_start,
             "forecast_update_interval": orig["forecast"]["forecast_update_interval"],
             "wind_interpolation":  orig["forecast"].get("wind_interpolation", "linear_full"),
+            "advection":           orig["forecast"].get("advection", "geodesic"),
+            "backend":             orig["forecast"].get("backend", "numpy"),
         }
         # netcdf_gfs is still consumed by saveNETCDF.py for downloads; the
         # Forecast reader doesn't look at it. Updating nc_file/nc_start/
@@ -203,6 +205,8 @@ def _build_overrides(launch: dict, forecast_type: str, orig: dict) -> dict:
             "forecast_start_time": orig["forecast"]["forecast_start_time"],
             "forecast_update_interval": orig["forecast"]["forecast_update_interval"],
             "wind_interpolation":  orig["forecast"].get("wind_interpolation", "linear_full"),
+            "advection":           orig["forecast"].get("advection", "geodesic"),
+            "backend":             orig["forecast"].get("backend", "numpy"),
         }
         overrides["netcdf_gfs"] = copy.deepcopy(orig["netcdf_gfs"])
 
@@ -412,6 +416,8 @@ def run_batch(note: str, launches_json: str = LAUNCHES_JSON):
         "earthshab_version":       _earthshab_version(),
         "wind_interpolation":      config_earth.forecast.get(
                                        "wind_interpolation", "linear_neighbors"),
+        "advection":               config_earth.forecast.get("advection", "geodesic"),
+        "backend":                 config_earth.forecast.get("backend", "numpy"),
         "total_runtime_s":         round(total_runtime, 2),
         "per_launch_avg_runtime_s": round(avg_runtime, 2),
         "launches_attempted":      attempted,

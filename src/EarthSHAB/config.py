@@ -22,15 +22,15 @@ parent_dir = "src/EarthSHAB/"
 # for the evaluation suite. To run a current-day prediction instead, set a recent
 # forecast_start_time (cycle hour 00/06/12/18 UTC), set balloon_trajectory = None,
 # and download the forecast first with `python -m EarthSHAB.saveNETCDF`.
-forecast_start_time =  "2022-08-22 12:00:00" # Forecast start time, should match a downloaded forecast in the forecasts directory
-start_time = datetime.fromisoformat("2022-08-22 14:36:00") # Simulation start time. The end time needs to be within the downloaded forecast
-balloon_trajectory = parent_dir + "balloon_data/SHAB14V-APRS.csv"  # Only Accepting Files in the Standard APRS.fi format for now
+forecast_start_time =  "2026-06-15 12:00:00" # Forecast start time, should match a downloaded forecast in the forecasts directory
+start_time = datetime.fromisoformat("2026-06-15 14:36:00") # Simulation start time. The end time needs to be within the downloaded forecast
+balloon_trajectory = None # Only Accepting Files in the Standard APRS.fi format for now
 
 # Single forecast file path. The reader (EarthSHAB.Forecast.Forecast) opens
 # this file regardless of whether it came from GFS or ERA5 — source is read
 # from the file's `institution` global attribute. To run an ERA5-based
 # simulation, point `file` at an ERA5 .nc instead.
-_gfs_res = 0.25   # (deg) GFS grid resolution: 0.25, 0.5, or 1.0
+_gfs_res = 1   # (deg) GFS grid resolution: 0.25, 0.5, or 1.0
 _gfs_res_token = ("%.2f" % _gfs_res).replace(".", "p")   # 0.25->0p25, 0.5->0p50, 1.0->1p00
 _gfs_step_hours = 3   # (h) temporal step between forecast hours (see netcdf_gfs below)
 _gfs_step_token = f"{int(_gfs_step_hours)}h"             # 1->1h, 3->3h
@@ -57,14 +57,14 @@ _default_gfs_file = (
 )
 
 forecast = dict(
-    file = _default_gfs_file,
+    file = "/home/schuler/HAB-COM/GFS_DATA/NETCDF/gfs_20260615_12z_1p00_3h.nc",
     forecast_start_time = forecast_start_time, # used to build the default file path above
     forecast_update_interval = 60,               # (s) After how many iterated dt steps are new wind speeds are looked up
 
     # Wind interpolation method used inside Forecast.wind_alt_Interpolate2:
-    #   'linear_neighbors' - (default, historical) bearing+speed linearly
-    #                        interpolated between the 2 nearest pressure
-    #                        levels, with angle-wrap correction.
+    #   'linear_neighbors' - (historical) bearing+speed linearly interpolated
+    #                        between the 2 nearest pressure levels, with
+    #                        angle-wrap correction.
     #   'linear_full'      - np.interp on u and v independently across the
     #                        full altitude profile.
     #   'spline_full'      - scipy CubicSpline on u and v across the full
@@ -72,7 +72,23 @@ forecast = dict(
     #                        np.interp fallback when alt is outside the
     #                        profile bounds (avoids spline overshoot above
     #                        the highest pressure level).
+    #   'bilinear'         - bilinear lat/lon stencil + linear_full alt/time.
     wind_interpolation = 'linear_full',
+
+    # Advection model used by Forecast.getNewCoord(s):
+    #   'geodesic'      - (default) WGS84 ellipsoid step (geographiclib),
+    #                     re-anchored at the balloon each step.
+    #   'tangent_plane' - spherical tangent-plane step about the fixed launch
+    #                     anchor.
+    advection = 'tangent_plane',
+
+    # Wind-lookup backend tier (same trajectory within float32-cache tolerance):
+    #   'numpy'  - (default) pure-numpy per-member sampling, float64. Matches
+    #              EarthSHAB's historical scalar path bit-for-bit.
+    #   'numba'  - JIT batch kernels (float32 cache); only faster for batched
+    #              sampling (Monte Carlo), not single-trajectory runs.
+    #   'xarray' - slow reference path, queries the live dataset each call.
+    backend = 'numpy',
 )
 
 # GFS downloader configuration. Consumed only by saveNETCDF.py — the Forecast

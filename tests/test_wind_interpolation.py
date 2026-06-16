@@ -15,7 +15,7 @@ import math
 import numpy as np
 import pytest
 
-from EarthSHAB.Forecast import _spline_uv
+from EarthSHAB.utils.wind_interp import spline_uv as _spline_uv
 
 
 class TestSplineUV:

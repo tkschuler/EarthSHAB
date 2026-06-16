@@ -26,6 +26,7 @@ import numpy as np
 import pytest
 
 from EarthSHAB.Forecast import Forecast
+import EarthSHAB.utils.wind_interp as wind_interp
 
 
 # ---------------------------------------------------------------------------
@@ -90,28 +91,28 @@ class TestClosest:
 class TestWindVectorToBearing:
     def test_east_wind(self, bare):
         # u=1, v=0 → bearing = arctan2(0, 1) = 0 rad, speed = 1
-        bearing, speed = bare.windVectorToBearing(1.0, 0.0)
+        bearing, speed = wind_interp.wind_vector_to_bearing(1.0, 0.0)
         assert bearing == pytest.approx(0.0, abs=1e-12)
         assert speed == pytest.approx(1.0, abs=1e-12)
 
     def test_north_wind(self, bare):
         # u=0, v=1 → bearing = pi/2, speed = 1
-        bearing, speed = bare.windVectorToBearing(0.0, 1.0)
+        bearing, speed = wind_interp.wind_vector_to_bearing(0.0, 1.0)
         assert bearing == pytest.approx(math.pi / 2, abs=1e-12)
         assert speed == pytest.approx(1.0, abs=1e-12)
 
     def test_speed_pythagoras(self, bare):
-        b, s = bare.windVectorToBearing(3.0, 4.0)
+        b, s = wind_interp.wind_vector_to_bearing(3.0, 4.0)
         assert s == pytest.approx(5.0, abs=1e-12)
 
     def test_zero_vector(self, bare):
-        b, s = bare.windVectorToBearing(0.0, 0.0)
+        b, s = wind_interp.wind_vector_to_bearing(0.0, 0.0)
         # arctan2(0, 0) is well-defined as 0 in numpy.
         assert s == pytest.approx(0.0, abs=1e-12)
 
     def test_southwest(self, bare):
         # u=-1, v=-1 → bearing = -3pi/4 (or equivalently 5pi/4)
-        b, s = bare.windVectorToBearing(-1.0, -1.0)
+        b, s = wind_interp.wind_vector_to_bearing(-1.0, -1.0)
         assert s == pytest.approx(math.sqrt(2), abs=1e-12)
         assert b == pytest.approx(-3 * math.pi / 4, abs=1e-12)
 
@@ -125,12 +126,12 @@ class TestGet2NearestAltIdxs:
         h = np.array([0.0, 1000.0, 2000.0, 3000.0])
         # alt_m == h[1]. Implementation: alt_m > h[h_nearest] is False, so
         # h_idx0 = h_nearest - 1, h_idx1 = h_nearest.
-        i0, i1 = bare.get2NearestAltIdxs(h, 1000.0)
+        i0, i1 = wind_interp._two_nearest_alt_idxs(h, 1000.0)
         assert (i0, i1) == (0, 1)
 
     def test_query_between_two_points(self, bare):
         h = np.array([0.0, 1000.0, 2000.0, 3000.0])
-        i0, i1 = bare.get2NearestAltIdxs(h, 1500.0)
+        i0, i1 = wind_interp._two_nearest_alt_idxs(h, 1500.0)
         # 1500 is closer to either; closest returns 1 (first equidistant) so
         # alt_m > h[1] is True → (1, 2).
         assert (i0, i1) == (1, 2)
@@ -138,14 +139,14 @@ class TestGet2NearestAltIdxs:
     def test_query_below_min(self, bare):
         h = np.array([1000.0, 2000.0, 3000.0])
         # closest returns 0 (h[0]=1000); alt_m=500 < h[0], so h_idx0=-1, h_idx1=0.
-        i0, i1 = bare.get2NearestAltIdxs(h, 500.0)
+        i0, i1 = wind_interp._two_nearest_alt_idxs(h, 500.0)
         assert (i0, i1) == (-1, 0)
 
     def test_query_above_max(self, bare):
         h = np.array([1000.0, 2000.0, 3000.0])
         # closest returns 2; alt_m > h[2], so h_idx0=2, h_idx1=3 (out of bounds!).
         # interpolateBearing fixes the boundary; this just documents the raw return.
-        i0, i1 = bare.get2NearestAltIdxs(h, 5000.0)
+        i0, i1 = wind_interp._two_nearest_alt_idxs(h, 5000.0)
         assert (i0, i1) == (2, 3)
 
 
@@ -158,7 +159,7 @@ class TestInterpolateBearing:
         h = np.array([0.0, 1000.0, 2000.0])
         u = np.array([1.0, 2.0, 3.0])
         v = np.array([0.0, 0.0, 0.0])
-        dir_deg, speed = bare.interpolateBearing(h, u, v, 0.0)
+        dir_deg, speed = wind_interp.interpolate_bearing(h, u, v, 0.0)
         # Pure east at alt 0 → bearing 0°, speed 1.
         assert dir_deg == pytest.approx(0.0, abs=1e-9)
         assert speed == pytest.approx(1.0, abs=1e-9)
@@ -170,7 +171,7 @@ class TestInterpolateBearing:
         # At alt 500, get2NearestAltIdxs picks (0, 1) → bearing0=90°
         # (north), bearing1=45°. Speeds: 1, sqrt(2). Linear in degrees:
         # midway = (90+45)/2 = 67.5°. Speeds: midway = (1+sqrt(2))/2.
-        dir_deg, speed = bare.interpolateBearing(h, u, v, 500.0)
+        dir_deg, speed = wind_interp.interpolate_bearing(h, u, v, 500.0)
         assert dir_deg == pytest.approx(67.5, abs=1e-6)
         assert speed == pytest.approx((1.0 + math.sqrt(2)) / 2, abs=1e-6)
 
@@ -187,7 +188,7 @@ class TestInterpolateBearing:
             math.sin(math.radians(350.0)),
             math.sin(math.radians(10.0)),
         ])
-        dir_deg, _ = bare.interpolateBearing(h, u, v, 500.0)
+        dir_deg, _ = wind_interp.interpolate_bearing(h, u, v, 500.0)
         # Result modulo 360.
         diff = min(abs(dir_deg), abs(360.0 - dir_deg))
         assert diff == pytest.approx(0.0, abs=1e-6)
@@ -200,14 +201,14 @@ class TestInterpolateBearing:
 class TestInterpolateBearingTime:
     def test_midway_no_wrap(self, bare):
         # bearing0 = 90, bearing1 = 0. hour_index = 0.5 (midway between 0 and 1).
-        dir_deg, speed = bare.interpolateBearingTime(
+        dir_deg, speed = wind_interp.interpolate_bearing_time(
             90.0, 10.0, 0.0, 20.0, 0.5
         )
         assert dir_deg == pytest.approx(45.0, abs=1e-9)
         assert speed == pytest.approx(15.0, abs=1e-9)
 
     def test_wrap_correction(self, bare):
-        dir_deg, _ = bare.interpolateBearingTime(
+        dir_deg, _ = wind_interp.interpolate_bearing_time(
             350.0, 10.0, 10.0, 10.0, 0.5
         )
         diff = min(abs(dir_deg), abs(360.0 - dir_deg))
@@ -215,7 +216,7 @@ class TestInterpolateBearingTime:
 
     def test_at_hour_index_zero(self, bare):
         # Reduces to bearing0.
-        dir_deg, speed = bare.interpolateBearingTime(
+        dir_deg, speed = wind_interp.interpolate_bearing_time(
             42.0, 7.5, 200.0, 1.0, 0.0
         )
         assert dir_deg == pytest.approx(42.0, abs=1e-9)
