@@ -376,10 +376,9 @@ class Forecast:
             nearest-cell diagnostic fields (needed for the full scalar return /
             EarthSHAB contract). Set False in hot batch loops to skip the extra
             wind sample + per-member nearest-index lookups.
-        :returns: list of 10 length-M arrays mirroring getNewCoord's 10-tuple::
-
-            [lat_new, lon_new, x_wind, y_wind, x_wind_diag, y_wind_diag,
-            bearing, nearest_lat, nearest_lon, nearest_alt]
+        :returns: list of 10 length-M arrays mirroring getNewCoord's 10-tuple:
+            lat_new, lon_new, x_wind, y_wind, x_wind_diag, y_wind_diag,
+            bearing, nearest_lat, nearest_lon, nearest_alt.
         """
         lats = np.asarray(lats, dtype=np.float64)
         lons = np.asarray(lons, dtype=np.float64)
