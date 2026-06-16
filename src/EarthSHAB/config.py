@@ -22,8 +22,8 @@ parent_dir = "src/EarthSHAB/"
 # for the evaluation suite. To run a current-day prediction instead, set a recent
 # forecast_start_time (cycle hour 00/06/12/18 UTC), set balloon_trajectory = None,
 # and download the forecast first with `python -m EarthSHAB.saveNETCDF`.
-forecast_start_time =  "2026-06-15 12:00:00" # Forecast start time, should match a downloaded forecast in the forecasts directory
-start_time = datetime.fromisoformat("2026-06-15 14:36:00") # Simulation start time. The end time needs to be within the downloaded forecast
+forecast_start_time =  "2026-06-16 06:00:00" # Forecast start time, should match a downloaded forecast in the forecasts directory
+start_time = datetime.fromisoformat("2026-06-16 14:36:00") # Simulation start time. The end time needs to be within the downloaded forecast
 balloon_trajectory = None # Only Accepting Files in the Standard APRS.fi format for now
 
 # Single forecast file path. The reader (EarthSHAB.Forecast.Forecast) opens
@@ -57,7 +57,7 @@ _default_gfs_file = (
 )
 
 forecast = dict(
-    file = "/home/schuler/HAB-COM/GFS_DATA/NETCDF/gfs_20260615_12z_1p00_3h.nc",
+    file = "/home/schuler/HAB-COM/GFS_DATA/NETCDF/gfs_20260616_06z_1p00_3h.nc",
     forecast_start_time = forecast_start_time, # used to build the default file path above
     forecast_update_interval = 60,               # (s) After how many iterated dt steps are new wind speeds are looked up
 
@@ -80,7 +80,7 @@ forecast = dict(
     #                     re-anchored at the balloon each step.
     #   'tangent_plane' - spherical tangent-plane step about the fixed launch
     #                     anchor.
-    advection = 'tangent_plane',
+    advection = 'geodesic',
 
     # Wind-lookup backend tier (same trajectory within float32-cache tolerance):
     #   'numpy'  - (default) pure-numpy per-member sampling, float64. Matches

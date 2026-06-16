@@ -48,11 +48,11 @@ def latlon_to_meters_spherical(origin_lat, origin_lon, target_lat, target_lon):
     #target_lat_rad = math.radians(target_lat) # unused now
 
     # Calculate distance for latitude change
-    lat_distance = (target_lat - origin_lat) * 111000  # meters per degree of latitude
+    lat_distance = (target_lat - origin_lat) * 111320  # meters per degree of latitude
 
     # Calculate distance for longitude change
     #longitude_distance = (target_lon - origin_lon) * 111000 * math.cos((origin_lat_rad + target_lat_rad) / 2) #OLD OUTDATED TRANSFROM.  THIS FAILED OUTSIDE of 150 km due to Transform errors
-    longitude_distance = (target_lon - origin_lon) * 111000 * math.cos(origin_lat_rad)
+    longitude_distance = (target_lon - origin_lon) * 111320 * math.cos(origin_lat_rad)
 
     # If lat or lon is nan from the transform step being too close to the central coordinate, revert back to central coordinate distance
     if np.isnan(longitude_distance):

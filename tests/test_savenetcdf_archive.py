@@ -80,11 +80,16 @@ def test_select_ranges_level_subset():
 # ── URL construction ────────────────────────────────────────────────────────────
 
 def test_cycle_file_url():
-    assert arch.cycle_file_url("20220822", 12, 0) == (
+    # cycle_file_url's res_token defaults to RES_TOKEN, which is frozen from
+    # config at import time. Pass res_token explicitly so the test asserts the
+    # URL format deterministically, independent of the res config declares.
+    assert arch.cycle_file_url("20220822", 12, 0, res_token="0p25") == (
         "https://noaa-gfs-bdp-pds.s3.amazonaws.com/"
         "gfs.20220822/12/atmos/gfs.t12z.pgrb2.0p25.f000"
     )
-    assert arch.cycle_file_url("20220822", 6, 27).endswith("gfs.t06z.pgrb2.0p25.f027")
+    assert arch.cycle_file_url(
+        "20220822", 6, 27, res_token="0p25"
+    ).endswith("gfs.t06z.pgrb2.0p25.f027")
 
 
 # ── Output filename ───────────────────────────────────────────────────────────
@@ -212,6 +217,10 @@ def test_live_step_hours_controls_forecast_hours(monkeypatch):
     nc_start = base.replace(hour=(base.hour // 6) * 6, minute=0, second=0, microsecond=0)
     monkeypatch.setitem(config_earth.netcdf_gfs, "nc_start", nc_start)
     monkeypatch.setitem(config_earth.netcdf_gfs, "download_days", 1)
+    # Pin res: hourly steps exist only on the 0.25° grid, so the test must not
+    # inherit whatever res config currently declares (a 0.5°/1° default would
+    # make step_hours=1 invalid and raise before the URL-building path runs).
+    monkeypatch.setitem(config_earth.netcdf_gfs, "res", 0.25)
     monkeypatch.setitem(config_earth.netcdf_gfs, "step_hours", 1)
 
     seen = []

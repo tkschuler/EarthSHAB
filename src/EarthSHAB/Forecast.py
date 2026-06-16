@@ -358,8 +358,8 @@ class Forecast:
             # same arithmetic as utils.transform.{latlon_to_meters,
             # meters_to_latlon}_spherical, minus their NaN guards).
             cosc = self._cos_central
-            cx = (lons - self.central_lon) * 111000.0 * cosc
-            cy = (lats - self.central_lat) * 111000.0
+            cx = (lons - self.central_lon) * 111320.0 * cosc
+            cy = (lats - self.central_lat) * 111320.0
             x_new = cx + u * dt
             y_new = cy + v * dt
             lat_new = np.clip(self.central_lat + y_new / 111320.0, -89.999999, 89.999999)
