@@ -1,3 +1,31 @@
+version 2.2.0
+===============================
+* BREAKING: `config_earth.py` renamed to `config.py`
+* BREAKING: `Forecast` interpolation helpers moved to `utils.wind_interp`
+    * `windVectorToBearing`, `interpolateBearing`, `interpolateBearingTime`,
+      `get2NearestAltIdxs`, and `_spline_uv` are no longer methods/attrs of the
+      `Forecast` class — they now live (as `wind_vector_to_bearing`,
+      `interpolate_bearing`, `interpolate_bearing_time`, `_two_nearest_alt_idxs`,
+      `spline_uv`) in `EarthSHAB.utils.wind_interp`
+* Hot-swappable wind-lookup backends (`config.forecast['backend']`)
+    * `'numpy'` (default; pure-numpy float64, bit-identical to the historical
+      scalar path), `'numba'` (JIT batch kernels; only faster for batched
+      sampling, not single trajectories), `'xarray'` (slow reference path)
+    * All backends agree within float32-cache tolerance (<=10 cm landing diff
+      across the evaluation batch)
+* Selectable advection model (`config.forecast['advection']`)
+    * `'geodesic'` (default; WGS84 ellipsoid step, re-anchored each step) or
+      `'tangent_plane'` (spherical step about the fixed launch anchor)
+* New `'bilinear'` wind interpolation (bilinear lat/lon stencil + linear_full
+  altitude/time), alongside `linear_neighbors` / `linear_full` / `spline_full`
+* `run_batch.py` now records and propagates all three selectors
+  (`wind_interpolation` / `advection` / `backend`) into per-launch overrides and
+  `batch_info.json`, so batches are self-describing for combo sweeps
+* Bug fixes
+    * `tangent_plane` advection used mismatched meters-per-degree constants
+      (111000 forward vs 111320 inverse). 
+
+
 version 2.1.0
 ===============================
 * New GRIB-based GFS scheduled downloader (`gfs_collector.py`)

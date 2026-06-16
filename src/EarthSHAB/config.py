@@ -22,15 +22,15 @@ parent_dir = "src/EarthSHAB/"
 # for the evaluation suite. To run a current-day prediction instead, set a recent
 # forecast_start_time (cycle hour 00/06/12/18 UTC), set balloon_trajectory = None,
 # and download the forecast first with `python -m EarthSHAB.saveNETCDF`.
-forecast_start_time =  "2026-06-16 06:00:00" # Forecast start time, should match a downloaded forecast in the forecasts directory
-start_time = datetime.fromisoformat("2026-06-16 14:36:00") # Simulation start time. The end time needs to be within the downloaded forecast
-balloon_trajectory = None # Only Accepting Files in the Standard APRS.fi format for now
+forecast_start_time =  "2022-08-22 12:00:00" # Forecast start time, should match a downloaded forecast in the forecasts directory
+start_time = datetime.fromisoformat("2022-08-22 14:36:00") # Simulation start time. The end time needs to be within the downloaded forecast
+balloon_trajectory = parent_dir + "balloon_data/SHAB14V-APRS.csv"  # Only Accepting Files in the Standard APRS.fi format for now
 
 # Single forecast file path. The reader (EarthSHAB.Forecast.Forecast) opens
 # this file regardless of whether it came from GFS or ERA5 — source is read
 # from the file's `institution` global attribute. To run an ERA5-based
 # simulation, point `file` at an ERA5 .nc instead.
-_gfs_res = 1   # (deg) GFS grid resolution: 0.25, 0.5, or 1.0
+_gfs_res = 0.25   # (deg) GFS grid resolution: 0.25, 0.5, or 1.0
 _gfs_res_token = ("%.2f" % _gfs_res).replace(".", "p")   # 0.25->0p25, 0.5->0p50, 1.0->1p00
 _gfs_step_hours = 3   # (h) temporal step between forecast hours (see netcdf_gfs below)
 _gfs_step_token = f"{int(_gfs_step_hours)}h"             # 1->1h, 3->3h
@@ -57,7 +57,7 @@ _default_gfs_file = (
 )
 
 forecast = dict(
-    file = "/home/schuler/HAB-COM/GFS_DATA/NETCDF/gfs_20260616_06z_1p00_3h.nc",
+    file = _default_gfs_file,
     forecast_start_time = forecast_start_time, # used to build the default file path above
     forecast_update_interval = 60,               # (s) After how many iterated dt steps are new wind speeds are looked up
 

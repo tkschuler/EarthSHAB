@@ -6,7 +6,7 @@ Single Evaluation
 
 A single evaluation runs **one** simulation against **one** historical balloon
 flight and reports how close the simulation came to the truth.  It uses the
-current ``config_earth.py`` directly.
+current ``config.py`` directly.
 
 Useful for:
 
@@ -30,7 +30,7 @@ Two required inputs must be in place before running the evaluation, with SHAB14V
    The trajectory loader auto-detects the format from the column header.
 
 
-Configure ``config_earth.py``
+Configure ``config.py``
 -----------------------------
 
 **1. Point to your APRS trajectory file:**
@@ -154,7 +154,7 @@ Single Evaluation Output
    points (``v > 0.5 m/s``), averages their vertical velocity, and linearly
    extrapolates the first APRS altitude back down to ``min_alt``.  If the
    suggested time differs significantly from your configured ``start_time``,
-   update ``config_earth.py`` and re-run.  APRS trackers often miss the begining
+   update ``config.py`` and re-run.  APRS trackers often miss the begining
    of ascent due to ground interference.
 
 **Comparison plot:**

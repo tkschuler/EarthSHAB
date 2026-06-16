@@ -15,7 +15,7 @@ and saved locally as NetCDF files (see `Unidata netcdf API <https://docs.unidata
 * reproducibility
 * offline trajectory execution
 
-The resolution is set with ``config_earth`` ``_gfs_res`` (mirrored into
+The resolution is set with ``config`` ``_gfs_res`` (mirrored into
 ``netcdf_gfs['res']``). The coarser grids download far less data — a ``1.0°``
 file is roughly **1/16th** the size of a ``0.25°`` file — at the cost of a more
 distant nearest-grid sample (the reader picks the single nearest grid cell with
@@ -35,7 +35,7 @@ output filename, so files of different grids or cadences never collide:
    gfs_<res>_<step>_<YYYYMMDD>_<HH>_archive.nc    e.g. gfs_0p25_3h_20220822_12_archive.nc
 
 The ``_archive`` suffix marks a file pulled from the AWS historical archive
-(see :ref:`gfs-archive`). ``config_earth`` builds this path automatically from
+(see :ref:`gfs-archive`). ``config`` builds this path automatically from
 ``_gfs_res``, ``_gfs_step_hours``, and ``forecast_start_time``, so
 ``forecast['file']`` and ``netcdf_gfs['nc_file']`` always point at whatever the
 downloader produces.
@@ -115,7 +115,7 @@ The forecast download is controlled via the config file.  Key parameters include
     * Cycles **older** than NOAA's ~9-day live window are not on NOMADS, but
       ``saveNETCDF.py`` will offer to fetch them from the AWS archive instead
       (see :ref:`gfs-archive` below).
-- ``netcdf_gfs["res"]``: GFS grid resolution in degrees — ``0.25`` (default), ``0.5``, or ``1.0``. Must match the value used to build ``nc_file`` (``_gfs_res`` in ``config_earth``); the reader enforces this (see the note under :ref:`gfs-filenames`).
+- ``netcdf_gfs["res"]``: GFS grid resolution in degrees — ``0.25`` (default), ``0.5``, or ``1.0``. Must match the value used to build ``nc_file`` (``_gfs_res`` in ``config``); the reader enforces this (see the note under :ref:`gfs-filenames`).
 - ``netcdf_gfs["lat_range"]``: Bounding-box height (in degrees) to download, centered around the ``start_coord``
 - ``netcdf_gfs["lon_range"]``: Bounding-box width (in degrees) to download, centered around the ``start_coord``
 - ``netcdf_gfs["download_days"]``: Determines how far into the forecast horizon to retrieve data. Maximum: ~16 days

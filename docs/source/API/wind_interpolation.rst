@@ -3,22 +3,45 @@ Wind Interpolation Methods
 ===========================
 
 EarthSHAB's unified :class:`Forecast` reader (which serves both GFS and ERA5 netcdf
-files) exposes three different methods for interpolating wind from the discrete
-pressure levels of a forecast to the balloon's continuous altitude during
-simulation. The active method is selected from a single config field:
+files) interpolates wind from the discrete pressure levels of a forecast to the
+balloon's continuous altitude during simulation. The wind field is selected by
+three **orthogonal** config fields:
 
 .. code-block:: python
 
-    # src/EarthSHAB/config_earth.py
+    # src/EarthSHAB/config.py
     forecast = dict(
         file = "src/EarthSHAB/forecasts/gfs_0p25_3h_20220822_12.nc",  # GFS or ERA5 .nc
-        wind_interpolation = 'linear_full',     # see methods below
+        wind_interpolation = 'linear_full',     # horizontal stencil + alt/time scheme (this page)
+        advection          = 'geodesic',        # how wind displaces the balloon each step
+        backend            = 'numpy',           # wind-lookup implementation tier
         ...
     )
 
-All three methods are implemented in
-:func:`EarthSHAB.Forecast.Forecast.wind_alt_Interpolate2`; the runtime dispatch
-is driven by ``config_earth.forecast['wind_interpolation']``.
+* ``wind_interpolation`` — the horizontal stencil and the altitude/time
+  interpolation scheme. Four methods, documented below:
+  ``linear_neighbors`` / ``linear_full`` / ``spline_full`` / ``bilinear``.
+* ``advection`` — how the sampled wind moves the balloon: ``'geodesic'``
+  (default; WGS84 ellipsoid step, re-anchored at the balloon each step) or
+  ``'tangent_plane'`` (spherical step about the fixed launch anchor). This
+  changes the trajectory but not the wind lookup.
+* ``backend`` — the wind-lookup *implementation* tier: ``'numpy'`` (default,
+  float64, matches the historical scalar path bit-for-bit), ``'numba'``
+  (JIT batch kernels; only faster for batched/Monte-Carlo sampling, not single
+  trajectories), or ``'xarray'`` (slow reference path). All three produce the
+  same trajectory within float32-cache tolerance, so ``backend`` is purely a
+  speed/dependency choice, not a physics one.
+
+The altitude/time interpolation math lives in
+:mod:`EarthSHAB.utils.wind_interp` (the horizontal stencils and the
+``apply_*`` appliers); the data-access tiers live in
+:mod:`EarthSHAB.utils.forecast_backends`. :class:`Forecast` is a thin
+orchestrator that selects a backend and a method and exposes
+:func:`~EarthSHAB.Forecast.Forecast.getNewCoord` /
+:func:`~EarthSHAB.Forecast.Forecast.getNewCoords`. The scalar
+:func:`~EarthSHAB.Forecast.Forecast.wind_alt_Interpolate2` entry point is kept
+for API parity and routes through the selected backend, dispatched by
+``config.forecast['wind_interpolation']``.
 
 Methods
 =======
@@ -85,6 +108,23 @@ linear interpolation.
   *mean landing error* is slightly worse than linear_full —
   the launches it hurts, it hurts harder than the launches it helps.
 
+``bilinear``
+------------
+
+The other three methods snap to the single **nearest** lat/lon grid cell.
+``bilinear`` instead blends the (u, v, geopotential) columns across the
+**four surrounding cells** with a bilinear weight, then applies the
+``linear_full`` altitude/time scheme to the blended column.
+
+- **Pros:** removes the horizontal "staircase" of nearest-cell sampling —
+  wind varies smoothly as the balloon crosses grid-cell boundaries. Most
+  noticeable on coarse grids (0.5°/1.0°).
+- **Cons:** four-cell reads instead of one. Near the forecast's lat/lon
+  edges the closed-form stencil (``numpy``/``numba`` backends) extrapolates
+  linearly where the nearest-cell methods clamp; the ``xarray`` backend
+  delegates to ``xarray.interp``, which returns NaN just outside the grid
+  rather than extrapolating.
+
 When to pick which
 ==================
 
@@ -94,6 +134,9 @@ When to pick which
   matter, use ``spline_full``.
 - ``linear_neighbors`` is retained for bit-equivalent reproduction of
   pre-2026 EarthSHAB simulation results.
+- ``bilinear`` is worth trying on coarse (0.5°/1.0°) grids where nearest-cell
+  horizontal sampling is visibly blocky; on a 0.25° grid it usually differs
+  little from the nearest-cell methods.
 
 Visualizing the differences
 ===========================

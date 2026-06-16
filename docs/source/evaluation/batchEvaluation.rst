@@ -103,7 +103,7 @@ forecast files.
      - string
      - Forecast filename (e.g. ``"gfs_0p25_3h_20220822_12.nc"``).  At least one is required; set the other to ``null`` if not available.
 
-**Optional fields** (fall back to current ``config_earth.py`` defaults if omitted):
+**Optional fields** (fall back to current ``config.py`` defaults if omitted):
 
 ``callsign``, ``campaign``, ``landing_time``, ``launch_type``,
 ``areaDensityEnv``, ``cp``, ``absEnv``, ``emissEnv``, ``Upsilon``, and any
@@ -229,7 +229,7 @@ results so you can remember why each batch was run.
 The runner will:
 
 1. Detect the current git hash, branch, commit message, and dirty flag
-2. Snapshot the original ``config_earth`` state (so per-launch overrides cannot
+2. Snapshot the original ``config`` state (so per-launch overrides cannot
    bleed into each other)
 3. Create a timestamped output folder: ``evaluation/batches/2026-04-28T1423_a3f9c12/``
 4. For each launch in ``launches.json``:

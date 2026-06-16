@@ -49,6 +49,7 @@ from termcolor import colored
 import EarthSHAB.config as config
 import EarthSHAB.utils.transform as transform
 import EarthSHAB.utils.forecast_backends as forecast_backends
+import EarthSHAB.utils.advection as advection
 
 
 class ForecastFormatError(ValueError):
@@ -350,32 +351,15 @@ class Forecast:
     def _advect(self, lats, lons, u, v, dt):
         """Advance (lats, lons) under wind (u, v) for dt seconds → (lat_new, lon_new).
 
-        Both branches are vectorized over members; geodesic loops member-wise
-        because geographiclib isn't array-aware.
+        Delegates to utils.advection (the single source of truth shared with the
+        vectorized Monte Carlo runner): geodesic loops member-wise (geographiclib
+        isn't array-aware), tangent_plane is closed-form about the fixed launch
+        anchor. The meter-displacement returns are unused here.
         """
-        if self.advection == 'tangent_plane':
-            # Spherical tangent-plane step about the fixed launch anchor (exact
-            # same arithmetic as utils.transform.{latlon_to_meters,
-            # meters_to_latlon}_spherical, minus their NaN guards).
-            cosc = self._cos_central
-            cx = (lons - self.central_lon) * 111320.0 * cosc
-            cy = (lats - self.central_lat) * 111320.0
-            x_new = cx + u * dt
-            y_new = cy + v * dt
-            lat_new = np.clip(self.central_lat + y_new / 111320.0, -89.999999, 89.999999)
-            lon_new = ((self.central_lon + x_new / (111320.0 * cosc) + 180.0) % 360.0) - 180.0
-            return lat_new, lon_new
-
-        # Geodesic: WGS84 ellipsoid step, re-anchored at the balloon each step.
-        M = len(lats)
-        lat_new = np.empty(M, dtype=np.float64)
-        lon_new = np.empty(M, dtype=np.float64)
-        for m in range(M):
-            bearing = 90.0 - math.degrees(math.atan2(v[m], u[m]))
-            d = math.hypot(u[m], v[m]) * dt
-            g = self.geod.Direct(float(lats[m]), float(lons[m]), bearing, d)
-            lat_new[m] = g['lat2']
-            lon_new[m] = g['lon2']
+        lat_new, lon_new, _x, _y = advection.advect(
+            self.advection, lats, lons, u, v, dt, geod=self.geod,
+            central_lat=self.central_lat, central_lon=self.central_lon,
+            cos_central=self._cos_central)
         return lat_new, lon_new
 
     # ------------------------------------------------------------------
