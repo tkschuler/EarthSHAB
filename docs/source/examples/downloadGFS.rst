@@ -174,33 +174,55 @@ rejected; those require the `NCAR RDA ds084.1
 Continuously maintaining the latest forecast (``gfs_collector.py``)
 -------------------------------------------------------------------
 
-``saveNETCDF.py`` downloads **one** configured cycle and exits. For an
-operational/real-time station that should always have the freshest GFS on disk,
-EarthSHAB also ships ``gfs_collector.py`` — a long-running **scheduled
-downloader** that polls NOAA's AWS GFS bucket and keeps a current v2-canonical
-NetCDF up to date:
+``saveNETCDF.py`` downloads **one** configured cycle, **subset to the
+``netcdf_gfs`` lat/lon box**, and exits — ideal for a small, bounded file for a
+specific run. For an operational/real-time station that should always have the
+freshest GFS on disk for **forward predictions**, EarthSHAB also ships
+``gfs_collector.py`` — a long-running **scheduled downloader** that polls NOAA's
+AWS GFS bucket and keeps a current, full-globe v2-canonical NetCDF up to date:
 
 .. code-block:: bash
 
-   python -m EarthSHAB.gfs_collector
+   python -m EarthSHAB.gfs_collector                    # defaults: 1.0° grid, 3-hourly steps
+   python -m EarthSHAB.gfs_collector --res 0.25 --step-hours 1
 
 On each pass it:
 
 1. determines the latest published GFS cycle,
 2. downloads any GRIB2 files for that cycle it doesn't already have (raw
-   ``pgrb2`` from ``noaa-gfs-bdp-pds``, full 0–384 h horizon at the configured
-   ``step_hours``),
+   ``pgrb2`` from ``noaa-gfs-bdp-pds``, full 0–384 h horizon at the chosen step),
 3. builds the v2 NetCDF **only once every server-available step for the cycle is
    on disk**, then
 4. deletes the previous cycle's GRIBs and NetCDF,
 
 and sleeps ~5 minutes before checking again.
 
-It reads the **same** ``netcdf_gfs`` config as ``saveNETCDF.py`` — honouring
-``res`` (``0.25`` / ``0.5`` / ``1.0``) and ``step_hours`` — and writes the same
-v2 canonical schema. Files land under ``GFS_DATA/`` at the project root
-(``GFS_DATA/GRIBS/`` for the raw GRIBs, ``GFS_DATA/NETCDF/`` for the output),
-named ``gfs_<YYYYMMDD>_<HH>z_<res>_<step>h.nc``.
+Unlike ``saveNETCDF.py``, the collector does **not** read the ``netcdf_gfs``
+config. Because it is meant to run unattended on an always-on station, it
+defaults to the lightest sensible grid and cadence — **1.0° at 3-hourly steps** —
+so it never silently pulls ~16× more data than intended. Override either on the
+command line:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 12 68
+
+   * - Flag
+     - Default
+     - Description
+   * - ``--res``
+     - ``1.0``
+     - Grid resolution in degrees; one of ``0.25``, ``0.5``, ``1.0``.
+   * - ``--step-hours``
+     - ``3``
+     - Hours between forecast steps. Only the ``0.25°`` grid carries
+       sub-3-hourly steps, and only out to f120 (see the note above); other
+       steps 404 and are skipped.
+
+It writes the same v2 canonical schema as ``saveNETCDF.py``. Files land under
+``GFS_DATA/`` at the project root (``GFS_DATA/GRIBS/`` for the raw GRIBs,
+``GFS_DATA/NETCDF/`` for the output), named
+``gfs_<YYYYMMDD>_<HH>z_<res>_<step>h.nc``.
 
 .. note::
 

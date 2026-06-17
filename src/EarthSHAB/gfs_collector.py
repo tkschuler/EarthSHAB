@@ -24,6 +24,7 @@
 #   4. Clean up old GRIB2 files and previous-cycle NetCDF files
 
 import os
+import argparse
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -44,36 +45,66 @@ try:
 except ImportError:
     cfgrib = None
 
-import EarthSHAB.config as config_earth
-
 # Suppress xarray FutureWarnings about compat defaults and other warnings
 xr.set_options(use_new_combine_kwarg_defaults=True)
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 # Configuration
 
-# GFS horizontal resolution and temporal step are sourced from config_earth's
-# netcdf_gfs dict so the collector honours the same grid (res) and cadence
-# (step_hours) as saveNETCDF.py and the rest of EarthSHAB. Valid AWS products:
-# "1p00" (1°), "0p50" (0.5°), "0p25" (0.25°). 0.25° is ~16× larger and far slower
-# to download than 1°. Note: trajectories from a 1° file differ from 0.25° runs
-# because the reader (Forecast.py) samples the single nearest grid cell with no
-# spatial interpolation, so a coarser grid means a more distant sample point.
-RESOLUTION = ("%.2f" % config_earth.netcdf_gfs["res"]).replace(".", "p")  # 0.25->0p25, 0.5->0p50, 1.0->1p00
+# Unlike saveNETCDF.py (which honours the netcdf_gfs config knobs for a single
+# requested cycle), the collector is a long-running background downloader, so it
+# defaults to the cheapest sensible grid/cadence — 1.0° at 3-hourly steps — and
+# only deviates when explicitly asked via CLI args (--res / --step-hours). This
+# keeps an always-on station from silently pulling ~16× more data than intended.
+# Valid AWS products: "1p00" (1°), "0p50" (0.5°), "0p25" (0.25°). Note:
+# trajectories from a 1° file differ from 0.25° runs because the reader
+# (Forecast.py) samples the single nearest grid cell with no spatial
+# interpolation, so a coarser grid means a more distant sample point.
+DEFAULT_RES = 1.0          # degrees: 0.25, 0.5, or 1.0
+DEFAULT_STEP_HOURS = 3     # hours between forecast steps
 
-BASE_URL = (
-    "https://noaa-gfs-bdp-pds.s3.amazonaws.com/gfs.{date}/{hour}/atmos/"
-    "gfs.t{hour}z.pgrb2." + RESOLUTION + ".f{forecast}"
-)
 SAVE_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "GFS_DATA")  # Project root / GFS_DATA
 GRIBS_DIR = os.path.join(SAVE_DIR, "GRIBS")
 OUTPUT_DIR = os.path.join(SAVE_DIR, "NETCDF")
 
-# Forecast horizon (full 8-day GFS available on AWS) at the config-driven step.
-# AWS GFS is 3-hourly throughout [0..384h]; 0.5°/1.0° grids have no hourly steps,
-# and 0.25° hourly only exists to f120 — missing steps are skipped on download.
-STEP_HOURS = int(config_earth.netcdf_gfs["step_hours"])  # (h) temporal step, from config
-FORECAST_HOURS = list(range(0, 384, STEP_HOURS))
+# These are (re)assigned by configure(); module-level defaults let the module be
+# imported without first parsing CLI args.
+RESOLUTION = None    # e.g. "1p00" — used in URLs and filenames
+BASE_URL = None
+STEP_HOURS = None    # (h) temporal step
+FORECAST_HOURS = None
+
+
+def configure(res: float = DEFAULT_RES, step_hours: int = DEFAULT_STEP_HOURS):
+    """Set the grid/cadence-derived globals from a resolution and temporal step.
+
+    Recomputes RESOLUTION, BASE_URL, STEP_HOURS, and FORECAST_HOURS. Called once
+    at import with the defaults and again from main() with any CLI overrides;
+    every downstream function reads these globals at call time, so reassigning
+    them here is sufficient.
+    """
+    global RESOLUTION, BASE_URL, STEP_HOURS, FORECAST_HOURS
+
+    if res not in (0.25, 0.5, 1.0):
+        raise ValueError(f"res must be one of 0.25, 0.5, 1.0 (got {res})")
+    if step_hours < 1:
+        raise ValueError(f"step_hours must be a positive integer (got {step_hours})")
+
+    RESOLUTION = ("%.2f" % res).replace(".", "p")  # 0.25->0p25, 0.5->0p50, 1.0->1p00
+    BASE_URL = (
+        "https://noaa-gfs-bdp-pds.s3.amazonaws.com/gfs.{date}/{hour}/atmos/"
+        "gfs.t{hour}z.pgrb2." + RESOLUTION + ".f{forecast}"
+    )
+    STEP_HOURS = int(step_hours)
+    # Forecast horizon (full 8-day GFS available on AWS) at the chosen step.
+    # AWS GFS is 3-hourly throughout [0..384h]; 0.5°/1.0° grids have no hourly
+    # steps, and 0.25° hourly only exists to f120 — missing steps are skipped on
+    # download (see is_step_available()).
+    FORECAST_HOURS = list(range(0, 384, STEP_HOURS))
+
+
+# Initialise globals with the defaults so plain `import gfs_collector` works.
+configure()
 
 
 def is_step_available(forecast: int) -> bool:
@@ -619,5 +650,26 @@ def combine_gfs_gribs_to_netcdf(date: str, hour: str) -> str:
 
 
 
+def parse_args(argv=None):
+    p = argparse.ArgumentParser(
+        prog="EarthSHAB.gfs_collector",
+        description="Continuously download the latest GFS cycle and build a v2 "
+                    "NetCDF. Defaults to a 1.0° grid at 3-hourly steps.",
+    )
+    p.add_argument(
+        "--res", type=float, default=DEFAULT_RES, choices=(0.25, 0.5, 1.0),
+        help="Grid resolution in degrees (default: %(default)s).",
+    )
+    p.add_argument(
+        "--step-hours", type=int, default=DEFAULT_STEP_HOURS, metavar="H",
+        help="Hours between forecast steps (default: %(default)s). Note: only "
+             "the 0.25° grid carries sub-3-hourly steps, and only to f120.",
+    )
+    return p.parse_args(argv)
+
+
 if __name__ == "__main__":
+    args = parse_args()
+    configure(res=args.res, step_hours=args.step_hours)
+    print(f"GFS collector: {RESOLUTION} grid, {STEP_HOURS}-hourly steps")
     main()

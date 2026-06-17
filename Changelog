@@ -1,3 +1,15 @@
+version 2.2.1
+===============================
+* `gfs_collector.py` is now self-contained and no longer reads `config`
+    * BEHAVIOR CHANGE: defaults to a light 1.0°, 3-hourly grid regardless of
+      `netcdf_gfs['res']`/`['step_hours']`; override on the command line with
+      `--res` (0.25/0.5/1.0) and `--step-hours`
+    * Rationale: an always-on background downloader for forward predictions.
+      0.25° config pulls ~16x more data and will crash most computers once trying to run; 
+      use `saveNETCDF.py` for smaller, config-bounded subset files
+* New `scripts/start_gfs_collector.sh` — launches the collector in a detached,
+  named `screen` session
+
 version 2.2.0
 ===============================
 * BREAKING: `config_earth.py` renamed to `config.py`

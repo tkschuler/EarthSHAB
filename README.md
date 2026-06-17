@@ -44,6 +44,19 @@ See [Installation](https://tkschuler.github.io/EarthSHAB/installation.html) for 
 
 ``saveNETCDF.py`` downloads subsets of NOAA weather forecasts for offline simulation. The grid resolution is set by ``netcdf_gfs["res"]`` (``0.25``°, ``0.5``°, or ``1.0``°) and the temporal resolution by ``netcdf_gfs["step_hours"]`` (3-hourly by default, ``1`` for hourly). For cycles older than NOAA's ~9-day live window it auto-switches (with a prompt) to ``saveNETCDF_archive.py``, which pulls the same forecast from the AWS GFS archive (`noaa-gfs-bdp-pds`). To continuously keep the latest forecast on disk, ``gfs_collector.py`` runs as a background scheduled downloader. See the [GFS download guide](docs/source/examples/downloadGFS.rst) for details.
 
+**Which downloader for which job?** Use ``gfs_collector.py`` for **forward / real-time predictions**: it polls NOAA via AWS data server and keeps a fresh, full-globe forecast on disk so you always have the latest cycle to launch a prediction from. Unlike ``saveNETCDF.py``, it does **not** read ``config`` — it defaults to a light ``1.0``°, 3-hourly grid and is overridden only on the command line:
+
+```bash
+# Background collector for forward predictions — defaults to 1.0°, 3-hourly:
+python -m EarthSHAB.gfs_collector
+python -m EarthSHAB.gfs_collector --res 0.25 --step-hours 1   # finer grid/cadence
+
+# saveNETCDF.py — Updated config.py for netcdf_gfs variables:
+python -m EarthSHAB.saveNETCDF
+```
+
+Use ``saveNETCDF.py`` when you want a **smaller, bounded forecast file**.
+
 ``main.py*``, ``predict.py``, and ``trapezoid.py`` show examples of how to produce relevant and html-based trajectory maps using the Google maps API.
 
 
