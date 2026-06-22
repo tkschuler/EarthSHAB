@@ -5,8 +5,10 @@ geographiclib==2.0
 gmplot==1.4.1
 matplotlib==3.10.8
 netCDF4==1.7.4
+numba==0.62.1
 numpy==2.2.6
 pandas==3.0.2
+pyproj==3.7.2
 pytest==9.0.2
 pytest-spec==6.0.0
 pytz==2024.2
@@ -15,6 +17,7 @@ scipy==1.17.1
 seaborn==0.13.2
 setuptools==80.10.2
 termcolor==3.3.0
+tqdm==4.67.3
 xarray==2026.2.0
 
 backports.datetime_fromisoformat

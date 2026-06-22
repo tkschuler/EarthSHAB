@@ -8,7 +8,7 @@ from EarthSHAB.Plotting.plot_trajectory_map import plot_map
 from EarthSHAB.Plotting.plot_windmap import plot_windmap
 
 import matplotlib.pyplot as plt
-import EarthSHAB.config_earth as config_earth
+import EarthSHAB.config as config_earth
 
 
 def main():
@@ -47,7 +47,7 @@ def main():
     lon_aprs_gps = sim_state["lon_aprs_gps"]
 
     gmap1 = sim_state["gmap1"]
-    gfs = sim_state["gfs"]
+    forecast = sim_state["forecast"]
 
 
     # Example Plots
@@ -93,7 +93,7 @@ def main():
         lat_aprs_gps=lat_aprs_gps,
         lon_aprs_gps=lon_aprs_gps,
         df=df,
-        gfs=gfs,
+        forecast=forecast,
         sim=sim,
         t=t,
         start=start,

@@ -3,14 +3,16 @@ Downloading ERA5 Forecasts
 ==========================
 
 .. important::
-	Note From September 26, 2024, the `legacy CDS and legacy ADS <https://confluence.ecmwf.int/display/CKB/Please+read%3A+CDS+and+ADS+migrating+to+new+infrastructure%3A+Common+Data+Store+%28CDS%29+Engine>`_ 
-	are decommissioned and no longer accessible. CDS-Beta and ADS-Beta have officially become the new CDS and the new ADS. The new CDS and ADS also use 
-	an `updated GRIB to netCDF conversion <https://confluence.ecmwf.int/display/CKB/GRIB+to+netCDF+conversion+on+new+CDS+and+ADS+systems>`_, 
-	which causes slight differences in both formatting and data. 
+	From September 26, 2024, the `legacy CDS and legacy ADS <https://confluence.ecmwf.int/display/CKB/Please+read%3A+CDS+and+ADS+migrating+to+new+infrastructure%3A+Common+Data+Store+%28CDS%29+Engine>`_
+	were decommissioned and are no longer accessible. CDS-Beta and ADS-Beta have officially become the new CDS and the new ADS. The new CDS and ADS also use
+	an `updated GRIB to netCDF conversion <https://confluence.ecmwf.int/display/CKB/GRIB+to+netCDF+conversion+on+new+CDS+and+ADS+systems>`_,
+	which changes both the formatting and the variable/dimension names of the downloaded files.
 
-	EarthSHAB still expects the Pre Sep 2024 ERA5 structure for running trajectories.  Use the `ERA5-Utils toolkit <https://github.com/tkschuler/ERA5-Utils>`_ to convert the new 
-	CDS ERA5 files into the expected format. This toolkit can also be used to download Complete ERA5 reanalysis (more pressure levels) via API.
- 
+	**As of EarthSHAB v2.0, this new post-September-2024 CDS NetCDF *is* the canonical format** (see :doc:`../forecast-schema-v2`). Raw downloads from the
+	current CDS load directly with no conversion step. Only **pre-September-2024** ERA5 archives (and any older "processed" intermediates) need a one-time
+	conversion with ``python -m EarthSHAB.forecast_processing.migrate_v1`` — see the :doc:`migration guide <../migration-v2>`. The
+	`ERA5-Utils toolkit <https://github.com/tkschuler/ERA5-Utils>`_ remains useful for downloading complete ERA5 reanalysis (more pressure levels) via API.
+
 
 Overview
 --------
@@ -46,7 +48,9 @@ Let's say you want data over the Hawaiian Islands for January 1-2, 2021, then a 
 
 .. image:: ../../img/era5_data_selection2.png
 
-Be sure to select **NetCDF (experimental)** for the download format to use with EarthSHAB.
+Be sure to select **NetCDF** as the download format to use with EarthSHAB. (On the
+current CDS this is the standard NetCDF option; the post-September-2024 layout it
+produces is the v2 canonical format EarthSHAB reads directly.)
 
 The data download request is then added to a queue and can be downloaded a later time (typically only takes a few minutes). Save the netcdf reanalysis file to the *forecast directory* and feel free to rename the file to something more useful.
 

@@ -5,7 +5,7 @@
 import math
 import EarthSHAB.radiation as radiation
 import EarthSHAB.sphere_balloon as sphere_balloon
-import EarthSHAB.config_earth as config_earth  #Import parameters from configuration file.
+import EarthSHAB.config as config_earth  #Import parameters from configuration file.
 
 class SolveStates:
     def __init__(self):

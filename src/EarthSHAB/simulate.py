@@ -7,13 +7,13 @@ import pandas as pd
 import numpy as np
 import os
 import re
+import sys
 import copy
 
 import EarthSHAB.solve_states as solve_states
-import EarthSHAB.GFS as GFS
-import EarthSHAB.ERA5 as ERA5
+from EarthSHAB.Forecast import Forecast
 import EarthSHAB.radiation as radiation
-import EarthSHAB.config_earth as config_earth
+import EarthSHAB.config as config_earth
 
 
 def _load_aprs(path: str) -> tuple:
@@ -28,6 +28,9 @@ def _load_aprs(path: str) -> tuple:
     Both are normalized so downstream code sees: time, lat, lng, altitude, comment, dt.
     Time is converted to local (MST = UTC-7) in both cases.
     """
+    if not os.path.isfile(path):
+        print(colored(f"Unable to locate balloon_trajectory file: {path}", "red"))
+        sys.exit(1)
     df = pd.read_csv(path)
     cols = set(df.columns)
 
@@ -106,6 +109,39 @@ def _load_aprs(path: str) -> tuple:
 
     raise ValueError(f"Unrecognized APRS file format. Columns found: {sorted(cols)}")
 
+
+def _assert_trajectory_within_forecast(df, model_start_datetime, model_end_datetime, gmt_offset_hours=7):
+    """Fatal-exit if the balloon trajectory's recorded time span falls outside the forecast.
+
+    ``df['time']`` holds the trajectory's real timestamps in local time — the
+    APRS loader shifts UTC down by ``gmt_offset_hours``. Shift them back to UTC
+    and require the full ``[first, last]`` span to lie within the forecast's
+    ``[model_start_datetime, model_end_datetime]`` coverage.
+
+    This catches the common misconfiguration of pairing a trajectory with a
+    forecast from a different day/year (e.g. a 2022 flight against a 2026
+    forecast). The reforecast re-anchors the track to ``simulation['start_time']``
+    and steps by each APRS ``dt``, so a date mismatch does not crash — it just
+    silently applies the wrong winds to the truth altitude profile — which is
+    exactly why it has to be checked explicitly here.
+    """
+    offset = pd.Timedelta(hours=gmt_offset_hours)
+    traj_start = (df["time"].min() + offset).to_pydatetime()
+    traj_end = (df["time"].max() + offset).to_pydatetime()
+
+    if traj_start < model_start_datetime or traj_end > model_end_datetime:
+        print(colored(
+            "FATAL: balloon_trajectory recorded time span "
+            f"[{traj_start} -> {traj_end}] UTC falls outside the forecast time "
+            f"range [{model_start_datetime} -> {model_end_datetime}].\n"
+            "The trajectory was recorded outside the downloaded forecast's "
+            "coverage (e.g. a flight from a different day/year). Point "
+            "balloon_trajectory at a flight the forecast covers, or download a "
+            "forecast spanning the flight's dates.",
+            "red"))
+        sys.exit(1)
+
+
 class BalloonSimulation:
     def __init__(self):
         self.scriptstartTime = tm.time()
@@ -115,17 +151,14 @@ class BalloonSimulation:
         self.coord = config_earth.simulation['start_coord']
         self.t = config_earth.simulation['start_time']
         self.start = self.t
-        self.nc_start = config_earth.netcdf_gfs["nc_start"]
         self.min_alt = config_earth.simulation['min_alt']
         self.alt_sp = config_earth.simulation['alt_sp']
         self.v_sp = config_earth.simulation['v_sp']
         self.sim_time = config_earth.simulation['sim_time'] * int(3600 * (1 / self.dt))
         self.lat = [self.coord["lat"]]
         self.lon = [self.coord["lon"]]
-        self.GFSrate = config_earth.forecast['GFSrate']
-        self.hourstamp = config_earth.netcdf_gfs['hourstamp']
+        self.forecast_update_interval = config_earth.forecast['forecast_update_interval']
         self.balloon_trajectory = config_earth.simulation['balloon_trajectory']
-        self.forecast_type = config_earth.forecast['forecast_type']
         self.atm = fluids.atmosphere.ATMOSPHERE_1976(self.min_alt)
 
         self.trajectory_name = None
@@ -159,10 +192,22 @@ class BalloonSimulation:
 
         self.e = solve_states.SolveStates()
 
-        if self.forecast_type == "GFS":
-            self.gfs = GFS.GFS(self.coord)
-        else:
-            self.gfs = ERA5.ERA5(self.coord)
+        self.forecast = Forecast(self.coord)
+        self.forecast_type = self.forecast.source
+
+        # Load the balloon trajectory up front (when configured) and verify it
+        # was recorded within the forecast's time coverage. Doing this in the
+        # constructor makes a misconfigured trajectory/forecast pair fail fast —
+        # before any simulation runs — for every entry point (main, predict, ...),
+        # not just at the reforecast step.
+        if self.balloon_trajectory is not None:
+            self.df, self.aprs_format = _load_aprs(self.balloon_trajectory)
+            _assert_trajectory_within_forecast(
+                self.df,
+                self.forecast.model_start_datetime,
+                self.forecast.model_end_datetime,
+                gmt_offset_hours=self.GMT,
+            )
 
         self.lat_aprs_gps = [self.coord["lat"]]
         self.lon_aprs_gps = [self.coord["lon"]]
@@ -209,7 +254,7 @@ class BalloonSimulation:
                 self.t = self.t + pd.Timedelta(hours=(1 / 3600 * self.dt))
                 self.time_local.append(self.t - pd.Timedelta(hours=self.GMT))
 
-                if i % self.GFSrate == 0:
+                if i % self.forecast_update_interval == 0:
                     (
                         lat_new,
                         lon_new,
@@ -221,7 +266,7 @@ class BalloonSimulation:
                         nearest_lat,
                         nearest_lon,
                         nearest_alt,
-                    ) = self.gfs.getNewCoord(self.coords[i], self.dt * self.GFSrate)
+                    ) = self.forecast.getNewCoord(self.coords[i], self.dt * self.forecast_update_interval)
 
                 coord_new = {
                     "lat": lat_new,
@@ -258,8 +303,7 @@ class BalloonSimulation:
                                 " Nearest Alt: " + str(nearest_alt)), "cyan"))
         else:
             if self.balloon_trajectory is not None:
-                self.df, self.aprs_format = _load_aprs(self.balloon_trajectory)
-
+                # df was loaded and validated against the forecast in __init__.
                 self.gmap1.plot(self.df["lat"], self.df["lng"], "white", edge_width=2.5)
                 self.gmap1.text(
                     self.coord["lat"] - 0.1,
@@ -285,7 +329,7 @@ class BalloonSimulation:
                         nearest_lat,
                         nearest_lon,
                         nearest_alt,
-                    ) = self.gfs.getNewCoord(self.coords_aprs[i], dt_aprs[i])
+                    ) = self.forecast.getNewCoord(self.coords_aprs[i], dt_aprs[i])
 
                     self.t = self.t + pd.Timedelta(seconds=dt_aprs[i + 1])
                     self.time_local_aprs.append(self.t - pd.Timedelta(hours=self.GMT))
@@ -322,15 +366,13 @@ class BalloonSimulation:
             "coord": self.coord,
             "t": self.t,
             "start": self.start,
-            "nc_start": self.nc_start,
             "min_alt": self.min_alt,
             "alt_sp": self.alt_sp,
             "v_sp": self.v_sp,
             "sim_time": self.sim_time,
             "lat": self.lat,
             "lon": self.lon,
-            "GFSrate": self.GFSrate,
-            "hourstamp": self.hourstamp,
+            "forecast_update_interval": self.forecast_update_interval,
             "balloon_trajectory": self.balloon_trajectory,
             "forecast_type": self.forecast_type,
             "atm": self.atm,
@@ -350,7 +392,7 @@ class BalloonSimulation:
             "burst": self.burst,
             "gmap1": self.gmap1,
             "e": self.e,
-            "gfs": self.gfs,
+            "forecast": self.forecast,
             "lat_aprs_gps": self.lat_aprs_gps,
             "lon_aprs_gps": self.lon_aprs_gps,
             "time_local_aprs": self.time_local_aprs,

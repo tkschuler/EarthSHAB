@@ -19,6 +19,7 @@ Output structure:
 import argparse
 import copy
 import csv
+import gc
 import json
 import math
 import os
@@ -28,9 +29,10 @@ import time
 import traceback
 from datetime import datetime, timezone
 
+import matplotlib.pyplot as plt
 import pandas as pd
 
-import EarthSHAB.config_earth as config_earth
+import EarthSHAB.config as config_earth
 from evaluation.evaluate import BalloonEvaluator
 from evaluation.reporting import SUMMARY_FIELDNAMES, result_to_summary_row, write_summary_html
 
@@ -89,19 +91,29 @@ def _snapshot_config() -> dict:
         "simulation":         copy.deepcopy(config_earth.simulation),
         "forecast":           copy.deepcopy(config_earth.forecast),
         "netcdf_gfs":         copy.deepcopy(config_earth.netcdf_gfs),
-        "netcdf_era5":        copy.deepcopy(config_earth.netcdf_era5),
     }
 
 
 def _parse_gfs_filename(filename: str) -> tuple[str, str]:
     """Return (forecast_start_str, hour_str) from a GFS filename.
 
-    Handles both gfs_0p25_YYYYMMDD_HH.nc and gfs_0p25_YYYYMMDD_HH_<suffix>.nc.
+    Locates the 8-digit YYYYMMDD cycle-date token and reads the cycle hour from the
+    token immediately after it, so the parse is insensitive to optional leading
+    tokens such as a temporal-step marker (e.g. "3h"). Uses basename so path
+    components with underscores (e.g. "balloon_data/") don't corrupt the split.
+    Handles, e.g.:
+        gfs_0p25_20220822_12.nc
+        gfs_0p25_3h_20220822_12_archive.nc
+        gfs_0p25_20201001_12_SHAB1.nc
     """
-    stem  = filename.replace(".nc", "")
+    stem  = os.path.basename(filename).replace(".nc", "")
     parts = stem.split("_")
-    date_part = parts[2]   # e.g. "20220822"
-    hour_part = parts[3]   # e.g. "12"
+    for i, p in enumerate(parts[:-1]):   # [:-1] so the hour token always follows
+        if len(p) == 8 and p.isdigit():
+            date_part, hour_part = p, parts[i + 1]
+            break
+    else:
+        raise ValueError(f"Cannot parse cycle date/hour from GFS filename: {filename}")
     forecast_start = (
         f"{date_part[:4]}-{date_part[4:6]}-{date_part[6:8]} {hour_part}:00:00"
     )
@@ -159,16 +171,23 @@ def _build_overrides(launch: dict, forecast_type: str, orig: dict) -> dict:
     }
 
     if forecast_type == "GFS":
-        gfs_file           = launch["gfs_file"]
-        gfs_path           = FORECASTS_DIR + gfs_file
+        gfs_file = launch["gfs_file"]
+        gfs_path = FORECASTS_DIR + gfs_file
         forecast_start, hour_str = _parse_gfs_filename(gfs_file)
-        forecast_start_dt  = datetime.fromisoformat(forecast_start)
+        forecast_start_dt = datetime.fromisoformat(forecast_start)
 
         overrides["forecast"] = {
-            "forecast_type":      "GFS",
+            "file":                gfs_path,
             "forecast_start_time": forecast_start,
-            "GFSrate":            orig["forecast"]["GFSrate"],
+            "forecast_update_interval": orig["forecast"]["forecast_update_interval"],
+            "wind_interpolation":  orig["forecast"].get("wind_interpolation", "linear_full"),
+            "advection":           orig["forecast"].get("advection", "geodesic"),
+            "backend":             orig["forecast"].get("backend", "numpy"),
         }
+        # netcdf_gfs is still consumed by saveNETCDF.py for downloads; the
+        # Forecast reader doesn't look at it. Updating nc_file/nc_start/
+        # hourstamp here keeps the snapshot self-consistent for any tooling
+        # that inspects it after a batch run.
         overrides["netcdf_gfs"] = {
             "nc_file":       gfs_path,
             "nc_start":      forecast_start_dt,
@@ -180,16 +199,16 @@ def _build_overrides(launch: dict, forecast_type: str, orig: dict) -> dict:
         }
 
     elif forecast_type == "ERA5":
+        era5_path = FORECASTS_DIR + launch["era5_file"]
         overrides["forecast"] = {
-            "forecast_type":      "ERA5",
+            "file":                era5_path,
             "forecast_start_time": orig["forecast"]["forecast_start_time"],
-            "GFSrate":            orig["forecast"]["GFSrate"],
+            "forecast_update_interval": orig["forecast"]["forecast_update_interval"],
+            "wind_interpolation":  orig["forecast"].get("wind_interpolation", "linear_full"),
+            "advection":           orig["forecast"].get("advection", "geodesic"),
+            "backend":             orig["forecast"].get("backend", "numpy"),
         }
-        # ERA5.py prepends "src/EarthSHAB/forecasts/" itself — filename only
-        overrides["netcdf_era5"] = {
-            "filename":       launch["era5_file"],
-            "resolution_hr":  orig["netcdf_era5"]["resolution_hr"],
-        }
+        overrides["netcdf_gfs"] = copy.deepcopy(orig["netcdf_gfs"])
 
     return overrides
 
@@ -223,15 +242,15 @@ def _validate_launch(launch: dict) -> list[str]:
 
 # ── Main batch runner ─────────────────────────────────────────────────────────
 
-def run_batch(note: str):
-    if not os.path.exists(LAUNCHES_JSON):
-        print(f"ERROR: {LAUNCHES_JSON} not found.")
+def run_batch(note: str, launches_json: str = LAUNCHES_JSON):
+    if not os.path.exists(launches_json):
+        print(f"ERROR: {launches_json} not found.")
         print(f"  Copy the example to get started:")
         print(f"    cp evaluation/launches.example.json evaluation/launches.json")
         print(f"  Then add your own launch entries and re-run.")
         sys.exit(1)
 
-    with open(LAUNCHES_JSON) as f:
+    with open(launches_json) as f:
         launches = json.load(f)["launches"]
 
     git       = _git_info()
@@ -264,6 +283,7 @@ def run_batch(note: str):
         launch_id      = f"{launch_org}_{launch.get('shab_name','?')}_{launch_date}"
         launch_payload = float(launch.get("payload_weight_kg") or math.nan)
         launch_balsize = float(launch.get("balloon_size") or math.nan)
+        launch_type    = launch.get("launch_type", "standard")
         attempted.append(launch_id)
 
         print(f"── {launch_id} ──")
@@ -282,6 +302,7 @@ def run_batch(note: str):
                         launch_date=launch_date,
                         payload_weight_kg=launch_payload,
                         balloon_size_m=launch_balsize,
+                        launch_type=launch_type,
                     ))
             continue
 
@@ -302,7 +323,12 @@ def run_batch(note: str):
             aprs_fmt = ""
             try:
                 overrides = _build_overrides(launch, ft, orig)
-                ev = BalloonEvaluator(config_overrides=overrides, output_dir=launch_dir)
+                # launch_type is optional — defaults to "standard" if absent
+                ev = BalloonEvaluator(
+                    config_overrides=overrides,
+                    output_dir=launch_dir,
+                    launch_type=launch_type,
+                )
                 ev.run()
                 aprs_fmt = (ev.sim_state or {}).get("aprs_format", "") or ""
                 result = ev.compute_metrics()
@@ -314,6 +340,7 @@ def run_batch(note: str):
                     launch_date=launch_date,
                     payload_weight_kg=launch_payload,
                     balloon_size_m=launch_balsize,
+                    launch_type=launch_type,
                 ))
                 print(f"  [{ft}] done\n")
             except Exception:
@@ -327,11 +354,30 @@ def run_batch(note: str):
                     launch_date=launch_date,
                     payload_weight_kg=launch_payload,
                     balloon_size_m=launch_balsize,
+                    launch_type=launch_type,
                 ))
                 launch_errors.append(f"{ft}: {short_msg}")
 
         elapsed = time.monotonic() - launch_start
         per_launch_times.append(elapsed)
+
+        # Release accumulated matplotlib figures (evaluate.py and windmap.py
+        # don't close their figs explicitly). Without this, ~6-7 launches in
+        # the process segfaults from accumulated figure + netCDF handle state.
+        plt.close('all')
+        # Explicitly close every netCDF4.Dataset the evaluator may still hold
+        # a transitive reference to via ev.sim.gfs / its Windmap. CPython's
+        # netCDF4.Dataset.__del__ is unreliable enough that relying on it
+        # accumulates HDF5 chunk-cache state across launches and segfaults
+        # around the 6th–7th iteration.
+        try:
+            if 'ev' in locals() and getattr(ev, 'sim', None) is not None:
+                forecast = getattr(ev.sim, 'gfs', None)
+                if forecast is not None and hasattr(forecast, 'close'):
+                    forecast.close()
+        except Exception:
+            pass
+        gc.collect()
 
         if launch_errors:
             failed[launch_id] = "; ".join(launch_errors)
@@ -349,11 +395,13 @@ def run_batch(note: str):
         w.writerows(summary_rows)
     print(f"Summary → {summary_path}")
 
-    html_path = write_summary_html(summary_rows, batch_dir, batch_id, note, git)
+    html_path = write_summary_html(summary_rows, batch_dir, batch_id, note, git,
+                                   total_runtime_s=total_runtime,
+                                   per_launch_avg_runtime_s=avg_runtime)
     print(f"Report  → {html_path}")
 
     # ── Write batch_info.json ────────────────────────────────────────────────
-    with open(LAUNCHES_JSON) as f:
+    with open(launches_json) as f:
         launches_snapshot = json.load(f)
 
     batch_info = {
@@ -366,6 +414,10 @@ def run_batch(note: str):
         "git_commit_message":      git["git_commit_message"],
         "git_dirty":               git["git_dirty"],
         "earthshab_version":       _earthshab_version(),
+        "wind_interpolation":      config_earth.forecast.get(
+                                       "wind_interpolation", "linear_neighbors"),
+        "advection":               config_earth.forecast.get("advection", "geodesic"),
+        "backend":                 config_earth.forecast.get("backend", "numpy"),
         "total_runtime_s":         round(total_runtime, 2),
         "per_launch_avg_runtime_s": round(avg_runtime, 2),
         "launches_attempted":      attempted,
@@ -400,8 +452,12 @@ def main():
         "--note", required=True,
         help="Description of what changed in this batch (e.g. 'tuned vent rate')"
     )
+    parser.add_argument(
+        "--launches", default=LAUNCHES_JSON,
+        help=f"Path to the launches JSON to run (default: {LAUNCHES_JSON})."
+    )
     args = parser.parse_args()
-    success = run_batch(args.note)
+    success = run_batch(args.note, launches_json=args.launches)
     sys.exit(0 if success else 1)
 
 

@@ -1,3 +1,134 @@
+version 2.2.1
+===============================
+* `gfs_collector.py` is now self-contained and no longer reads `config`
+    * BEHAVIOR CHANGE: defaults to a light 1.0°, 3-hourly grid regardless of
+      `netcdf_gfs['res']`/`['step_hours']`; override on the command line with
+      `--res` (0.25/0.5/1.0) and `--step-hours`
+    * Rationale: an always-on background downloader for forward predictions.
+      0.25° config pulls ~16x more data and will crash most computers once trying to run; 
+      use `saveNETCDF.py` for smaller, config-bounded subset files
+* New `scripts/start_gfs_collector.sh` — launches the collector in a detached,
+  named `screen` session
+
+version 2.2.0
+===============================
+* BREAKING: `config_earth.py` renamed to `config.py`
+* BREAKING: `Forecast` interpolation helpers moved to `utils.wind_interp`
+    * `windVectorToBearing`, `interpolateBearing`, `interpolateBearingTime`,
+      `get2NearestAltIdxs`, and `_spline_uv` are no longer methods/attrs of the
+      `Forecast` class — they now live (as `wind_vector_to_bearing`,
+      `interpolate_bearing`, `interpolate_bearing_time`, `_two_nearest_alt_idxs`,
+      `spline_uv`) in `EarthSHAB.utils.wind_interp`
+* Hot-swappable wind-lookup backends (`config.forecast['backend']`)
+    * `'numpy'` (default; pure-numpy float64, bit-identical to the historical
+      scalar path), `'numba'` (JIT batch kernels; only faster for batched
+      sampling, not single trajectories), `'xarray'` (slow reference path)
+    * All backends agree within float32-cache tolerance (<=10 cm landing diff
+      across the evaluation batch)
+* Selectable advection model (`config.forecast['advection']`)
+    * `'geodesic'` (default; WGS84 ellipsoid step, re-anchored each step) or
+      `'tangent_plane'` (spherical step about the fixed launch anchor)
+* New `'bilinear'` wind interpolation (bilinear lat/lon stencil + linear_full
+  altitude/time), alongside `linear_neighbors` / `linear_full` / `spline_full`
+* `run_batch.py` now records and propagates all three selectors
+  (`wind_interpolation` / `advection` / `backend`) into per-launch overrides and
+  `batch_info.json`, so batches are self-describing for combo sweeps
+* Bug fixes
+    * `tangent_plane` advection used mismatched meters-per-degree constants
+      (111000 forward vs 111320 inverse). 
+
+
+version 2.1.0
+===============================
+* New GRIB-based GFS scheduled downloader (`gfs_collector.py`)
+    * Pulls raw GRIB2 files from NOAA's AWS S3 bucket and combines them into a
+      single v2 canonical NetCDF (CF-1.7; dims `valid_time/pressure_level/
+      latitude/longitude`; vars `u/v/z/t`) — same schema as `saveNETCDF.py`
+* Multi-resolution GFS support
+    * GFS grid resolution is now selectable: 0.25°, 0.5°, or 1.0°
+      (`config_earth` `_gfs_res` / `netcdf_gfs['res']`)
+    * Forecast filenames encode both the grid and the temporal step, e.g.
+      `gfs_0p25_3h_20260605_06.nc`
+    * Note: only the 0.25° grid provides hourly steps (out to f120); the 0.5°
+      and 1.0° grids are 3-hourly only
+    * The `Forecast` reader now checks the loaded file's actual grid spacing AND
+      cadence against the declared `netcdf_gfs['res']`/`['step_hours']`: GFS
+      files raise on a mismatch (wrong filename), manually-supplied ERA5 files
+      print a non-fatal warning (previously ERA5 mismatches were silent, and
+      cadence was never checked)
+
+version 2.0.0
+===============================
+* BREAKING: Unified forecast format — GFS and ERA5 consolidated into one reader
+    * `ERA5.py` and `GFS.py` collapsed into a single `Forecast` class
+      (`Forecast.py`) that reads one canonical schema regardless of source
+    * Single canonical netCDF schema (CF-1.7, ECMWF/ERA5-style), documented in
+      `docs/source/forecast-schema-v2.md`:
+        * variables `u/v/z/t`; dims `valid_time/pressure_level/latitude/longitude`
+        * latitude descending; pressure_level descending hPa; longitude -180..180
+        * geopotential `z` in m²/s² (reader divides by g); temperature `t` required
+        * time as `seconds since 1970-01-01` / `proleptic_gregorian`
+        * matches what the Copernicus CDS API returns post-September 2024, so
+          current ERA5 downloads load with no conversion step
+    * Source (GFS vs ERA5) is read from the file's `institution` global attribute
+      and exposed as `Forecast.source` (with a filename fallback for older files)
+    * Forecast cadence (`resolution_hr`) is derived from the file's time array
+      rather than a config key — ERA5 1-hr and GFS 3-hr both work with no knob
+    * Every v2 file is a tight bounding-box subset; the old `determineRanges()`
+      and lat/lon/time index bookkeeping are gone (array slices are `[:]`)
+* Configuration
+    * `config_earth.forecast['forecast_type']` retired; config now carries a
+      single `forecast['file']` path that may point at a GFS or ERA5 file
+    * Forecast and `balloon_trajectory` loading fail fast with a clear message
+      and a non-zero exit code when the configured file is missing or mistyped
+* GFS downloader (`saveNETCDF.py`) now writes canonical files directly
+    * renames vars/dims; converts geopotential height → geopotential (`* g`)
+    * converts longitude `[0, 360)` → `[-180, 180)`; flips latitude to descending
+    * re-encodes time; stamps `institution` and `Conventions = "CF-1.7"`
+* Migration tooling for archived v1 forecasts
+    * `python -m EarthSHAB.forecast_processing.migrate_v1 <file_or_dir>` converts
+      v1 GFS, v1 ERA5 "processed", and pre-Sep-2024 ERA5 files to canonical in
+      place (idempotent; backs up originals as `<name>.v1.nc`)
+    * `python -m EarthSHAB.forecast_processing.verify_migration <dir>` confirms a
+      directory is fully v2
+    * The reader raises `ForecastFormatError` with the exact migration command
+      when it encounters a v1 file — no silent on-load conversion
+    * Documented in `docs/source/migration-v2.md`
+* Removals / cleanup
+    * Deleted the obsolete `convert_era52gfs.py` / `convert_gfs2era5.py`
+      converters and the `*-processed.nc` intermediates
+    * Test suite collapsed to a single reader: dropped the `reader_type`
+      parametrization and `reader_adapter.py`; dummy-forecast fixtures emit
+      only canonical schema
+* Bug fixes (latent v1 bugs surfaced while deleting the old readers)
+    * ERA5 reader unpacked 3 values from a 2D `np.nonzero` (fired on partial
+      masks at the level-0 sample slice)
+    * GFS time decode used hardcoded `"days since 0001-01-01"` units, producing
+      cftime objects and a 2-day calendar offset vs stdlib datetime
+* Historical GFS downloads from the AWS archive (`saveNETCDF_archive.py`)
+    * Pulls past cycles from `noaa-gfs-bdp-pds` (pgrb2.0p25, ~2021-03 onward) via
+      each file's `.idx` sidecar + HTTP byte-range requests; writes the same v2
+      canonical schema as the live downloader (drop-in replacement)
+    * `saveNETCDF.py` auto-switches to it (yellow warning + prompt) when the
+      requested cycle predates NOAA's ~9-day live window; non-interactive
+      sessions proceed automatically
+* New `netcdf_gfs['step_hours']` sets download temporal resolution for both
+  downloaders (3-hourly default, `1` = hourly; GFS hourly only out to f120)
+* `run_batch.py` gains `--launches <file>` to run an alternate launches JSON
+* Documentation
+    * New canonical-schema and migration guides; unified `Forecast` API page
+      (replacing the separate GFS/ERA5 pages); refreshed GFS/ERA5 download guides
+    * README v2.0 breaking-change banner linking to the migration guide
+
+
+version 1.3.1
+===============================
+* Added evaluation support for Helium Augmented and GrandSlam flights (ignoring ascent phase in evaluation)
+* Added new wind interpolation methods, selectable via `config_earth.forecast['wind_interpolation']`
+* Added batch comparison script `python -m evaluation.compare_batches <A> <B>`
+* Fixed blank GFS hodograph in `plot_windmap` - `plotWind2` was indexing the full netCDF arrays with cropped-region indices, landing in the wrong geographic cell
+
+
 version 1.3 
 ===============================
 * Fixed bug in calculating sunset off of sim trajectory for ground-truth data

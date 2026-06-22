@@ -1,10 +1,16 @@
 [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-3110/)
+[![Tests](https://github.com/tkschuler/EarthSHAB/actions/workflows/tests.yml/badge.svg)](https://github.com/tkschuler/EarthSHAB/actions/workflows/tests.yml)
 [![Docs](https://github.com/tkschuler/EarthSHAB/actions/workflows/docs.yml/badge.svg)](https://github.com/tkschuler/EarthSHAB/actions/workflows/docs.yml)
 [![License](https://img.shields.io/badge/license-see%20LICENSE-lightgrey.svg)](LICENSE)
 
 # EarthSHAB
 I have made some edits and also set up automatic system time and time zone for images.
 I also transfer basic payload weight into trajectory computations.
+
+> ⚠️ **v2.0.0 introduces a new unified NetCDF forecast schema.** Archived v1 forecasts
+> can be converted with the `migrate_v1` CLI.
+> For more information, see the **[v2 migration guide](docs/source/migration-v2.md)** (and the
+> [canonical NetCDF schema](docs/source/forecast-schema-v2.md)).
 
 Solar high altitude balloons (SHAB) are a simple and lightweight option for aerial exploration and meteorological data collection both terrestrially and on other planets. By using a
 lightweight material that absorbs visual light and emits low levels of thermal radiation, solar balloons behave similarly to hot air balloons, but are capable of ascending to much higher altitudes. Unlike hot air balloons, which use a heat source to raise the temperature of the internal air, solar balloons generate heat by absorbing solar radiation, providing a free source of lift and eliminating the need for a lighter than air gas or carrying fuel.
@@ -38,7 +44,20 @@ See [Installation](https://tkschuler.github.io/EarthSHAB/installation.html) for 
 
 ``config_earth.py`` includes adjustable parameters and default parameters for running any of the files discussed below. These parameters include balloon size, envelope material properties, deployment location, date and time, etc.
 
-``saveNETCDF.py`` downloads subsets of NOAA weather forecasts for offline simulation
+``saveNETCDF.py`` downloads subsets of NOAA weather forecasts for offline simulation. The grid resolution is set by ``netcdf_gfs["res"]`` (``0.25``°, ``0.5``°, or ``1.0``°) and the temporal resolution by ``netcdf_gfs["step_hours"]`` (3-hourly by default, ``1`` for hourly). For cycles older than NOAA's ~9-day live window it auto-switches (with a prompt) to ``saveNETCDF_archive.py``, which pulls the same forecast from the AWS GFS archive (`noaa-gfs-bdp-pds`). To continuously keep the latest forecast on disk, ``gfs_collector.py`` runs as a background scheduled downloader. See the [GFS download guide](docs/source/examples/downloadGFS.rst) for details.
+
+**Which downloader for which job?** Use ``gfs_collector.py`` for **forward / real-time predictions**: it polls NOAA via AWS data server and keeps a fresh, full-globe forecast on disk so you always have the latest cycle to launch a prediction from. Unlike ``saveNETCDF.py``, it does **not** read ``config`` — it defaults to a light ``1.0``°, 3-hourly grid and is overridden only on the command line:
+
+```bash
+# Background collector for forward predictions — defaults to 1.0°, 3-hourly:
+python -m EarthSHAB.gfs_collector
+python -m EarthSHAB.gfs_collector --res 0.25 --step-hours 1   # finer grid/cadence
+
+# saveNETCDF.py — Updated config.py for netcdf_gfs variables:
+python -m EarthSHAB.saveNETCDF
+```
+
+Use ``saveNETCDF.py`` when you want a **smaller, bounded forecast file**.
 
 ``main.py*``, ``predict.py``, and ``trapezoid.py`` show examples of how to produce relevant and html-based trajectory maps using the Google maps API.
 
@@ -58,6 +77,12 @@ python -m evaluation.evaluate
 <img src = "img/evaluation_comparison_SHAB14V_GFS.png" />
 
 For sweeping a collection of flights at once and comparing across code revisions, see ``evaluation/run_batch.py`` and the [Evaluation docs](https://tkschuler.github.io/EarthSHAB/evaluation/index.html).
+
+## Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow: fork the repo, branch off `main` with an issue number in the name, and open a PR. 
+
+If EarthSHAB is useful to you, please consider **starring the repo** ⭐ to help it reach others.
 
 ## Citing EarthSHAB
 

@@ -12,7 +12,7 @@ Public API:
 
     SUMMARY_FIELDNAMES
     result_to_summary_row(...)
-    write_summary_html(summary_rows, batch_dir, batch_id, note, git)
+    write_summary_html(summary_rows, batch_dir, batch_id, note, git, total_runtime_s, per_launch_avg_runtime_s)
 """
 
 import csv
@@ -185,7 +185,7 @@ def write_metrics_csv(result, path: str):
 # ─────────────────────────────────────────────────────────────────────────────
 
 SUMMARY_FIELDNAMES = [
-    "batch_id", "launch_id", "forecast_type", "status", "aprs_format",
+    "batch_id", "launch_id", "forecast_type", "launch_type", "status", "aprs_format",
     "campaign", "organization", "launch_date",
     "payload_weight_kg", "balloon_size_m",
     # sim FlightMetrics
@@ -224,13 +224,15 @@ def result_to_summary_row(batch_id: str, launch_id: str, forecast_type: str,
                           campaign: str = "", organization: str = "",
                           launch_date: str = "",
                           payload_weight_kg: float = math.nan,
-                          balloon_size_m: float = math.nan) -> dict:
+                          balloon_size_m: float = math.nan,
+                          launch_type: str = "standard") -> dict:
     """Build one row of summary.csv for the given evaluation result."""
     if result is None:
         return {f: "" for f in SUMMARY_FIELDNAMES} | {
             "batch_id":          batch_id,
             "launch_id":         launch_id,
             "forecast_type":     forecast_type,
+            "launch_type":       launch_type,
             "status":            status,
             "aprs_format":       aprs_format,
             "campaign":          campaign,
@@ -245,6 +247,7 @@ def result_to_summary_row(batch_id: str, launch_id: str, forecast_type: str,
         "batch_id":                    batch_id,
         "launch_id":                   launch_id,
         "forecast_type":               forecast_type,
+        "launch_type":                 launch_type,
         "status":                      status,
         "aprs_format":                 aprs_format,
         "campaign":                    campaign,
@@ -376,12 +379,16 @@ def _build_data_row(row: dict, orig_idx: int) -> str:
     lid     = _html.escape(lid_raw)
     ft      = _html.escape(ft_raw)
 
+    lt_raw = str(row.get("launch_type") or "standard")
+    lt     = _html.escape(lt_raw)
+
     if status != "ok":
         msg = _html.escape(str(status)[:80])
         return (
             f'<tr class="failed-row" data-orig="{orig_idx}" style="background:{_FAIL}">'
             f'<td data-val="{_html.escape(lid_raw)}" style="text-align:left">{lid}</td>'
             f'<td data-val="{_html.escape(ft_raw)}">{ft}</td>'
+            f'<td data-val="{_html.escape(lt_raw)}">{lt}</td>'
             f'<td colspan="21" style="text-align:left">FAILED: {msg}</td></tr>'
         )
 
@@ -414,6 +421,7 @@ def _build_data_row(row: dict, orig_idx: int) -> str:
         f'<tr data-orig="{orig_idx}">'
         f'<td data-val="{_html.escape(lid_raw)}" style="text-align:left">{lid}</td>'
         f'<td data-val="{_html.escape(ft_raw)}">{ft}</td>'
+        f'<td data-val="{_html.escape(lt_raw)}">{lt}</td>'
         + _td(_rv(row.get("payload_weight_kg")), _fv(row.get("payload_weight_kg"), ".2f"))
         + _td(_rv(row.get("balloon_size_m")),    _fv(row.get("balloon_size_m"),    ".1f"))
         + _td(_rv(row.get("sim_float_alt_mean_m")),    _fv(row.get("sim_float_alt_mean_m"),    ".0f"))
@@ -475,7 +483,7 @@ def _build_avg_row(label: str, rows_subset: list) -> str:
 
     return (
         f'<tr>'
-        f'<td colspan="2" style="text-align:left">{_html.escape(label)}</td>'
+        f'<td colspan="3" style="text-align:left">{_html.escape(label)}</td>'
         f'<td>{_fv(avg_payload, ".2f")}</td>'
         f'<td>{_fv(avg_balsize, ".1f")}</td>'
         f'<td>{_fv(avg_sa,  ".0f")}</td><td>{_fv(avg_ta,  ".0f")}</td><td{pa_s}>{pa_txt}</td>'
@@ -496,34 +504,35 @@ _TABLE_HEADER = (
     '<tr>'
     '<th data-col="0"  rowspan="2" style="text-align:left">Launch<span class="si"></span></th>'
     '<th data-col="1"  rowspan="2">Fcst<span class="si"></span></th>'
-    '<th data-col="2"  rowspan="2">Payload<br>(kg)<span class="si"></span></th>'
-    '<th data-col="3"  rowspan="2">Bal&nbsp;&Oslash;<br>(m)<span class="si"></span></th>'
+    '<th data-col="2"  rowspan="2">Type<span class="si"></span></th>'
+    '<th data-col="3"  rowspan="2">Payload<br>(kg)<span class="si"></span></th>'
+    '<th data-col="4"  rowspan="2">Bal&nbsp;&Oslash;<br>(m)<span class="si"></span></th>'
     '<th colspan="3">Float Alt (m)</th>'
     '<th colspan="3">Ascent (m/s)</th>'
     '<th colspan="3">Descent (m/s)</th>'
     '<th colspan="3">Time to Float (min)</th>'
     '<th colspan="3">Time to Ground (min)</th>'
-    '<th data-col="22" rowspan="2">Land Dist<br>(km)<span class="si"></span></th>'
-    '<th data-col="23" rowspan="2">|Time &Delta;|<br>(min)<span class="si"></span></th>'
-    '<th data-col="24" rowspan="2">Temp MAE<br>(K)<span class="si"></span></th>'
-    '<th data-col="25" rowspan="2">Press MAE<br>(Pa)<span class="si"></span></th>'
+    '<th data-col="23" rowspan="2">Land Dist<br>(km)<span class="si"></span></th>'
+    '<th data-col="24" rowspan="2">|Time &Delta;|<br>(min)<span class="si"></span></th>'
+    '<th data-col="25" rowspan="2">Temp MAE<br>(K)<span class="si"></span></th>'
+    '<th data-col="26" rowspan="2">Press MAE<br>(Pa)<span class="si"></span></th>'
     '</tr>'
     '<tr>'
-    '<th data-col="4"  class="sub">Sim<span class="si"></span></th>'
-    '<th data-col="5"  class="sub">Truth<span class="si"></span></th>'
-    '<th data-col="6"  class="sub">%&Delta;<span class="si"></span></th>'
-    '<th data-col="7"  class="sub">Sim<span class="si"></span></th>'
-    '<th data-col="8"  class="sub">Truth<span class="si"></span></th>'
-    '<th data-col="9"  class="sub">%&Delta;<span class="si"></span></th>'
-    '<th data-col="10" class="sub">Sim<span class="si"></span></th>'
-    '<th data-col="11" class="sub">Truth<span class="si"></span></th>'
-    '<th data-col="12" class="sub">%&Delta;<span class="si"></span></th>'
-    '<th data-col="13" class="sub">Sim<span class="si"></span></th>'
-    '<th data-col="14" class="sub">Truth<span class="si"></span></th>'
-    '<th data-col="15" class="sub">&Delta;(min)<span class="si"></span></th>'
-    '<th data-col="16" class="sub">Sim<span class="si"></span></th>'
-    '<th data-col="17" class="sub">Truth<span class="si"></span></th>'
-    '<th data-col="18" class="sub">&Delta;(min)<span class="si"></span></th>'
+    '<th data-col="5"  class="sub">Sim<span class="si"></span></th>'
+    '<th data-col="6"  class="sub">Truth<span class="si"></span></th>'
+    '<th data-col="7"  class="sub">%&Delta;<span class="si"></span></th>'
+    '<th data-col="8"  class="sub">Sim<span class="si"></span></th>'
+    '<th data-col="9"  class="sub">Truth<span class="si"></span></th>'
+    '<th data-col="10" class="sub">%&Delta;<span class="si"></span></th>'
+    '<th data-col="11" class="sub">Sim<span class="si"></span></th>'
+    '<th data-col="12" class="sub">Truth<span class="si"></span></th>'
+    '<th data-col="13" class="sub">%&Delta;<span class="si"></span></th>'
+    '<th data-col="14" class="sub">Sim<span class="si"></span></th>'
+    '<th data-col="15" class="sub">Truth<span class="si"></span></th>'
+    '<th data-col="16" class="sub">&Delta;(min)<span class="si"></span></th>'
+    '<th data-col="17" class="sub">Sim<span class="si"></span></th>'
+    '<th data-col="18" class="sub">Truth<span class="si"></span></th>'
+    '<th data-col="19" class="sub">&Delta;(min)<span class="si"></span></th>'
     '</tr>'
     '</thead>'
 )
@@ -587,10 +596,19 @@ _SORT_JS = """\
 
 
 def write_summary_html(summary_rows: list, batch_dir: str,
-                       batch_id: str, note: str, git: dict) -> str:
+                       batch_id: str, note: str, git: dict,
+                       total_runtime_s: float = None,
+                       per_launch_avg_runtime_s: float = None) -> str:
     """Write summary.html with colored % diff table, averages row, and sortable columns."""
     overall_data = "".join(_build_data_row(r, i) for i, r in enumerate(summary_rows))
     overall_avg  = _build_avg_row("Average", summary_rows)
+
+    # Format runtime display
+    runtime_str = "—"
+    if total_runtime_s is not None:
+        runtime_str = f"{total_runtime_s:.1f} s total"
+        if per_launch_avg_runtime_s is not None:
+            runtime_str += f", {per_launch_avg_runtime_s:.1f} s/launch avg"
 
     def _group_key(row):
         camp = row.get("campaign") or ""
@@ -668,7 +686,8 @@ def write_summary_html(summary_rows: list, batch_dir: str,
     <b>Batch ID:</b> {_html.escape(batch_id)}<br>
     <b>Note:</b> {_html.escape(note)}<br>
     <b>Git:</b> {_html.escape(git.get("git_hash",""))} &mdash; {_html.escape(git.get("git_commit_message",""))}{dirty_note}<br>
-    <b>Branch:</b> {_html.escape(git.get("git_branch",""))}
+    <b>Branch:</b> {_html.escape(git.get("git_branch",""))}<br>
+    <b>Runtime:</b> {runtime_str}
   </div>
 
   <div class="legend">

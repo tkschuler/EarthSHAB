@@ -23,7 +23,7 @@ copyright = '2021-2026'
 author = 'Tristan Schuler'
 
 # The full version, including alpha/beta/rc tags
-release = '1.3.0'
+release = '2.2.1'
 
 # The suffix of source filenames.
 #source_suffix = '.rst'
@@ -47,9 +47,20 @@ extensions = [
     'sphinx.ext.intersphinx',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
+    'myst_parser',
 ]
 
 autosummary_generate = True
+
+# Prefix autosectionlabel labels with the document name so the generic section
+# titles in the Markdown forecast-schema / migration pages (e.g. "Validation",
+# "Reference") don't collide across documents under the -W build.
+autosectionlabel_prefix_document = True
+
+# MyST (Markdown) support for the forecast-schema-v2 / migration-v2 pages.
+myst_heading_anchors = 3
+# colon_fence enables ::: {note} / {warning} / ... admonitions in Markdown.
+myst_enable_extensions = ["colon_fence"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

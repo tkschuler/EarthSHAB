@@ -45,6 +45,24 @@ def _drop_nan_coords(lats, lons):
     return zip(*pairs)
 
 
+def build_trajectory_filename(forecast, forecast_type, t, start, prefix):
+    """Standard trajectory HTML filename, shared by plot_map and predict.py.
+
+    Encodes the forecast's spatial grid and temporal cadence, e.g.
+    ``PREDICTION_GFS_0p25deg_3hr_2026_6_9.html``. Spatial resolution comes from
+    the grid spacing, temporal step from the file cadence
+    (``Forecast.resolution_hr``).
+    """
+    res_token = ""
+    if len(forecast.lat) >= 2:
+        res_deg = abs(float(forecast.lat[1]) - float(forecast.lat[0]))
+        res_token = f"_{res_deg:g}deg".replace(".", "p")
+    step_hr = getattr(forecast, "resolution_hr", None)
+    step_token = f"_{step_hr:g}hr".replace(".", "p") if step_hr is not None else ""
+
+    return f"{prefix}_{forecast_type}{res_token}{step_token}_{t.year}_{t.month}_{start.day}.html"
+
+
 def plot_map(
     gmap1,
     coord,
@@ -56,7 +74,7 @@ def plot_map(
     lat_aprs_gps,
     lon_aprs_gps,
     df,
-    gfs,
+    forecast,
     sim,
     t,
     start,
@@ -89,25 +107,29 @@ def plot_map(
         gmap1.text(coord["lat"] - .2, coord["lon"] - .2, 'Simulated Trajectory with GFS Forecast', color='blue')
         draw_bounding_box(
             gmap1,
-            gfs.LAT_LOW,
-            sim.wrap_lon(gfs.lon).min(),
-            gfs.LAT_HIGH,
-            sim.wrap_lon(gfs.lon).max()
+            forecast.LAT_LOW,
+            sim.wrap_lon(forecast.lon).min(),
+            forecast.LAT_HIGH,
+            sim.wrap_lon(forecast.lon).max()
         )
 
     elif forecast_type == "ERA5":
         region = zip(*[
-            (gfs.LAT_LOW, gfs.LON_LOW),
-            (gfs.LAT_HIGH, gfs.LON_LOW),
-            (gfs.LAT_HIGH, gfs.LON_HIGH),
-            (gfs.LAT_LOW, gfs.LON_HIGH)
+            (forecast.LAT_LOW, forecast.LON_LOW),
+            (forecast.LAT_HIGH, forecast.LON_LOW),
+            (forecast.LAT_HIGH, forecast.LON_HIGH),
+            (forecast.LAT_LOW, forecast.LON_HIGH)
         ])
         gmap1.plot(lat, lon, 'red', edge_width=2.5)
         gmap1.text(coord["lat"] - .2, coord["lon"] - .2, 'Simulated Trajectory with ERA5 Reanalysis', color='red')
         gmap1.polygon(*region, color='orange', edge_width=1, alpha=.15)
 
     prefix = (html_prefix or "") + (trajectory_name if balloon_trajectory is not None else "PREDICTION")
+
     os.makedirs(output_dir, exist_ok=True)
     gmap1.draw(
-        os.path.join(output_dir, f"{prefix}_{forecast_type}_{t.year}_{t.month}_{start.day}.html")
+        os.path.join(
+            output_dir,
+            build_trajectory_filename(forecast, forecast_type, t, start, prefix)
+        )
     )

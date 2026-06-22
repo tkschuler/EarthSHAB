@@ -3,9 +3,11 @@ saveNETCDF.py  –  EarthSHAB GFS forecast downloader (GRIB-filter edition)
 ==========================================================================
 NOAA retired the OpenDAP/DODS interface that EarthSHAB originally used.
 This replacement fetches the same data through NOAA's GRIB-filter service
-(https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25.pl), saves each
-forecast hour as a temporary GRIB2 file, and merges everything into a
-single NetCDF-4 file whose structure matches what GFS.py already expects.
+(https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25.pl and the 0p50 / 1p00
+variants), saves each forecast hour as a temporary GRIB2 file, and merges
+everything into a single NetCDF-4 file whose structure matches what GFS.py
+already expects. The grid resolution is selected via netcdf_gfs['res']
+(0.25, 0.5, or 1.0 degrees).
 
 Variables downloaded (all on isobaric pressure levels):
   UGRD  – U-component of wind  (m/s)
@@ -25,20 +27,24 @@ Usage:
   (uses config_earth.py for lat/lon centre, range, date, and download_days)
 """
 
+import sys
 import time
 import datetime
 import tempfile
 import requests
 import numpy as np
 import xarray as xr
-import cfgrib
+try:
+    import cfgrib
+except ImportError:  # cfgrib needs eccodes (conda); keep the module importable without it
+    cfgrib = None
 import netCDF4 as nc
 from pathlib import Path
 from termcolor import colored
 import pandas as pd
 
 # ── EarthSHAB config ──────────────────────────────────────────────────────────
-from EarthSHAB.config_earth import netcdf_gfs, simulation
+from EarthSHAB.config import netcdf_gfs, simulation
 
 xr.set_options(use_new_combine_kwarg_defaults=True) # cfgrib may raise FutureWarnings about combine_attrs; this silences them for now...
 
@@ -49,8 +55,21 @@ PRESSURE_LEVELS_MB = [
      100,  70,  50,  40,  30,  20,  15,  10,
 ]
 
-# ── GRIB filter base URL ───────────────────────────────────────────────────────
-FILTER_BASE = "https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25.pl"
+# ── GRIB filter endpoints per GFS resolution ───────────────────────────────────
+# Each supported grid maps to (filter-script name, pgrb2 file token). The 0.5°
+# grid uses the "pgrb2full" file, which (unlike the reduced "pgrb2.0p50") carries
+# the complete set of isobaric levels EarthSHAB needs.
+FILTER_HOST = "https://nomads.ncep.noaa.gov/cgi-bin/"
+GFS_RESOLUTIONS = {
+    0.25: ("filter_gfs_0p25.pl", "pgrb2.0p25"),
+    0.5:  ("filter_gfs_0p50.pl", "pgrb2full.0p50"),
+    1.0:  ("filter_gfs_1p00.pl", "pgrb2.1p00"),
+}
+
+# Finest temporal step (h) each grid actually publishes. Only the 0.25° grid
+# carries hourly steps (out to f120); the 0.5° and 1.0° grids are 3-hourly only.
+# step_hours must be an integer multiple of the grid's minimum.
+GFS_MIN_STEP_HOURS = {0.25: 1, 0.5: 3, 1.0: 3}
 
 # Seconds to wait between fetches (NOAA asks for ≥10 s between requests)
 FETCH_DELAY = 2
@@ -66,17 +85,20 @@ def _level_params(levels_mb):
 
 
 def _build_url(date_str, cycle_hour, forecast_hour, lat_range, lon_range,
-               center_lat, center_lon):
+               center_lat, center_lon, res=0.25):
     """
     Construct a GRIB-filter URL for one GFS forecast step.
 
     date_str      : 'YYYYMMDD'
     cycle_hour    : 0, 6, 12, or 18  (model initialisation hour)
     forecast_hour : 0, 3, 6, … 240+  (hours into forecast)
-    lat/lon_range : index counts (each = res degrees) from config
+    lat/lon_range : bounding-box height/width in degrees from config
     center_lat/lon: centre of the bounding box; lon in [-180, 180]
+    res           : GFS grid resolution in degrees (0.25, 0.5, or 1.0)
     NOTE: GRIB filter requires longitudes in [-180, 180], NOT [0, 360].
     """
+    filter_script, file_token = GFS_RESOLUTIONS[res]
+
     fhh = f"{int(forecast_hour):03d}"
     cyc = f"{int(cycle_hour):02d}"
 
@@ -89,14 +111,14 @@ def _build_url(date_str, cycle_hour, forecast_hour, lat_range, lon_range,
     level_str = _level_params(PRESSURE_LEVELS_MB)
 
     params = (
-        f"file=gfs.t{cyc}z.pgrb2.0p25.f{fhh}"
+        f"file=gfs.t{cyc}z.{file_token}.f{fhh}"
         f"&{level_str}"
         f"&var_UGRD=on&var_VGRD=on&var_TMP=on&var_HGT=on"
         f"&subregion="
         f"&toplat={top}&leftlon={left}&rightlon={right}&bottomlat={bottom}"
         f"&dir=%2Fgfs.{date_str}%2F{cyc}%2Fatmos"
     )
-    return f"{FILTER_BASE}?{params}"
+    return f"{FILTER_HOST}{filter_script}?{params}"
 
 
 def _adjust_run_date(start_time):
@@ -151,6 +173,11 @@ def _grib_to_dataset(grib_path):
     containing ugrd, vgrd, t, and gh on isobaric levels.
     cfgrib may split a GRIB2 into multiple datasets; we merge them.
     """
+    if cfgrib is None:
+        raise RuntimeError(
+            "cfgrib is required to download GFS forecasts but is not installed. "
+            "Install it via conda: `conda install -c conda-forge cfgrib eccodes`."
+        )
     datasets = []
     try:
         datasets = cfgrib.open_datasets(
@@ -238,8 +265,26 @@ def download_gfs_grib_to_netcdf():
     lat_range = netcdf_gfs["lat_range"]
     lon_range = netcdf_gfs["lon_range"]
     download_days = netcdf_gfs["download_days"]
+    step_hours = netcdf_gfs.get("step_hours", 3)
+    res = netcdf_gfs.get("res", 0.25)
     out_filename = netcdf_gfs["nc_file"]
     forecast_start_time = netcdf_gfs["nc_start"]
+
+    if res not in GFS_RESOLUTIONS:
+        raise ValueError(
+            f"netcdf_gfs['res']={res} is not a supported GFS grid. "
+            f"Choose one of {sorted(GFS_RESOLUTIONS)} (degrees)."
+        )
+
+    # The coarser grids are 3-hourly only; reject step_hours the grid can't supply.
+    min_step = GFS_MIN_STEP_HOURS[res]
+    if step_hours < min_step or step_hours % min_step != 0:
+        raise ValueError(
+            f"netcdf_gfs['step_hours']={step_hours} is not available on the {res}° grid. "
+            f"That grid publishes steps in multiples of {min_step} h"
+            + (" (hourly steps exist only on the 0.25° grid, out to f120)."
+               if res != 0.25 else ".")
+        )
 
     out_path = Path(out_filename)
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -250,11 +295,12 @@ def download_gfs_grib_to_netcdf():
     cycle_hour = run_date.hour
 
     total_hours = download_days * 24
-    forecast_hours = list(range(0, total_hours + 1, 3))
+    forecast_hours = list(range(0, total_hours + 1, step_hours))
 
     print(f"\nEarthSHAB GFS downloader (GRIB-filter edition)")
     print(f"  Model run   : {date_str} {cycle_hour:02d}Z")
-    print(f"  Forecast hrs: {forecast_hours[0]}–{forecast_hours[-1]} (every 3 h)")
+    print(f"  Resolution  : {res}° grid ({GFS_RESOLUTIONS[res][0]})")
+    print(f"  Forecast hrs: {forecast_hours[0]}–{forecast_hours[-1]} (every {step_hours} h)")
     print(f"  Bounding box: lat {lat_center}±{lat_range/2}°, "
           f"lon {lon_center}±{lon_range/2}°")
     print(f"  Output      : {out_path}\n")
@@ -264,7 +310,7 @@ def download_gfs_grib_to_netcdf():
 
     with tempfile.TemporaryDirectory(prefix="earthshab_grib_") as tmpdir:
         for fhr in forecast_hours:
-            url = _build_url(date_str, cycle_hour, fhr, lat_range, lon_range, lat_center, lon_center)
+            url = _build_url(date_str, cycle_hour, fhr, lat_range, lon_range, lat_center, lon_center, res)
             grb_name = f"gfs_{date_str}_{cycle_hour:02d}z_f{fhr:03d}.grb2"
             grb_path = Path(tmpdir) / grb_name
 
@@ -281,8 +327,18 @@ def download_gfs_grib_to_netcdf():
                 time.sleep(FETCH_DELAY)
                 continue
 
-            valid_time = run_date + datetime.timedelta(hours=fhr)
-            ds = ds.expand_dims("time").assign_coords(time=[np.datetime64(valid_time, "ns")])
+            # cfgrib creates datasets with 'time', 'step', and 'valid_time' coords.
+            # Drop 'step' and keep 'valid_time' for the canonical format.
+            if "step" in ds.coords:
+                ds = ds.drop_vars("step")
+            if "time" in ds.coords and "valid_time" in ds.coords:
+                # Drop the forecast reference time, keep valid_time
+                ds = ds.drop_vars("time")
+
+            # Ensure valid_time is a dimension
+            if "valid_time" in ds.coords and "valid_time" not in ds.dims:
+                ds = ds.expand_dims("valid_time")
+
             hourly_datasets.append(ds)
 
             time.sleep(FETCH_DELAY)
@@ -291,66 +347,166 @@ def download_gfs_grib_to_netcdf():
         raise RuntimeError("No data was successfully downloaded. Check your config and network connectivity.")
 
     print("\nMerging all forecast hours …")
-    combined = xr.concat(hourly_datasets, dim="time")
+    combined = xr.concat(hourly_datasets, dim="valid_time")
 
+    # Convert to canonical v2 format
+    # Rename variables: gh → z, u/v/t stay the same
     rename_map = {
-        "u": "ugrdprs",
-        "v": "vgrdprs",
-        "t": "tmpprs",
-        "gh": "hgtprs",
-        "isobaricInhPa": "lev",
-        "latitude": "lat",
-        "longitude": "lon",
+        "gh": "z",
+        "isobaricInhPa": "pressure_level",
+        "latitude": "latitude",  # keep name
+        "longitude": "longitude",  # keep name
     }
-    combined = combined.rename(rename_map)
+    combined = combined.rename({k: v for k, v in rename_map.items() if k in combined})
 
-    if "lev" in combined.coords:
-        combined["lev"].attrs["units"] = "hPa"
-        combined["lev"].attrs["long_name"] = "pressure level"
+    # Convert geopotential height (m) to geopotential (m²/s²) by multiplying by g
+    g = 9.80665
+    combined["z"] = combined["z"] * g
+    combined["z"].attrs["units"] = "m**2 s**-2"
+    combined["z"].attrs["long_name"] = "Geopotential"
+    combined["z"].attrs["standard_name"] = "geopotential"
 
-    for old, new in [("latitude", "lat"), ("longitude", "lon")]:
-        if old in combined.dims:
-            combined = combined.rename({old: new})
+    # Convert longitude from [0, 360) to [-180, 180)
+    lon_vals = combined["longitude"].values
+    lon_vals = np.where(lon_vals >= 180, lon_vals - 360, lon_vals)
+    combined = combined.assign_coords(longitude=lon_vals)
 
-    time_values = combined["time"].values
+    # Sort by longitude to maintain ascending order after conversion
+    combined = combined.sortby("longitude")
+
+    # Flip latitude to descending order (north to south)
+    combined = combined.sortby("latitude", ascending=False)
+
+    # Set coordinate attributes
+    combined["pressure_level"].attrs["units"] = "hPa"
+    combined["pressure_level"].attrs["long_name"] = "pressure"
+    combined["pressure_level"].attrs["standard_name"] = "air_pressure"
+    combined["pressure_level"].attrs["positive"] = "down"
+    combined["pressure_level"].attrs["stored_direction"] = "decreasing"
+
+    combined["latitude"].attrs["units"] = "degrees_north"
+    combined["latitude"].attrs["long_name"] = "latitude"
+    combined["latitude"].attrs["standard_name"] = "latitude"
+    combined["latitude"].attrs["stored_direction"] = "decreasing"
+
+    combined["longitude"].attrs["units"] = "degrees_east"
+    combined["longitude"].attrs["long_name"] = "longitude"
+    combined["longitude"].attrs["standard_name"] = "longitude"
+
+    # Set u/v/t attributes
+    combined["u"].attrs["units"] = "m s**-1"
+    combined["u"].attrs["long_name"] = "U component of wind"
+    combined["u"].attrs["standard_name"] = "eastward_wind"
+
+    combined["v"].attrs["units"] = "m s**-1"
+    combined["v"].attrs["long_name"] = "V component of wind"
+    combined["v"].attrs["standard_name"] = "northward_wind"
+
+    combined["t"].attrs["units"] = "K"
+    combined["t"].attrs["long_name"] = "Temperature"
+    combined["t"].attrs["standard_name"] = "air_temperature"
+
+    # Convert time to seconds since 1970-01-01 (Unix epoch)
+    time_values = combined["valid_time"].values
     datetime_objects = [pd.Timestamp(t).to_pydatetime() for t in time_values]
 
     print(f"time values (datetime): {datetime_objects}")
 
-    julian_dates = nc.date2num(
+    epoch_seconds = nc.date2num(
         datetime_objects,
-        units="days since 0001-01-01",
-        calendar="standard",
-        has_year_zero=True,
+        units="seconds since 1970-01-01",
+        calendar="proleptic_gregorian",
     )
 
-    combined = combined.assign_coords(time=julian_dates.astype(np.float64))
-    combined["time"].attrs = {}  # Remove all attributes from the time variable
+    combined = combined.assign_coords(valid_time=epoch_seconds.astype(np.int64))
+    combined["valid_time"].attrs = {
+        "units": "seconds since 1970-01-01",
+        "calendar": "proleptic_gregorian",
+        "standard_name": "time",
+        "long_name": "time",
+    }
 
-    combined["time"].attrs["units"] = "days since 0001-01-01"
-    combined["time"].attrs["calendar"] = "standard"
+    # Add global CF-1.7 convention and provenance
+    combined.attrs["Conventions"] = "CF-1.7"
+    combined.attrs["institution"] = "NOAA/NCEP (GFS)"
+    combined.attrs["history"] = f"{pd.Timestamp.now().isoformat()} - Downloaded and converted by EarthSHAB saveNETCDF.py"
 
-    # Reorder coordinates and variables to match the old file
-    combined = combined.transpose("time", "lev", "lat", "lon")  # Correct dimension names
-    variable_order = ["hgtprs", "tmpprs", "ugrdprs", "vgrdprs"]  # Desired variable order
-    combined = xr.Dataset({var: combined[var] for var in variable_order if var in combined}, coords=combined.coords)
+    # Reorder dimensions to canonical order: valid_time, pressure_level, latitude, longitude
+    combined = combined.transpose("valid_time", "pressure_level", "latitude", "longitude")
 
-    # Remove unnecessary coordinates
-    for coord in ["step", "valid_time"]:
-        if coord in combined.coords:
+    # Order variables: u, v, z, t
+    variable_order = ["u", "v", "z", "t"]
+    combined = xr.Dataset(
+        {var: combined[var] for var in variable_order if var in combined},
+        coords=combined.coords
+    )
+
+    # Remove unnecessary coordinates (already handled above but double-check)
+    for coord in ["step", "time"]:
+        if coord in combined.coords and coord not in combined.dims:
             combined = combined.drop_vars(coord)
 
 
     print(f"Writing {out_path} …")
     encoding = {var: {"zlib": True, "complevel": 4} for var in combined.data_vars}
-    encoding["time"] = {"_FillValue": None}  # Remove _FillValue from the time variable
+    encoding["valid_time"] = {"_FillValue": None}  # Remove _FillValue from the time variable
     combined.to_netcdf(str(out_path), encoding=encoding)
     print(f"\nDone!  Saved to: {out_path}")
     print(f"  Dimensions : {dict(combined.sizes)}")
     print(f"  Variables  : {list(combined.data_vars)}")
-    print(f"  Time values (Julian dates): {julian_dates}")
+    print(f"  Time values (epoch seconds): {epoch_seconds}")
     return str(out_path)
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Live-vs-archive dispatch
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _is_past_retention(nc_start, retention_days=9):
+    """True if *nc_start* is older than NOAA's live (NOMADS) retention window."""
+    now_utc = datetime.datetime.utcnow()
+    oldest_available = (now_utc - datetime.timedelta(days=retention_days)).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    return nc_start.replace(minute=0, second=0, microsecond=0) < oldest_available
+
+
+def _prompt_proceed_archive(nc_start):
+    """Warn (yellow) that the cycle is past the live window and ask to use the archive.
+
+    Returns True to proceed with the AWS archive download. In a non-interactive
+    session (no TTY) it defaults to proceeding, since the archive is the only way
+    to obtain a past cycle — it prints a notice so the choice is visible in logs.
+    """
+    print(colored(
+        f"\n[WARNING] Requested cycle {nc_start} is older than NOAA's ~9-day live "
+        f"retention window, so it is not available from NOMADS.", "yellow"))
+    print(colored(
+        "          A historical copy is available from the AWS GFS archive "
+        "(noaa-gfs-bdp-pds).", "yellow"))
+    if not sys.stdin.isatty():
+        print(colored("          Non-interactive session — proceeding with the "
+                      "archived forecast.", "yellow"))
+        return True
+    answer = input(colored(
+        "          Download the archived forecast instead? [Y/n]: ", "yellow")).strip().lower()
+    return answer in ("", "y", "yes")
+
+
+def main():
+    """Download the configured GFS cycle, auto-switching to the AWS archive
+    (saveNETCDF_archive.py) when the cycle predates NOAA's live retention window."""
+    nc_start = netcdf_gfs["nc_start"]
+    if _is_past_retention(nc_start):
+        if not _prompt_proceed_archive(nc_start):
+            print(colored("Aborted. Choose a cycle within the last ~9 days for a "
+                          "live download, or confirm the archive next time.", "red"))
+            sys.exit(1)
+        # Auto-switch to the archive downloader.
+        from EarthSHAB.saveNETCDF_archive import download_gfs_archive_to_netcdf
+        return download_gfs_archive_to_netcdf()
+    return download_gfs_grib_to_netcdf()
+
+
 if __name__ == "__main__":
-    download_gfs_grib_to_netcdf()
+    main()

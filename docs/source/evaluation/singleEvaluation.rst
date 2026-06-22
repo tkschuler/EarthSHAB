@@ -6,7 +6,7 @@ Single Evaluation
 
 A single evaluation runs **one** simulation against **one** historical balloon
 flight and reports how close the simulation came to the truth.  It uses the
-current ``config_earth.py`` directly.
+current ``config.py`` directly.
 
 Useful for:
 
@@ -30,7 +30,7 @@ Two required inputs must be in place before running the evaluation, with SHAB14V
    The trajectory loader auto-detects the format from the column header.
 
 
-Configure ``config_earth.py``
+Configure ``config.py``
 -----------------------------
 
 **1. Point to your APRS trajectory file:**
@@ -75,15 +75,19 @@ Configure ``config_earth.py``
        ...
    )
 
-**5. Select your forecast type and file:**
+**5. Select your forecast file:**
 
 .. code-block:: python
 
    forecast = dict(
-       forecast_type = "GFS",   # or "ERA5"
+       file = "src/EarthSHAB/forecasts/gfs_0p25_3h_20220822_12.nc",  # GFS or ERA5 .nc
        forecast_start_time = "2022-08-22 12:00:00",
-       GFSrate = 60,
+       forecast_update_interval = 60,
    )
+
+The source (GFS vs ERA5) is read automatically from the file's ``institution``
+attribute — point ``file`` at the bundled ERA5 forecast
+(``SHAB14V_ERA5_20220822_20220823.nc``) to evaluate the same flight off ERA5.
 
 
 Run the Evaluation
@@ -150,7 +154,7 @@ Single Evaluation Output
    points (``v > 0.5 m/s``), averages their vertical velocity, and linearly
    extrapolates the first APRS altitude back down to ``min_alt``.  If the
    suggested time differs significantly from your configured ``start_time``,
-   update ``config_earth.py`` and re-run.  APRS trackers often miss the begining
+   update ``config.py`` and re-run.  APRS trackers often miss the begining
    of ascent due to ground interference.
 
 **Comparison plot:**
@@ -254,6 +258,39 @@ Step 4 — ascent and descent
    * ``descent_mask = (v < −v_linear) & (i ≥ i_exit)``
 
    ``v_linear`` defaults to ``1.0 m/s``.
+
+
+Launch-type-aware behaviour
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+EarthSHAB only physically models a self-ascending solar balloon.  When the
+``launch_type`` field on a launch entry is set to something other than
+``"standard"``, the evaluator alters phase detection and metric reporting so
+non-physical comparisons don't pollute the results.  The behaviour is
+identical between single and batch evaluations.
+
+* ``"standard"`` (default) — full ascent / float / descent metrics.
+* ``"helium_augmented"`` — ascent is helium-driven, faster than solar.
+  **Both sim and truth ascent masks are zeroed out**, so ``Ascent Rate Mean
+  / Std`` and ``Time to Float`` report ``N/A``.  Float and descent metrics
+  remain valid and are scored.
+* ``"grand_slam"`` — SHAB is carried by a separate weather balloon and
+  released *above* its natural float altitude.  Two changes:
+
+  * Ascent metrics are zeroed (same as helium-augmented).
+  * The float-search bracket is widened from ``alt ≥ 0.90 · max_alt`` to
+    the **entire post-apex region of the trajectory**.  Without this the
+    detector clips to the brief weather-balloon release peak and misses the
+    actual SHAB float plateau that follows the descent.  The descent mask
+    then begins at ``last_float_index + 1``.
+
+A row's ``Type`` cell in :ref:`batch-html-summary` shows which behaviour
+was applied; missing field is treated as ``standard``.
+
+.. note::
+   The forward simulation is unchanged — EarthSHAB still simulates a solar
+   balloon ascending from ``min_alt`` regardless of ``launch_type``.  The
+   flag only affects which phases of the *observed* trajectory get scored.
 
 
 Truth-velocity smoothing
