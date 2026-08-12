@@ -4,6 +4,8 @@
 [![License](https://img.shields.io/badge/license-see%20LICENSE-lightgrey.svg)](LICENSE)
 
 # EarthSHAB
+I have made some edits and also set up automatic system time and time zone for images.
+I also transfer basic payload weight into trajectory computations.
 
 > ⚠️ **v2.0.0 introduces a new unified NetCDF forecast schema.** Archived v1 forecasts
 > can be converted with the `migrate_v1` CLI.
